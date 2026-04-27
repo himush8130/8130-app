@@ -1,0 +1,8 @@
+-- =====================================================================
+-- 8130 APP — Seed data for development
+-- =====================================================================
+-- Populated by `supabase db reset` after migrations run.
+-- This file is intentionally empty for now — db-engineer agent will
+-- add seed data (3 professions, 5 technicians, 5 vehicles, 10 parts)
+-- once the schema exists.
+-- =====================================================================
