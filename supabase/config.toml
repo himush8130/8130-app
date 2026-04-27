@@ -378,6 +378,12 @@ deno_version = 2
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
+# Webhook receiver from Base44. Public endpoint — auth is via our own
+# Bearer Token (WEBHOOK_SECRET), not Supabase JWT. Disable platform JWT
+# verification so Base44's plain HTTP requests reach our handler.
+[functions.webhook-base44]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327
