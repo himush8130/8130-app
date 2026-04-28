@@ -1,12 +1,70 @@
+/* Heebo — Hebrew-first webfont. @import must come before any rules. */
+@import url('https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
+/* =====================================================================
+ * 8130 APP — Design Tokens (Palette A: Industrial Neutral)
+ * =====================================================================
+ * Components must reference SEMANTIC tokens (bg-surface, text-primary,
+ * border-muted) rather than raw colors (bg-slate-50, text-indigo-600).
+ * A future palette change is then a one-file edit here.
+ * ===================================================================== */
+
+@theme {
+  /* --- Surfaces --- */
+  --color-surface:      oklch(98.4% 0.003 247);   /* page background       (slate-50) */
+  --color-card:         oklch(100% 0 0);          /* elevated surface       (white)   */
+  --color-muted-surface:oklch(96.4% 0.006 247);   /* hover/pressed cards    (slate-100) */
+
+  /* --- Text --- */
+  --color-foreground:   oklch(20.5% 0.014 250);   /* primary text           (slate-900) */
+  --color-muted:        oklch(43.3% 0.020 252);   /* secondary text         (slate-600) */
+  --color-faint:        oklch(70.4% 0.018 257);   /* placeholder, hints     (slate-400) */
+
+  /* --- Brand / accent --- */
+  --color-primary:      oklch(45.4% 0.220 277);   /* indigo-700 — buttons, links */
+  --color-primary-hover:oklch(40.0% 0.220 277);   /* indigo-800            */
+  --color-primary-fg:   oklch(100% 0 0);          /* text on primary        (white) */
+
+  /* --- Borders --- */
+  --color-border:       oklch(92.4% 0.008 250);   /* slate-200             */
+  --color-border-strong:oklch(86.0% 0.012 250);   /* slate-300             */
+
+  /* --- Status (anomalies, call lifecycle) --- */
+  --color-success:      oklch(58.0% 0.144 158);   /* emerald-600           */
+  --color-warning:      oklch(70.0% 0.155 76);    /* amber-500             */
+  --color-danger:       oklch(58.0% 0.218 27);    /* red-600               */
+  --color-info:         oklch(60.0% 0.145 230);   /* sky-600               */
+
+  /* --- Typography --- */
+  --font-sans: 'Heebo', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* --- Shape --- */
+  --radius-sm:   0.375rem;
+  --radius-md:   0.5rem;
+  --radius-lg:   0.75rem;
+
+  /* --- Elevation --- */
+  --shadow-card: 0 1px 2px 0 oklch(0% 0 0 / 0.05),
+                 0 1px 3px 0 oklch(0% 0 0 / 0.07);
+}
+
 html {
-  font-family: system-ui, 'Segoe UI', Roboto, -apple-system, sans-serif;
+  font-family: var(--font-sans);
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  background: #ffffff;
-  color: #1f2937;
+  background: var(--color-surface);
+  color: var(--color-foreground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Make number inputs render naturally regardless of dir=rtl */
+input[type="number"],
+input[type="tel"] {
+  direction: ltr;
+  text-align: right;
 }
