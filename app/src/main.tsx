@@ -11,6 +11,7 @@ import { ManagerHomePage } from './pages/ManagerHomePage'
 import { AnomalyQueuePage } from './pages/AnomalyQueuePage'
 import { AllCallsPage } from './pages/AllCallsPage'
 import { WarehouseHomePage } from './pages/WarehouseHomePage'
+import { VehicleHistoryPage } from './pages/VehicleHistoryPage'
 import { ProtectedRoute } from './components/ProtectedRoute'
 
 const queryClient = new QueryClient({
@@ -78,6 +79,15 @@ createRoot(document.getElementById('root')!).render(
             element={
               <ProtectedRoute>
                 <CallDetailPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/vehicle/:vehicleNumber"
+            element={
+              <ProtectedRoute>
+                <VehicleHistoryPage />
               </ProtectedRoute>
             }
           />

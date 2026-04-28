@@ -51,3 +51,37 @@ export async function cancelCall(
     params: { call_id: callId },
   })
 }
+
+export async function closeCall(
+  employeeNumber: number,
+  callId: string,
+): Promise<CallActionResult> {
+  return invoke({
+    employee_number: employeeNumber,
+    action: 'close_call',
+    params: { call_id: callId },
+  })
+}
+
+export async function reopenCall(
+  employeeNumber: number,
+  callId: string,
+): Promise<CallActionResult> {
+  return invoke({
+    employee_number: employeeNumber,
+    action: 'reopen_call',
+    params: { call_id: callId },
+  })
+}
+
+export async function addComment(
+  employeeNumber: number,
+  callId: string,
+  text: string,
+): Promise<CallActionResult> {
+  return invoke({
+    employee_number: employeeNumber,
+    action: 'add_comment',
+    params: { call_id: callId, text },
+  })
+}

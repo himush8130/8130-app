@@ -1,23 +1,21 @@
 // =====================================================================
-// 8130 APP — Manager actions endpoint
+// 8130 APP — Call mutations endpoint (manager + lifecycle actions)
 // =====================================================================
-// Single Edge Function that handles all manager mutations. Routes through
-// service_role (RLS-bypassing) but enforces a role check by looking up
-// the calling employee_number and confirming role='manager'.
-//
-// This is the M4 stop-gap until proper JWT auth lands. Any client with
-// the publishable anon key can call this endpoint; security relies on
-// the function-level role check, not RLS.
+// Routes through service_role (RLS-bypassing). Role enforcement is per
+// action — some actions allow any role, others require manager.
 //
 // Request body:
 //   { employee_number: number, action: string, params: {...} }
 //
-// Supported actions:
+// Manager-only:
 //   - resolve_anomaly_set_profession: { call_id, profession_id }
 //   - resolve_anomaly_fix_vehicle:    { call_id, vehicle_number }
 //   - cancel_call:                    { call_id }
+//   - reopen_call:                    { call_id }
 //
-// Response: { ok: boolean, ... }
+// Any-role:
+//   - close_call:                     { call_id }
+//   - add_comment:                    { call_id, text }
 // =====================================================================
 
 // @ts-nocheck — Deno runtime
@@ -62,16 +60,22 @@ Deno.serve(async (req: Request) => {
 
   if (callerErr) return json(500, { ok: false, error: 'lookup_failed', detail: callerErr.message })
   if (!caller)   return json(403, { ok: false, error: 'unknown_employee' })
-  if (caller.role !== 'manager') return json(403, { ok: false, error: 'not_manager' })
+
+  const managerOnly = (next: () => Promise<Response>): Promise<Response> => {
+    if (caller.role !== 'manager') {
+      return Promise.resolve(json(403, { ok: false, error: 'requires_manager' }))
+    }
+    return next()
+  }
 
   // --- Dispatch ---
   switch (action) {
-    case 'resolve_anomaly_set_profession':
-      return await resolveSetProfession(params)
-    case 'resolve_anomaly_fix_vehicle':
-      return await resolveFixVehicle(params)
-    case 'cancel_call':
-      return await cancelCall(params)
+    case 'resolve_anomaly_set_profession': return managerOnly(() => resolveSetProfession(params))
+    case 'resolve_anomaly_fix_vehicle':    return managerOnly(() => resolveFixVehicle(params))
+    case 'cancel_call':                    return managerOnly(() => cancelCall(params))
+    case 'reopen_call':                    return managerOnly(() => reopenCall(params))
+    case 'close_call':                     return await closeCall(params, employee_number)
+    case 'add_comment':                    return await addComment(params, employee_number)
     default:
       return json(400, { ok: false, error: 'unknown_action', action })
   }
@@ -147,6 +151,78 @@ async function cancelCall(params: any): Promise<Response> {
 
   if (error) return json(500, { ok: false, error: 'update_failed', detail: error.message })
   return json(200, { ok: true, call: data })
+}
+
+async function closeCall(params: any, employeeNumber: number): Promise<Response> {
+  const { call_id } = params ?? {}
+  if (typeof call_id !== 'string') {
+    return json(400, { ok: false, error: 'invalid_params' })
+  }
+
+  const { data, error } = await admin
+    .from('service_calls')
+    .update({
+      status: 'closed',
+      closed_at: new Date().toISOString(),
+      closed_by: employeeNumber,
+    })
+    .eq('id', call_id)
+    .select('id, display_id, status, closed_at, closed_by')
+    .single()
+
+  if (error) return json(500, { ok: false, error: 'update_failed', detail: error.message })
+  return json(200, { ok: true, call: data })
+}
+
+async function reopenCall(params: any): Promise<Response> {
+  const { call_id } = params ?? {}
+  if (typeof call_id !== 'string') {
+    return json(400, { ok: false, error: 'invalid_params' })
+  }
+
+  // If there are still required parts in awaiting_*, reopening should
+  // land back in waiting_for_parts; otherwise in_treatment.
+  const { data: pending } = await admin
+    .from('call_required_parts')
+    .select('id')
+    .eq('call_id', call_id)
+    .in('status', ['awaiting_order', 'awaiting_receipt'])
+
+  const nextStatus = (pending && pending.length > 0) ? 'waiting_for_parts' : 'in_treatment'
+
+  const { data, error } = await admin
+    .from('service_calls')
+    .update({
+      status: nextStatus,
+      closed_at: null,
+      closed_by: null,
+    })
+    .eq('id', call_id)
+    .select('id, display_id, status')
+    .single()
+
+  if (error) return json(500, { ok: false, error: 'update_failed', detail: error.message })
+  return json(200, { ok: true, call: data })
+}
+
+async function addComment(params: any, employeeNumber: number): Promise<Response> {
+  const { call_id, text } = params ?? {}
+  if (typeof call_id !== 'string' || typeof text !== 'string' || text.trim().length === 0) {
+    return json(400, { ok: false, error: 'invalid_params' })
+  }
+
+  const { data, error } = await admin
+    .from('call_comments')
+    .insert({
+      call_id,
+      author_employee_number: employeeNumber,
+      text: text.trim(),
+    })
+    .select('id, created_at')
+    .single()
+
+  if (error) return json(500, { ok: false, error: 'insert_failed', detail: error.message })
+  return json(200, { ok: true, comment: data })
 }
 
 // ----- helpers -----

@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useCallDetail } from '../hooks/useCallDetail'
 import { useAuthStore } from '../store/auth'
 import { AppHeader } from '../components/AppHeader'
@@ -6,6 +6,8 @@ import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { CallPartsSection } from '../components/CallPartsSection'
+import { CallActions } from '../components/CallActions'
+import { AddCommentForm } from '../components/AddCommentForm'
 import type { CallStatus, EmployeeRole } from '../types/db'
 
 const roleHomeRoute: Record<EmployeeRole, string> = {
@@ -108,7 +110,19 @@ export function CallDetailPage() {
           </CardHeader>
 
           <CardBody className="grid grid-cols-2 gap-4">
-            <FieldRow label="מספר רכב" value={call.vehicle_number} />
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs text-muted">מספר רכב</span>
+              {call.vehicle_number ? (
+                <Link
+                  to={`/vehicle/${encodeURIComponent(call.vehicle_number)}`}
+                  className="text-sm text-primary hover:underline"
+                >
+                  {call.vehicle_number} ↩
+                </Link>
+              ) : (
+                <span className="text-sm text-foreground">—</span>
+              )}
+            </div>
             <FieldRow label="שם רכב"   value={call.vehicle_name} />
             <FieldRow label="מקצוע"    value={call.professions?.name ?? null} />
             <FieldRow label="מדווח"    value={call.reporter_name} />
@@ -139,6 +153,8 @@ export function CallDetailPage() {
           )}
         </Card>
 
+        <CallActions call={call} />
+
         <CallPartsSection
           callId={call.id}
           requiredParts={requiredParts}
@@ -165,6 +181,7 @@ export function CallDetailPage() {
                 ))}
               </ul>
             )}
+            <AddCommentForm callId={call.id} />
           </CardBody>
         </Card>
       </main>
