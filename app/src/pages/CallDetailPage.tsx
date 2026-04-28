@@ -9,6 +9,7 @@ import { CallPartsSection } from '../components/CallPartsSection'
 import { CallActions } from '../components/CallActions'
 import { AddCommentForm } from '../components/AddCommentForm'
 import { CallContactsPanel } from '../components/CallContactsPanel'
+import { PhoneActions } from '../components/PhoneActions'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { CallStatus, EmployeeRole } from '../types/db'
 
@@ -129,7 +130,12 @@ export function CallDetailPage() {
             <FieldRow label="שם רכב"   value={call.vehicle_name} />
             <FieldRow label="מקצוע"    value={call.professions?.name ?? null} />
             <FieldRow label="מדווח"    value={call.reporter_name} />
-            <FieldRow label="טלפון"    value={call.reporter_phone} />
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs text-muted">טלפון</span>
+              {call.reporter_phone
+                ? <PhoneActions phone={call.reporter_phone} />
+                : <span className="text-sm text-foreground">—</span>}
+            </div>
             <FieldRow label="נוצרה ב-" value={created} />
           </CardBody>
 

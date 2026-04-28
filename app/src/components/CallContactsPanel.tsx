@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useCallContacts } from '../hooks/useCallContacts'
 import { Card, CardBody, CardHeader } from './ui/Card'
 import { Badge } from './ui/Badge'
+import { PhoneActions } from './PhoneActions'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { EmployeeRole } from '../types/db'
 
@@ -71,15 +72,7 @@ export function CallContactsPanel({ professionId }: { professionId: number | nul
                   <Badge tone={roleTone[c.role]}>{roleLabel[c.role]}</Badge>
                   {!c.available_today && <Badge tone="warning">לא זמין היום</Badge>}
                 </div>
-                {c.phone && (
-                  <a
-                    href={`tel:${c.phone.replace(/-/g, '')}`}
-                    className="text-sm text-primary font-mono hover:underline"
-                    dir="ltr"
-                  >
-                    {c.phone}
-                  </a>
-                )}
+                {c.phone && <PhoneActions phone={c.phone} />}
               </li>
             ))}
           </ul>
