@@ -11,10 +11,10 @@
 //   - resolve_anomaly_set_profession: { call_id, profession_id }
 //   - resolve_anomaly_fix_vehicle:    { call_id, vehicle_number }
 //   - cancel_call:                    { call_id }
-//   - reopen_call:                    { call_id }
 //
 // Any-role:
 //   - close_call:                     { call_id }
+//   - reopen_call:                    { call_id }
 //   - add_comment:                    { call_id, text }
 // =====================================================================
 
@@ -73,7 +73,7 @@ Deno.serve(async (req: Request) => {
     case 'resolve_anomaly_set_profession': return managerOnly(() => resolveSetProfession(params))
     case 'resolve_anomaly_fix_vehicle':    return managerOnly(() => resolveFixVehicle(params))
     case 'cancel_call':                    return managerOnly(() => cancelCall(params))
-    case 'reopen_call':                    return managerOnly(() => reopenCall(params))
+    case 'reopen_call':                    return await reopenCall(params)
     case 'close_call':                     return await closeCall(params, employee_number)
     case 'add_comment':                    return await addComment(params, employee_number)
     default:

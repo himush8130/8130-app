@@ -21,7 +21,6 @@ export function CallActions({ call }: Props) {
 
   const isClosed   = call.status === 'closed'
   const isCanceled = call.status === 'cancelled'
-  const isManager  = employee.role === 'manager'
 
   // Hide everything if cancelled (terminal state, manager can use Studio if needed).
   if (isCanceled) return null
@@ -59,7 +58,7 @@ export function CallActions({ call }: Props) {
                 סגור קריאה
               </Button>
             )}
-            {isClosed && isManager && (
+            {isClosed && (
               <Button variant="secondary" onClick={() => setConfirming('reopen')}>
                 פתח מחדש
               </Button>
