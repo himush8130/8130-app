@@ -8,6 +8,7 @@ import { Button } from '../components/ui/Button'
 import { CallPartsSection } from '../components/CallPartsSection'
 import { CallActions } from '../components/CallActions'
 import { AddCommentForm } from '../components/AddCommentForm'
+import { CallContactsPanel } from '../components/CallContactsPanel'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { CallStatus, EmployeeRole } from '../types/db'
 
@@ -156,6 +157,8 @@ export function CallDetailPage() {
         </Card>
 
         <CallActions call={call} />
+
+        <CallContactsPanel professionId={call.profession_id} />
 
         <CallPartsSection
           callId={call.id}

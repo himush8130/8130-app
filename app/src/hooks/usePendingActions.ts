@@ -8,8 +8,9 @@ interface PendingPart extends CallRequiredPart {
 }
 
 /**
- * Required parts in awaiting_order or awaiting_receipt status.
- * Shown to the warehouse so they know what to procure.
+ * All ACTIVE required parts (anything not yet delivered).
+ * The warehouse uses this to know what to hand out, what to order,
+ * and what's en route.
  */
 export function usePendingActions() {
   return useQuery({
@@ -17,8 +18,8 @@ export function usePendingActions() {
     queryFn: async (): Promise<PendingPart[]> => {
       const { data, error } = await supabase
         .from('call_required_parts')
-        .select('*, parts(name, quantity), service_calls(display_id)')
-        .in('status', ['awaiting_order', 'awaiting_receipt'])
+        .select('*, parts(name, quantity, sku), service_calls(display_id)')
+        .in('status', ['in_stock', 'awaiting_order', 'awaiting_receipt', 'received'])
         .order('requested_at', { ascending: true })
       if (error) throw error
       return (data ?? []) as PendingPart[]

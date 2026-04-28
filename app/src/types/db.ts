@@ -19,6 +19,7 @@ export type RequiredPartStatus =
   | 'awaiting_order'
   | 'awaiting_receipt'
   | 'received'
+  | 'delivered'
 
 export interface Profession {
   id: number

@@ -64,6 +64,8 @@ export const COMPONENTS: Record<number, string> = {
   5007: 'BTN_RECORD_WITHDRAWAL',
   5008: 'COMMENTS_LIST',
   5009: 'ADD_COMMENT_FORM',
+  5010: 'CALL_CONTACTS',
+  5011: 'CONTACT_ITEM',
 
   // 6xxx — technician
   6001: 'TECH_HOME',

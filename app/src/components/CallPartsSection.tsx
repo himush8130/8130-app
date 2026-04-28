@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Card, CardBody, CardHeader } from './ui/Card'
 import { Badge } from './ui/Badge'
@@ -12,7 +12,7 @@ import {
   updateRequiredPartStatus,
 } from '../lib/warehouseActions'
 import { ComponentBadge } from '../feedback/ComponentBadge'
-import type { CallRequiredPart, PartWithdrawal } from '../types/parts'
+import type { CallRequiredPart, PartWithdrawal, Part } from '../types/parts'
 import type { RequiredPartStatus } from '../types/db'
 
 const statusLabel: Record<RequiredPartStatus, string> = {
@@ -20,6 +20,7 @@ const statusLabel: Record<RequiredPartStatus, string> = {
   awaiting_order:   'ממתין להזמנה',
   awaiting_receipt: 'ממתין לקבלה',
   received:         'התקבל',
+  delivered:        'נמסר',
 }
 
 const statusTone: Record<RequiredPartStatus, 'info' | 'success' | 'warning' | 'neutral'> = {
@@ -27,6 +28,7 @@ const statusTone: Record<RequiredPartStatus, 'info' | 'success' | 'warning' | 'n
   awaiting_order:   'warning',
   awaiting_receipt: 'warning',
   received:         'info',
+  delivered:        'neutral',
 }
 
 interface Props {
@@ -50,6 +52,9 @@ export function CallPartsSection({ callId, requiredParts, withdrawals }: Props) 
   if (!employee) return null
 
   const isWarehouse = employee.role === 'warehouse' || employee.role === 'manager'
+  // Active rows = anything not yet delivered. Delivered rows are
+  // represented by their part_withdrawals entry shown below.
+  const activeRows = requiredParts.filter((rp) => rp.status !== 'delivered')
 
   return (
     <Card>
@@ -81,11 +86,11 @@ export function CallPartsSection({ callId, requiredParts, withdrawals }: Props) 
       )}
 
       <CardBody className="p-0">
-        {requiredParts.length === 0 ? (
+        {activeRows.length === 0 ? (
           <p className="text-sm text-muted text-center py-4">אין עדיין חלקים נדרשים</p>
         ) : (
           <ul>
-            {requiredParts.map((rp) => (
+            {activeRows.map((rp) => (
               <RequiredPartRow
                 key={rp.id}
                 row={rp}
@@ -111,9 +116,10 @@ export function CallPartsSection({ callId, requiredParts, withdrawals }: Props) 
                   key={w.id}
                   className="flex items-center justify-between px-4 py-2 border-b border-border last:border-0 text-sm"
                 >
-                  <div>
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-foreground">{w.parts?.name ?? w.part_sku}</span>
-                    <span className="text-muted text-xs ms-2">×{w.quantity}</span>
+                    <span className="font-mono text-[11px] text-muted">{w.part_sku}</span>
+                    <span className="text-muted text-xs">×{w.quantity}</span>
                   </div>
                   <span className="text-xs text-muted">
                     {new Date(w.withdrawn_at).toLocaleString('he-IL')}
@@ -128,7 +134,7 @@ export function CallPartsSection({ callId, requiredParts, withdrawals }: Props) 
   )
 }
 
-// ---------- Add part form ----------
+// ---------- Add part form: search inputs + quantity ----------
 
 function AddPartForm({
   catalog,
@@ -137,26 +143,51 @@ function AddPartForm({
   onDone,
   onCancel,
 }: {
-  catalog: { sku: string; name: string; quantity: number }[]
+  catalog: Part[]
   employeeNumber: number
   callId: string
   onDone: () => void
   onCancel: () => void
 }) {
-  const [sku, setSku] = useState(catalog[0]?.sku ?? '')
+  const [skuQuery, setSkuQuery] = useState('')
+  const [nameQuery, setNameQuery] = useState('')
   const [quantity, setQuantity] = useState('1')
+  const [selected, setSelected] = useState<Part | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const matches = useMemo(() => {
+    const sku  = skuQuery.trim().toLowerCase()
+    const name = nameQuery.trim().toLowerCase()
+    if (!sku && !name) return []
+    return catalog
+      .filter((p) => {
+        const skuOk  = !sku  || p.sku.toLowerCase().includes(sku)
+        const nameOk = !name || p.name.toLowerCase().includes(name)
+        return skuOk && nameOk
+      })
+      .slice(0, 10)
+  }, [catalog, skuQuery, nameQuery])
+
+  function pick(part: Part) {
+    setSelected(part)
+    setSkuQuery(part.sku)
+    setNameQuery(part.name)
+  }
 
   async function submit() {
     setError(null)
     const q = parseInt(quantity, 10)
-    if (!sku || Number.isNaN(q) || q <= 0) {
-      setError('בחר חלק וכמות תקינה')
+    if (!selected) {
+      setError('בחר חלק מהקטלוג (לחץ על אחת ההצעות)')
+      return
+    }
+    if (Number.isNaN(q) || q <= 0) {
+      setError('כמות לא תקינה')
       return
     }
     setBusy(true)
-    const res = await addRequiredPart(employeeNumber, callId, sku, q)
+    const res = await addRequiredPart(employeeNumber, callId, selected.sku, q)
     setBusy(false)
     if (!res.ok) {
       setError('שגיאה בהוספה')
@@ -167,20 +198,52 @@ function AddPartForm({
 
   return (
     <div className="flex flex-col gap-3">
-      <label className="flex flex-col gap-1">
-        <span className="text-sm font-medium">חלק מהקטלוג</span>
-        <select
-          value={sku}
-          onChange={(e) => setSku(e.target.value)}
-          className="px-3 py-2 bg-card border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-        >
-          {catalog.map((p) => (
-            <option key={p.sku} value={p.sku}>
-              {p.name} ({p.sku}) — במלאי: {p.quantity}
-            </option>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <Input
+          label="מק״ט"
+          name="skuQuery"
+          value={skuQuery}
+          onChange={(e) => { setSkuQuery(e.target.value); setSelected(null) }}
+          placeholder="הקלד מק״ט..."
+        />
+        <Input
+          label="שם"
+          name="nameQuery"
+          value={nameQuery}
+          onChange={(e) => { setNameQuery(e.target.value); setSelected(null) }}
+          placeholder="הקלד שם..."
+        />
+      </div>
+
+      {matches.length > 0 && !selected && (
+        <ul className="bg-card border border-border rounded-md max-h-40 overflow-y-auto">
+          {matches.map((p) => (
+            <li key={p.sku}>
+              <button
+                type="button"
+                onClick={() => pick(p)}
+                className="w-full text-start px-3 py-2 hover:bg-muted-surface text-sm flex items-center justify-between gap-2"
+              >
+                <span className="text-foreground">{p.name}</span>
+                <span className="font-mono text-[11px] text-muted">
+                  {p.sku} · במלאי: {p.quantity}
+                </span>
+              </button>
+            </li>
           ))}
-        </select>
-      </label>
+        </ul>
+      )}
+
+      {selected && (
+        <div className="text-xs text-success">
+          ✓ נבחר: {selected.name} ({selected.sku})
+          {' '}
+          <button type="button" onClick={() => setSelected(null)} className="text-muted underline">
+            (החלף)
+          </button>
+        </div>
+      )}
+
       <Input
         label="כמות"
         name="quantity"
@@ -189,7 +252,9 @@ function AddPartForm({
         value={quantity}
         onChange={(e) => setQuantity(e.target.value)}
         error={error ?? undefined}
+        className="max-w-[8rem]"
       />
+
       <div className="flex gap-2">
         <Button onClick={submit} disabled={busy}>
           {busy ? 'מוסיף...' : 'הוסף'}
@@ -216,83 +281,68 @@ function RequiredPartRow({
   onChange: () => void
 }) {
   const [busy, setBusy] = useState(false)
-  const [withdrawingQty, setWithdrawingQty] = useState<string>('')
   const [error, setError] = useState<string | null>(null)
 
-  const nextStatus: Partial<Record<RequiredPartStatus, { next: RequiredPartStatus; label: string }>> = {
+  const advanceMap: Partial<Record<RequiredPartStatus, { next: RequiredPartStatus; label: string }>> = {
     awaiting_order:   { next: 'awaiting_receipt', label: 'הוזמן' },
     awaiting_receipt: { next: 'received',         label: 'התקבל' },
   }
-  const action = nextStatus[row.status]
-  const canWithdraw = isWarehouse && (row.status === 'in_stock' || row.status === 'received')
+  const action = advanceMap[row.status]
+  const canDeliver = isWarehouse && (row.status === 'in_stock' || row.status === 'received')
 
   async function advance() {
     if (!action) return
-    setBusy(true)
-    setError(null)
+    setBusy(true); setError(null)
     const res = await updateRequiredPartStatus(employeeNumber, row.id, action.next)
     setBusy(false)
     if (!res.ok) { setError('שגיאה'); return }
     onChange()
   }
 
-  async function withdraw() {
-    setError(null)
-    const q = parseInt(withdrawingQty, 10)
-    if (Number.isNaN(q) || q <= 0) { setError('כמות לא תקינה'); return }
-    setBusy(true)
+  async function deliver() {
+    setError(null); setBusy(true)
     const res = await recordWithdrawal(
-      employeeNumber, callId, row.part_sku, q, row.requested_by ?? employeeNumber,
+      employeeNumber, callId, row.part_sku, row.quantity,
+      row.requested_by ?? employeeNumber, row.id,
     )
     setBusy(false)
     if (!res.ok) {
-      setError(res.error === 'insufficient_stock'
-        ? `במלאי רק ${res.available}`
-        : 'שגיאה')
+      setError(
+        res.error === 'insufficient_stock'
+          ? `במלאי רק ${res.available}`
+          : 'שגיאה',
+      )
       return
     }
-    setWithdrawingQty('')
     onChange()
   }
 
   return (
     <li className="flex flex-col gap-2 px-4 py-3 border-b border-border last:border-0">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2 flex-wrap min-w-0">
           <span className="text-sm text-foreground truncate">
             {row.parts?.name ?? row.part_sku}
           </span>
+          <span className="font-mono text-[11px] text-muted">{row.part_sku}</span>
           <span className="text-xs text-muted">×{row.quantity}</span>
           <Badge tone={statusTone[row.status]}>{statusLabel[row.status]}</Badge>
         </div>
 
-        {isWarehouse && action && (
+        {canDeliver ? (
+          <span className="contents">
+            <ComponentBadge id={5007} />
+            <Button onClick={deliver} disabled={busy}>
+              {busy ? '...' : `מסור לטכנאי (${row.quantity})`}
+            </Button>
+          </span>
+        ) : isWarehouse && action ? (
           <Button onClick={advance} disabled={busy}>
             {busy ? '...' : action.label}
           </Button>
-        )}
+        ) : null}
       </div>
-
-      {canWithdraw && (
-        <div className="flex items-end gap-2">
-          <Input
-            label="מסור כמות"
-            name={`withdraw-${row.id}`}
-            type="number"
-            inputMode="numeric"
-            value={withdrawingQty}
-            onChange={(e) => setWithdrawingQty(e.target.value)}
-            error={error ?? undefined}
-            className="max-w-[6rem]"
-          />
-          <span className="contents">
-            <ComponentBadge id={5007} />
-            <Button onClick={withdraw} disabled={busy || !withdrawingQty}>
-              מסור לטכנאי
-            </Button>
-          </span>
-        </div>
-      )}
+      {error && <span className="text-xs text-danger">{error}</span>}
     </li>
   )
 }

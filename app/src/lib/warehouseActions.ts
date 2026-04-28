@@ -49,6 +49,7 @@ export function recordWithdrawal(
   partSku: string,
   quantity: number,
   withdrawnBy: number,
+  requiredPartId?: string,
 ) {
   return invoke({
     employee_number: employeeNumber,
@@ -58,6 +59,7 @@ export function recordWithdrawal(
       part_sku: partSku,
       quantity,
       withdrawn_by: withdrawnBy,
+      required_part_id: requiredPartId,
     },
   })
 }

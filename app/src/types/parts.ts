@@ -19,8 +19,8 @@ export interface CallRequiredPart {
   status: RequiredPartStatus
   requested_by: number | null
   requested_at: string
-  /** Embedded via PostgREST: select('*, parts(name, quantity)') */
-  parts?: { name: string; quantity: number } | null
+  /** Embedded via PostgREST: select('*, parts(name, quantity, sku)') */
+  parts?: { name: string; quantity: number; sku: string } | null
 }
 
 export interface PartWithdrawal {
