@@ -384,6 +384,12 @@ deno_version = 2
 [functions.webhook-base44]
 verify_jwt = false
 
+# Manager mutations endpoint. Disable JWT verification because real auth
+# isn't yet wired (M3+ uses employee-number-only login). Authorization
+# is enforced inside the function by looking up the caller's role.
+[functions.manager-actions]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

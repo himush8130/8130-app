@@ -7,6 +7,9 @@ import './index.css'
 import { LoginPage } from './pages/LoginPage'
 import { TechnicianHomePage } from './pages/TechnicianHomePage'
 import { CallDetailPage } from './pages/CallDetailPage'
+import { ManagerHomePage } from './pages/ManagerHomePage'
+import { AnomalyQueuePage } from './pages/AnomalyQueuePage'
+import { AllCallsPage } from './pages/AllCallsPage'
 import { ProtectedRoute } from './components/ProtectedRoute'
 
 const queryClient = new QueryClient({
@@ -25,6 +28,7 @@ createRoot(document.getElementById('root')!).render(
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<LoginPage />} />
+
           <Route
             path="/technician"
             element={
@@ -33,6 +37,32 @@ createRoot(document.getElementById('root')!).render(
               </ProtectedRoute>
             }
           />
+
+          <Route
+            path="/manager"
+            element={
+              <ProtectedRoute allow={['manager']}>
+                <ManagerHomePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/manager/anomalies"
+            element={
+              <ProtectedRoute allow={['manager']}>
+                <AnomalyQueuePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/manager/calls"
+            element={
+              <ProtectedRoute allow={['manager']}>
+                <AllCallsPage />
+              </ProtectedRoute>
+            }
+          />
+
           <Route
             path="/call/:id"
             element={
@@ -41,7 +71,8 @@ createRoot(document.getElementById('root')!).render(
               </ProtectedRoute>
             }
           />
-          {/* Manager + warehouse routes land in M4/M5 */}
+
+          {/* Warehouse routes land in M5 */}
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>
