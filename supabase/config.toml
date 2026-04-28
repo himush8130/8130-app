@@ -394,6 +394,10 @@ verify_jwt = false
 [functions.warehouse-actions]
 verify_jwt = false
 
+# Admin mutations on lookup tables (manager-only authz inside the function).
+[functions.admin-actions]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

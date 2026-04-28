@@ -1,9 +1,11 @@
+import { Link } from 'react-router-dom'
 import { useManagerOverview } from '../hooks/useManagerOverview'
 import { useManagerReports } from '../hooks/useManagerReports'
 import { AppHeader } from '../components/AppHeader'
 import { StatCard } from '../components/StatCard'
 import { ProfessionLoadCard } from '../components/ProfessionLoadCard'
 import { StatusDistributionCard } from '../components/StatusDistributionCard'
+import { Card, CardBody } from '../components/ui/Card'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 
 export function ManagerHomePage() {
@@ -48,6 +50,20 @@ export function ManagerHomePage() {
                 <StatusDistributionCard rows={reports.byStatus} />
               </>
             )}
+
+            <Card>
+              <CardBody>
+                <ComponentBadge id={3014} />
+                <h3 className="text-sm font-semibold text-foreground mb-2">הגדרות</h3>
+                <ul className="flex flex-col gap-1 text-sm">
+                  <li>
+                    <Link to="/manager/settings/professions" className="text-primary hover:underline">
+                      ניהול מקצועות →
+                    </Link>
+                  </li>
+                </ul>
+              </CardBody>
+            </Card>
           </>
         )}
       </main>

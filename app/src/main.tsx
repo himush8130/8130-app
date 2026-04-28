@@ -15,6 +15,7 @@ import { AllCallsPage } from './pages/AllCallsPage'
 import { WarehouseHomePage } from './pages/WarehouseHomePage'
 import { VehicleHistoryPage } from './pages/VehicleHistoryPage'
 import { NotesPage } from './pages/NotesPage'
+import { SettingsProfessionsPage } from './pages/SettingsProfessionsPage'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { FeedbackBar } from './feedback/FeedbackBar'
 import { registerServiceWorker } from './lib/registerSW'
@@ -80,6 +81,14 @@ createRoot(document.getElementById('root')!).render(
             element={
               <ProtectedRoute allow={['manager']}>
                 <AllCallsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/manager/settings/professions"
+            element={
+              <ProtectedRoute allow={['manager']}>
+                <SettingsProfessionsPage />
               </ProtectedRoute>
             }
           />
