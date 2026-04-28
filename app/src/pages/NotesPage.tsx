@@ -8,7 +8,6 @@ import { editFeedbackNote, deleteFeedbackNote } from '../lib/feedbackActions'
 import { AppHeader } from '../components/AppHeader'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
-import { Input } from '../components/ui/Input'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import { RenderNoteText } from '../feedback/RenderNoteText'
 import type { FeedbackNote } from '../types/feedback'
@@ -16,14 +15,7 @@ import type { FeedbackNote } from '../types/feedback'
 export function NotesPage() {
   const { data, isLoading, error } = useFeedbackNotes()
   const employee = useAuthStore((s) => s.employee)
-  const [filterPage, setFilterPage] = useState('')
-  const [filterText, setFilterText] = useState('')
-
-  const filtered = (data ?? []).filter((n) => {
-    if (filterPage && !n.page_path.includes(filterPage)) return false
-    if (filterText && !n.text.toLowerCase().includes(filterText.toLowerCase())) return false
-    return true
-  })
+  const notes = data ?? []
 
   return (
     <>
@@ -31,24 +23,6 @@ export function NotesPage() {
 
       <main className="max-w-3xl mx-auto p-4 flex flex-col gap-3 pb-24">
         <ComponentBadge id={8002} />
-
-        <Card>
-          <CardBody className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Input
-              label="סינון לפי דף (חלק מהנתיב)"
-              name="filterPage"
-              value={filterPage}
-              onChange={(e) => setFilterPage(e.target.value)}
-              placeholder="/manager"
-            />
-            <Input
-              label="חיפוש טקסט בהערות"
-              name="filterText"
-              value={filterText}
-              onChange={(e) => setFilterText(e.target.value)}
-            />
-          </CardBody>
-        </Card>
 
         {isLoading && <p className="text-sm text-muted text-center py-4">טוען...</p>}
 
@@ -60,17 +34,15 @@ export function NotesPage() {
           </Card>
         )}
 
-        {!isLoading && filtered.length === 0 && (
+        {!isLoading && notes.length === 0 && (
           <Card>
             <CardBody>
-              <p className="text-muted text-center text-sm py-4">
-                {data && data.length > 0 ? 'אין הערות שתואמות את הסינון' : 'לוג ההערות ריק'}
-              </p>
+              <p className="text-muted text-center text-sm py-4">לוג ההערות ריק</p>
             </CardBody>
           </Card>
         )}
 
-        {filtered.map((note) => (
+        {notes.map((note) => (
           <NoteItem
             key={note.id}
             note={note}
