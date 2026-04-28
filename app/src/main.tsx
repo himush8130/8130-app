@@ -1,7 +1,9 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient } from '@tanstack/react-query'
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
+import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
 
 import './index.css'
 import { LoginPage } from './pages/LoginPage'
@@ -15,19 +17,34 @@ import { VehicleHistoryPage } from './pages/VehicleHistoryPage'
 import { NotesPage } from './pages/NotesPage'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { FeedbackBar } from './feedback/FeedbackBar'
+import { registerServiceWorker } from './lib/registerSW'
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 30_000,
+      gcTime: 1000 * 60 * 60 * 24,    // keep cached entries for a day
       refetchOnWindowFocus: false,
     },
   },
 })
 
+const persister = createSyncStoragePersister({
+  storage: window.localStorage,
+  key: '8130-query-cache',
+})
+
+registerServiceWorker()
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{
+        persister,
+        maxAge: 1000 * 60 * 60 * 24, // 24h: stale cache OK for one day offline
+      }}
+    >
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
@@ -107,6 +124,6 @@ createRoot(document.getElementById('root')!).render(
         </Routes>
         <FeedbackBar />
       </BrowserRouter>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   </StrictMode>,
 )
