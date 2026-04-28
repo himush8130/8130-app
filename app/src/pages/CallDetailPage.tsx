@@ -5,6 +5,7 @@ import { AppHeader } from '../components/AppHeader'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
+import { CallPartsSection } from '../components/CallPartsSection'
 import type { CallStatus, EmployeeRole } from '../types/db'
 
 const roleHomeRoute: Record<EmployeeRole, string> = {
@@ -78,7 +79,7 @@ export function CallDetailPage() {
     )
   }
 
-  const { call, comments } = data
+  const { call, comments, requiredParts, withdrawals } = data
   const created = new Date(call.created_at).toLocaleString('he-IL')
 
   return (
@@ -137,6 +138,12 @@ export function CallDetailPage() {
             </CardBody>
           )}
         </Card>
+
+        <CallPartsSection
+          callId={call.id}
+          requiredParts={requiredParts}
+          withdrawals={withdrawals}
+        />
 
         <Card>
           <CardHeader>

@@ -390,6 +390,10 @@ verify_jwt = false
 [functions.manager-actions]
 verify_jwt = false
 
+# Warehouse / parts mutations: required-parts, status updates, withdrawals.
+[functions.warehouse-actions]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

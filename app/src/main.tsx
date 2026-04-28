@@ -10,6 +10,7 @@ import { CallDetailPage } from './pages/CallDetailPage'
 import { ManagerHomePage } from './pages/ManagerHomePage'
 import { AnomalyQueuePage } from './pages/AnomalyQueuePage'
 import { AllCallsPage } from './pages/AllCallsPage'
+import { WarehouseHomePage } from './pages/WarehouseHomePage'
 import { ProtectedRoute } from './components/ProtectedRoute'
 
 const queryClient = new QueryClient({
@@ -64,6 +65,15 @@ createRoot(document.getElementById('root')!).render(
           />
 
           <Route
+            path="/warehouse"
+            element={
+              <ProtectedRoute allow={['warehouse']}>
+                <WarehouseHomePage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
             path="/call/:id"
             element={
               <ProtectedRoute>
@@ -72,7 +82,6 @@ createRoot(document.getElementById('root')!).render(
             }
           />
 
-          {/* Warehouse routes land in M5 */}
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>
