@@ -14,7 +14,7 @@ export function useTechnicianCalls(professionId: number | null) {
     queryFn: async (): Promise<ServiceCall[]> => {
       const { data, error } = await supabase
         .from('service_calls')
-        .select('*')
+        .select('*, professions(name)')
         .eq('profession_id', professionId!)
         .in('status', ['in_treatment', 'waiting_for_parts'])
         .order('created_at', { ascending: false })

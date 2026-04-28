@@ -16,7 +16,7 @@ export function useAllCalls(filters: AllCallsFilters) {
   return useQuery({
     queryKey: ['all_calls', filters],
     queryFn: async (): Promise<AllCallsData> => {
-      let q = supabase.from('service_calls').select('*')
+      let q = supabase.from('service_calls').select('*, professions(name)')
       if (filters.statuses && filters.statuses.length > 0) {
         q = q.in('status', filters.statuses)
       }

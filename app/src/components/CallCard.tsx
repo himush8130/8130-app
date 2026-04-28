@@ -32,9 +32,12 @@ export function CallCard({ call }: { call: ServiceCall }) {
         <CardBody>
           <div className="flex items-start justify-between gap-3">
             <div className="flex flex-col gap-1 flex-1 min-w-0">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-semibold text-foreground">{call.display_id}</span>
                 <Badge tone={statusTone[call.status]}>{statusLabel[call.status]}</Badge>
+                {call.professions?.name && (
+                  <Badge tone="neutral">{call.professions.name}</Badge>
+                )}
                 {call.anomaly_flags.length > 0 && (
                   <Badge tone="warning">{call.anomaly_flags.length} חריגות</Badge>
                 )}

@@ -1,9 +1,17 @@
-import { useParams, Link } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useCallDetail } from '../hooks/useCallDetail'
+import { useAuthStore } from '../store/auth'
 import { AppHeader } from '../components/AppHeader'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
-import type { CallStatus } from '../types/db'
+import { Button } from '../components/ui/Button'
+import type { CallStatus, EmployeeRole } from '../types/db'
+
+const roleHomeRoute: Record<EmployeeRole, string> = {
+  technician: '/technician',
+  manager:    '/manager',
+  warehouse:  '/warehouse',
+}
 
 const statusLabel: Record<CallStatus, string> = {
   new:               'חדשה',
@@ -32,7 +40,17 @@ function FieldRow({ label, value }: { label: string; value: string | null | unde
 
 export function CallDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const employee = useAuthStore((s) => s.employee)
   const { data, isLoading, error } = useCallDetail(id)
+
+  function handleBack() {
+    if (window.history.length > 1) {
+      navigate(-1)
+    } else {
+      navigate(employee ? roleHomeRoute[employee.role] : '/login', { replace: true })
+    }
+  }
 
   if (isLoading) {
     return (
@@ -68,14 +86,19 @@ export function CallDetailPage() {
       <AppHeader subtitle={`קריאה ${call.display_id}`} />
 
       <main className="max-w-3xl mx-auto p-4 flex flex-col gap-4">
-        <Link to=".." relative="path" className="text-sm text-primary">→ חזור</Link>
+        <Button variant="ghost" onClick={handleBack} className="self-start text-primary">
+          → חזור
+        </Button>
 
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
               <h2 className="text-lg font-semibold text-foreground">{call.display_id}</h2>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <Badge tone={statusTone[call.status]}>{statusLabel[call.status]}</Badge>
+                {call.professions?.name && (
+                  <Badge tone="neutral">{call.professions.name}</Badge>
+                )}
                 {call.anomaly_flags.length > 0 && (
                   <Badge tone="warning">{call.anomaly_flags.length} חריגות</Badge>
                 )}
@@ -86,6 +109,7 @@ export function CallDetailPage() {
           <CardBody className="grid grid-cols-2 gap-4">
             <FieldRow label="מספר רכב" value={call.vehicle_number} />
             <FieldRow label="שם רכב"   value={call.vehicle_name} />
+            <FieldRow label="מקצוע"    value={call.professions?.name ?? null} />
             <FieldRow label="מדווח"    value={call.reporter_name} />
             <FieldRow label="טלפון"    value={call.reporter_phone} />
             <FieldRow label="נוצרה ב-" value={created} />

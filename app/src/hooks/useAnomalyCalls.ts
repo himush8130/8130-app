@@ -14,7 +14,7 @@ export function useAnomalyCalls() {
       const [callsRes, profsRes] = await Promise.all([
         supabase
           .from('service_calls')
-          .select('*')
+          .select('*, professions(name)')
           .eq('status', 'new')
           .order('created_at', { ascending: false }),
         supabase

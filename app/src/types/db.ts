@@ -58,6 +58,8 @@ export interface ServiceCall {
   updated_at: string
   closed_at: string | null
   closed_by: number | null
+  /** Embedded via PostgREST: select('*, professions(name)') */
+  professions?: { name: string } | null
 }
 
 export interface CallComment {

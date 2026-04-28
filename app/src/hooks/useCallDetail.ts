@@ -14,7 +14,7 @@ export function useCallDetail(id: string | undefined) {
     queryFn: async (): Promise<CallDetail> => {
       const { data: call, error: callErr } = await supabase
         .from('service_calls')
-        .select('*')
+        .select('*, professions(name)')
         .eq('id', id!)
         .single<ServiceCall>()
       if (callErr) throw callErr
