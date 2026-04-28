@@ -4,6 +4,7 @@ import { Card, CardBody } from './ui/Card'
 import { Badge } from './ui/Badge'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
+import { ComponentBadge } from '../feedback/ComponentBadge'
 import { useAuthStore } from '../store/auth'
 import {
   resolveAnomalyFixVehicle,
@@ -76,6 +77,7 @@ export function AnomalyResolver({ call, professions }: Props) {
   return (
     <Card>
       <CardBody>
+        <ComponentBadge id={3008} />
         <div className="flex items-start justify-between gap-3 mb-3">
           <div>
             <div className="flex items-center gap-2">
@@ -103,15 +105,24 @@ export function AnomalyResolver({ call, professions }: Props) {
 
         {mode === 'idle' && (
           <div className="flex flex-wrap gap-2">
-            <Button variant="primary" onClick={() => setMode('fix-vehicle')}>
-              תקן מספר רכב
-            </Button>
-            <Button variant="secondary" onClick={() => setMode('set-profession')}>
-              סווג למקצוע ידנית
-            </Button>
-            <Button variant="ghost" onClick={handleCancel} disabled={busy}>
-              בטל קריאה
-            </Button>
+            <span className="contents">
+              <ComponentBadge id={3009} />
+              <Button variant="primary" onClick={() => setMode('fix-vehicle')}>
+                תקן מספר רכב
+              </Button>
+            </span>
+            <span className="contents">
+              <ComponentBadge id={3010} />
+              <Button variant="secondary" onClick={() => setMode('set-profession')}>
+                סווג למקצוע ידנית
+              </Button>
+            </span>
+            <span className="contents">
+              <ComponentBadge id={3011} />
+              <Button variant="ghost" onClick={handleCancel} disabled={busy}>
+                בטל קריאה
+              </Button>
+            </span>
           </div>
         )}
 

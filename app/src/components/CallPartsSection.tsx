@@ -11,6 +11,7 @@ import {
   recordWithdrawal,
   updateRequiredPartStatus,
 } from '../lib/warehouseActions'
+import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { CallRequiredPart, PartWithdrawal } from '../types/parts'
 import type { RequiredPartStatus } from '../types/db'
 
@@ -53,12 +54,16 @@ export function CallPartsSection({ callId, requiredParts, withdrawals }: Props) 
   return (
     <Card>
       <CardHeader>
+        <ComponentBadge id={5005} />
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-foreground">חלקים נדרשים</h3>
           {!adding && (
-            <Button variant="ghost" onClick={() => setAdding(true)} className="text-primary">
-              + הוסף חלק
-            </Button>
+            <span className="contents">
+              <ComponentBadge id={5006} />
+              <Button variant="ghost" onClick={() => setAdding(true)} className="text-primary">
+                + הוסף חלק
+              </Button>
+            </span>
           )}
         </div>
       </CardHeader>
@@ -280,9 +285,12 @@ function RequiredPartRow({
             error={error ?? undefined}
             className="max-w-[6rem]"
           />
-          <Button onClick={withdraw} disabled={busy || !withdrawingQty}>
-            מסור לטכנאי
-          </Button>
+          <span className="contents">
+            <ComponentBadge id={5007} />
+            <Button onClick={withdraw} disabled={busy || !withdrawingQty}>
+              מסור לטכנאי
+            </Button>
+          </span>
         </div>
       )}
     </li>

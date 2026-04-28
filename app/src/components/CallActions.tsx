@@ -4,6 +4,7 @@ import { Button } from './ui/Button'
 import { Card, CardBody } from './ui/Card'
 import { useAuthStore } from '../store/auth'
 import { closeCall, reopenCall } from '../lib/managerActions'
+import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { ServiceCall } from '../types/db'
 
 interface Props {
@@ -51,17 +52,22 @@ export function CallActions({ call }: Props) {
   return (
     <Card>
       <CardBody>
+        <ComponentBadge id={5002} />
         {confirming === null && (
           <div className="flex flex-wrap items-center gap-2">
             {!isClosed && (
-              <Button onClick={() => setConfirming('close')}>
-                סגור קריאה
-              </Button>
+              <span className="contents">
+                <ComponentBadge id={5003} />
+                <Button onClick={() => setConfirming('close')}>סגור קריאה</Button>
+              </span>
             )}
             {isClosed && (
-              <Button variant="secondary" onClick={() => setConfirming('reopen')}>
-                פתח מחדש
-              </Button>
+              <span className="contents">
+                <ComponentBadge id={5004} />
+                <Button variant="secondary" onClick={() => setConfirming('reopen')}>
+                  פתח מחדש
+                </Button>
+              </span>
             )}
             {error && <span className="text-xs text-danger">{error}</span>}
           </div>

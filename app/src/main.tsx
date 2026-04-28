@@ -12,7 +12,9 @@ import { AnomalyQueuePage } from './pages/AnomalyQueuePage'
 import { AllCallsPage } from './pages/AllCallsPage'
 import { WarehouseHomePage } from './pages/WarehouseHomePage'
 import { VehicleHistoryPage } from './pages/VehicleHistoryPage'
+import { NotesPage } from './pages/NotesPage'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { FeedbackBar } from './feedback/FeedbackBar'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -92,8 +94,18 @@ createRoot(document.getElementById('root')!).render(
             }
           />
 
+          <Route
+            path="/notes"
+            element={
+              <ProtectedRoute>
+                <NotesPage />
+              </ProtectedRoute>
+            }
+          />
+
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
+        <FeedbackBar />
       </BrowserRouter>
     </QueryClientProvider>
   </StrictMode>,

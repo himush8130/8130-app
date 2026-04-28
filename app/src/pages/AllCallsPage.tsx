@@ -4,6 +4,7 @@ import { useAllCalls } from '../hooks/useAllCalls'
 import { AppHeader } from '../components/AppHeader'
 import { CallCard } from '../components/CallCard'
 import { Card, CardBody } from '../components/ui/Card'
+import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { CallStatus } from '../types/db'
 
 const statusOptions: Array<{ value: CallStatus; label: string }> = [
@@ -65,10 +66,12 @@ export function AllCallsPage() {
       <AppHeader subtitle="כל הקריאות" />
 
       <main className="max-w-3xl mx-auto p-4 flex flex-col gap-3">
+        <ComponentBadge id={3012} />
         <Link to="/manager" className="text-sm text-primary">→ חזור לפאנל</Link>
 
         <Card>
           <CardBody className="flex flex-col gap-3">
+            <ComponentBadge id={3013} />
             <ChipFilter
               label="סטטוס"
               selected={statuses}

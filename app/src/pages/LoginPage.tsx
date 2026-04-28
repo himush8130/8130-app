@@ -5,6 +5,7 @@ import { useAuthStore } from '../store/auth'
 import { Card, CardBody } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
 import { Button } from '../components/ui/Button'
+import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { Employee, EmployeeRole } from '../types/db'
 
 const roleHomeRoute: Record<EmployeeRole, string> = {
@@ -55,6 +56,7 @@ export function LoginPage() {
     <main className="min-h-screen flex items-center justify-center bg-surface p-4">
       <Card className="w-full max-w-sm">
         <CardBody>
+          <ComponentBadge id={2001} />
           <header className="text-center mb-6">
             <h1 className="text-2xl font-bold text-foreground">8130 APP</h1>
             <p className="text-sm text-muted mt-1">כניסה למערכת</p>

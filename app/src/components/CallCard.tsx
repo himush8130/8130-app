@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Card, CardBody } from './ui/Card'
 import { Badge } from './ui/Badge'
+import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { ServiceCall, CallStatus } from '../types/db'
 
 const statusLabel: Record<CallStatus, string> = {
@@ -30,6 +31,7 @@ export function CallCard({ call }: { call: ServiceCall }) {
     <Link to={`/call/${call.id}`} className="block hover:opacity-95 transition-opacity">
       <Card>
         <CardBody>
+          <ComponentBadge id={6002} />
           <div className="flex items-start justify-between gap-3">
             <div className="flex flex-col gap-1 flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">

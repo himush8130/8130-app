@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Button } from './ui/Button'
 import { useAuthStore } from '../store/auth'
 import { addComment } from '../lib/managerActions'
+import { ComponentBadge } from '../feedback/ComponentBadge'
 
 export function AddCommentForm({ callId }: { callId: string }) {
   const employee = useAuthStore((s) => s.employee)!
@@ -27,6 +28,7 @@ export function AddCommentForm({ callId }: { callId: string }) {
 
   return (
     <div className="flex flex-col gap-2 mt-3 pt-3 border-t border-border">
+      <ComponentBadge id={5009} />
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}

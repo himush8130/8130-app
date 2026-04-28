@@ -1,11 +1,13 @@
 import { Card, CardBody, CardHeader } from './ui/Card'
 import { Badge } from './ui/Badge'
+import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { ProfessionLoad } from '../hooks/useManagerReports'
 
 export function ProfessionLoadCard({ rows }: { rows: ProfessionLoad[] }) {
   return (
     <Card>
       <CardHeader>
+        <ComponentBadge id={3005} />
         <h3 className="text-sm font-semibold text-foreground">עומס לפי מקצוע</h3>
       </CardHeader>
       <CardBody className="p-0">

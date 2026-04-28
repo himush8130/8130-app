@@ -1,11 +1,13 @@
 import type { Part } from '../types/parts'
 import { Card, CardBody, CardHeader } from './ui/Card'
 import { Badge } from './ui/Badge'
+import { ComponentBadge } from '../feedback/ComponentBadge'
 
 export function PartsCatalogList({ parts }: { parts: Part[] }) {
   return (
     <Card>
       <CardHeader>
+        <ComponentBadge id={4002} />
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-foreground">קטלוג חלקים</h3>
           <span className="text-xs text-muted">{parts.length} פריטים</span>

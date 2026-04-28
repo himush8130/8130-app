@@ -3,6 +3,7 @@ import { useAnomalyCalls } from '../hooks/useAnomalyCalls'
 import { AppHeader } from '../components/AppHeader'
 import { AnomalyResolver } from '../components/AnomalyResolver'
 import { Card, CardBody } from '../components/ui/Card'
+import { ComponentBadge } from '../feedback/ComponentBadge'
 
 export function AnomalyQueuePage() {
   const { data, isLoading, error } = useAnomalyCalls()
@@ -12,6 +13,7 @@ export function AnomalyQueuePage() {
       <AppHeader subtitle="תור חריגות דחופות" />
 
       <main className="max-w-3xl mx-auto p-4 flex flex-col gap-3">
+        <ComponentBadge id={3007} />
         <Link to="/manager" className="text-sm text-primary">→ חזור לפאנל</Link>
 
         {isLoading && <p className="text-sm text-muted text-center py-8">טוען...</p>}

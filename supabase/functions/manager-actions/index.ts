@@ -16,6 +16,11 @@
 //   - close_call:                     { call_id }
 //   - reopen_call:                    { call_id }
 //   - add_comment:                    { call_id, text }
+//
+// Feedback notes (any role; edits/deletes restricted to author):
+//   - add_feedback_note:              { page_path, text }
+//   - edit_feedback_note:             { note_id, text }
+//   - delete_feedback_note:           { note_id }
 // =====================================================================
 
 // @ts-nocheck — Deno runtime
@@ -54,7 +59,7 @@ Deno.serve(async (req: Request) => {
   // --- Authorize: caller must be a manager ---
   const { data: caller, error: callerErr } = await admin
     .from('employees')
-    .select('role')
+    .select('role, name')
     .eq('employee_number', employee_number)
     .maybeSingle()
 
@@ -76,6 +81,9 @@ Deno.serve(async (req: Request) => {
     case 'reopen_call':                    return await reopenCall(params)
     case 'close_call':                     return await closeCall(params, employee_number)
     case 'add_comment':                    return await addComment(params, employee_number)
+    case 'add_feedback_note':              return await addFeedbackNote(params, employee_number, caller.name)
+    case 'edit_feedback_note':             return await editFeedbackNote(params, employee_number)
+    case 'delete_feedback_note':           return await deleteFeedbackNote(params, employee_number)
     default:
       return json(400, { ok: false, error: 'unknown_action', action })
   }
@@ -204,6 +212,106 @@ async function reopenCall(params: any): Promise<Response> {
   if (error) return json(500, { ok: false, error: 'update_failed', detail: error.message })
   return json(200, { ok: true, call: data })
 }
+
+// =====================================================================
+// Feedback notes
+// =====================================================================
+
+function extractComponentIds(text: string): number[] {
+  const matches = text.matchAll(/#(\d+)/g)
+  const ids = new Set<number>()
+  for (const m of matches) {
+    const n = parseInt(m[1], 10)
+    if (!Number.isNaN(n) && n > 0 && n < 32768) ids.add(n)  // smallint range
+  }
+  return [...ids]
+}
+
+async function addFeedbackNote(
+  params: any,
+  employeeNumber: number,
+  authorName: string,
+): Promise<Response> {
+  const { page_path, text } = params ?? {}
+  if (typeof text !== 'string' || text.trim().length === 0) {
+    return json(400, { ok: false, error: 'invalid_text' })
+  }
+  const trimmed = text.trim()
+
+  const { data, error } = await admin
+    .from('feedback_notes')
+    .insert({
+      author_employee_number: employeeNumber,
+      author_name: authorName,
+      page_path: typeof page_path === 'string' ? page_path : '/',
+      component_ids: extractComponentIds(trimmed),
+      text: trimmed,
+    })
+    .select('id, display_id, created_at, component_ids')
+    .single()
+
+  if (error) return json(500, { ok: false, error: 'insert_failed', detail: error.message })
+  return json(200, { ok: true, note: data })
+}
+
+async function editFeedbackNote(params: any, employeeNumber: number): Promise<Response> {
+  const { note_id, text } = params ?? {}
+  if (typeof note_id !== 'string' || typeof text !== 'string' || text.trim().length === 0) {
+    return json(400, { ok: false, error: 'invalid_params' })
+  }
+
+  // Verify author
+  const { data: existing } = await admin
+    .from('feedback_notes')
+    .select('author_employee_number')
+    .eq('id', note_id)
+    .maybeSingle()
+  if (!existing) return json(404, { ok: false, error: 'note_not_found' })
+  if (existing.author_employee_number !== employeeNumber) {
+    return json(403, { ok: false, error: 'not_author' })
+  }
+
+  const trimmed = text.trim()
+  const { data, error } = await admin
+    .from('feedback_notes')
+    .update({
+      text: trimmed,
+      component_ids: extractComponentIds(trimmed),
+    })
+    .eq('id', note_id)
+    .select('id, display_id, text, component_ids, updated_at')
+    .single()
+
+  if (error) return json(500, { ok: false, error: 'update_failed', detail: error.message })
+  return json(200, { ok: true, note: data })
+}
+
+async function deleteFeedbackNote(params: any, employeeNumber: number): Promise<Response> {
+  const { note_id } = params ?? {}
+  if (typeof note_id !== 'string') {
+    return json(400, { ok: false, error: 'invalid_params' })
+  }
+
+  const { data: existing } = await admin
+    .from('feedback_notes')
+    .select('author_employee_number')
+    .eq('id', note_id)
+    .maybeSingle()
+  if (!existing) return json(404, { ok: false, error: 'note_not_found' })
+  if (existing.author_employee_number !== employeeNumber) {
+    return json(403, { ok: false, error: 'not_author' })
+  }
+
+  const { error } = await admin
+    .from('feedback_notes')
+    .delete()
+    .eq('id', note_id)
+
+  if (error) return json(500, { ok: false, error: 'delete_failed', detail: error.message })
+  return json(200, { ok: true })
+}
+
+// =====================================================================
 
 async function addComment(params: any, employeeNumber: number): Promise<Response> {
   const { call_id, text } = params ?? {}

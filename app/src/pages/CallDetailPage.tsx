@@ -8,6 +8,7 @@ import { Button } from '../components/ui/Button'
 import { CallPartsSection } from '../components/CallPartsSection'
 import { CallActions } from '../components/CallActions'
 import { AddCommentForm } from '../components/AddCommentForm'
+import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { CallStatus, EmployeeRole } from '../types/db'
 
 const roleHomeRoute: Record<EmployeeRole, string> = {
@@ -89,6 +90,7 @@ export function CallDetailPage() {
       <AppHeader subtitle={`קריאה ${call.display_id}`} />
 
       <main className="max-w-3xl mx-auto p-4 flex flex-col gap-4">
+        <ComponentBadge id={5001} />
         <Button variant="ghost" onClick={handleBack} className="self-start text-primary">
           → חזור
         </Button>
@@ -163,6 +165,7 @@ export function CallDetailPage() {
 
         <Card>
           <CardHeader>
+            <ComponentBadge id={5008} />
             <h3 className="text-sm font-semibold text-foreground">הערות</h3>
           </CardHeader>
           <CardBody>

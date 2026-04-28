@@ -1,4 +1,5 @@
 import { Card, CardBody, CardHeader } from './ui/Card'
+import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { StatusDistribution } from '../hooks/useManagerReports'
 import type { CallStatus } from '../types/db'
 
@@ -22,6 +23,7 @@ export function StatusDistributionCard({ rows }: { rows: StatusDistribution[] })
   return (
     <Card>
       <CardHeader>
+        <ComponentBadge id={3006} />
         <h3 className="text-sm font-semibold text-foreground">התפלגות לפי סטטוס</h3>
       </CardHeader>
       <CardBody className="p-0">

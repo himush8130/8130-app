@@ -6,6 +6,7 @@ import { CallCard } from '../components/CallCard'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
+import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { EmployeeRole } from '../types/db'
 
 const roleHomeRoute: Record<EmployeeRole, string> = {
@@ -33,6 +34,7 @@ export function VehicleHistoryPage() {
       <AppHeader subtitle={vehicleNumber ? `כרטיס רכב ${vehicleNumber}` : 'כרטיס רכב'} />
 
       <main className="max-w-3xl mx-auto p-4 flex flex-col gap-4">
+        <ComponentBadge id={7001} />
         <Button variant="ghost" onClick={handleBack} className="self-start text-primary">
           → חזור
         </Button>

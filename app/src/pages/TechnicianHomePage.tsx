@@ -3,6 +3,7 @@ import { useTechnicianCalls } from '../hooks/useTechnicianCalls'
 import { AppHeader } from '../components/AppHeader'
 import { CallCard } from '../components/CallCard'
 import { Card, CardBody } from '../components/ui/Card'
+import { ComponentBadge } from '../feedback/ComponentBadge'
 
 export function TechnicianHomePage() {
   const employee = useAuthStore((s) => s.employee)!
@@ -13,6 +14,7 @@ export function TechnicianHomePage() {
       <AppHeader subtitle="הקריאות שלי" />
 
       <main className="max-w-3xl mx-auto p-4">
+        <ComponentBadge id={6001} />
         {isLoading && (
           <p className="text-sm text-muted text-center py-8">טוען...</p>
         )}

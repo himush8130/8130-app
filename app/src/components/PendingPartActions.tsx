@@ -7,6 +7,7 @@ import { Button } from './ui/Button'
 import { useAuthStore } from '../store/auth'
 import { usePendingActions } from '../hooks/usePendingActions'
 import { updateRequiredPartStatus } from '../lib/warehouseActions'
+import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { RequiredPartStatus } from '../types/db'
 
 const statusLabel: Record<RequiredPartStatus, string> = {
@@ -39,6 +40,7 @@ export function PendingPartActions() {
   return (
     <Card>
       <CardHeader>
+        <ComponentBadge id={4003} />
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-foreground">פעולות פתוחות</h3>
           <span className="text-xs text-muted">{data?.length ?? 0}</span>
