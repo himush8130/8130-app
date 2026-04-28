@@ -21,6 +21,9 @@
 //   - add_feedback_note:              { page_path, text }
 //   - edit_feedback_note:             { note_id, text }
 //   - delete_feedback_note:           { note_id }
+// Feedback notes lifecycle (any role):
+//   - set_feedback_note_status:       { note_id, status: 'new' | 'done' }
+//   - delete_done_feedback_notes:     { }
 // =====================================================================
 
 // @ts-nocheck — Deno runtime
@@ -84,6 +87,8 @@ Deno.serve(async (req: Request) => {
     case 'add_feedback_note':              return await addFeedbackNote(params, employee_number, caller.name)
     case 'edit_feedback_note':             return await editFeedbackNote(params, employee_number)
     case 'delete_feedback_note':           return await deleteFeedbackNote(params, employee_number)
+    case 'set_feedback_note_status':       return await setFeedbackNoteStatus(params)
+    case 'delete_done_feedback_notes':     return await deleteDoneFeedbackNotes()
     default:
       return json(400, { ok: false, error: 'unknown_action', action })
   }
@@ -284,6 +289,34 @@ async function editFeedbackNote(params: any, employeeNumber: number): Promise<Re
 
   if (error) return json(500, { ok: false, error: 'update_failed', detail: error.message })
   return json(200, { ok: true, note: data })
+}
+
+async function setFeedbackNoteStatus(params: any): Promise<Response> {
+  const { note_id, status } = params ?? {}
+  if (typeof note_id !== 'string' || (status !== 'new' && status !== 'done')) {
+    return json(400, { ok: false, error: 'invalid_params' })
+  }
+
+  const { data, error } = await admin
+    .from('feedback_notes')
+    .update({ status })
+    .eq('id', note_id)
+    .select('id, display_id, status')
+    .single()
+
+  if (error) return json(500, { ok: false, error: 'update_failed', detail: error.message })
+  return json(200, { ok: true, note: data })
+}
+
+async function deleteDoneFeedbackNotes(): Promise<Response> {
+  const { data, error } = await admin
+    .from('feedback_notes')
+    .delete()
+    .eq('status', 'done')
+    .select('id')
+
+  if (error) return json(500, { ok: false, error: 'delete_failed', detail: error.message })
+  return json(200, { ok: true, deleted: data?.length ?? 0 })
 }
 
 async function deleteFeedbackNote(params: any, employeeNumber: number): Promise<Response> {

@@ -71,6 +71,8 @@ export const COMPONENTS: Record<number, string> = {
   8001: 'FEEDBACK_BAR',
   8002: 'NOTES_PAGE',
   8003: 'NOTE_ITEM',
+  8004: 'BTN_TOGGLE_NOTE_STATUS',
+  8005: 'BTN_DELETE_DONE_NOTES',
 }
 
 export function componentName(id: number): string | undefined {

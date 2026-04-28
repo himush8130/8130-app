@@ -45,3 +45,23 @@ export function deleteFeedbackNote(employeeNumber: number, noteId: string) {
     params: { note_id: noteId },
   })
 }
+
+export function setFeedbackNoteStatus(
+  employeeNumber: number,
+  noteId: string,
+  status: 'new' | 'done',
+) {
+  return invoke({
+    employee_number: employeeNumber,
+    action: 'set_feedback_note_status',
+    params: { note_id: noteId, status },
+  })
+}
+
+export function deleteDoneFeedbackNotes(employeeNumber: number) {
+  return invoke({
+    employee_number: employeeNumber,
+    action: 'delete_done_feedback_notes',
+    params: {},
+  })
+}

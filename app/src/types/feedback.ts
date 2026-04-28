@@ -1,3 +1,5 @@
+export type FeedbackNoteStatus = 'new' | 'done'
+
 export interface FeedbackNote {
   id: string
   display_id: string
@@ -6,6 +8,7 @@ export interface FeedbackNote {
   page_path: string
   component_ids: number[]
   text: string
+  status: FeedbackNoteStatus
   created_at: string
   updated_at: string
 }
