@@ -149,6 +149,9 @@ async function addRequiredPart(params: any, requested_by: number): Promise<Respo
 
 // ---------------------------------------------------------------------
 // update_required_part_status — warehouse advances pipeline
+// On transition awaiting_receipt -> received we ALSO increment
+// parts.quantity by the row's quantity, since "received" means the
+// goods physically arrived at the warehouse and are now in stock.
 // ---------------------------------------------------------------------
 async function updateRequiredPartStatus(params: any): Promise<Response> {
   const { required_part_id, status } = params ?? {}
@@ -157,13 +160,49 @@ async function updateRequiredPartStatus(params: any): Promise<Response> {
     return json(400, { ok: false, error: 'invalid_params' })
   }
 
+  // Read the existing row first so we can detect the transition.
+  const { data: before, error: beforeErr } = await admin
+    .from('call_required_parts')
+    .select('id, call_id, part_sku, quantity, status')
+    .eq('id', required_part_id)
+    .maybeSingle()
+  if (beforeErr) return json(500, { ok: false, error: 'lookup_failed', detail: beforeErr.message })
+  if (!before)   return json(404, { ok: false, error: 'not_found' })
+
   const { data, error } = await admin
     .from('call_required_parts')
     .update({ status })
     .eq('id', required_part_id)
-    .select('id, call_id, status')
+    .select('id, call_id, part_sku, quantity, status')
     .single()
   if (error) return json(500, { ok: false, error: 'update_failed', detail: error.message })
+
+  // Inventory adjustments tied to the transition:
+  // awaiting_receipt -> received  : add quantity to stock (goods arrived)
+  // received -> awaiting_receipt  : reverse (rare correction)
+  if (before.status === 'awaiting_receipt' && status === 'received') {
+    const { data: stockRow } = await admin
+      .from('parts')
+      .select('quantity')
+      .eq('sku', before.part_sku)
+      .maybeSingle()
+    const next = (stockRow?.quantity ?? 0) + before.quantity
+    await admin
+      .from('parts')
+      .update({ quantity: next })
+      .eq('sku', before.part_sku)
+  } else if (before.status === 'received' && status === 'awaiting_receipt') {
+    const { data: stockRow } = await admin
+      .from('parts')
+      .select('quantity')
+      .eq('sku', before.part_sku)
+      .maybeSingle()
+    const next = Math.max(0, (stockRow?.quantity ?? 0) - before.quantity)
+    await admin
+      .from('parts')
+      .update({ quantity: next })
+      .eq('sku', before.part_sku)
+  }
 
   // Recompute call status: if no required parts are still awaiting_*, move call back to in_treatment.
   const { data: pending } = await admin
