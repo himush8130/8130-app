@@ -7,9 +7,9 @@ import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { ComponentBadge } from '../feedback/ComponentBadge'
-import type { EmployeeRole } from '../types/db'
+import type { EmployeePermissions } from '../types/db'
 
-const roleHomeRoute: Record<EmployeeRole, string> = {
+const homeRouteByPermissions: Record<EmployeePermissions, string> = {
   technician: '/technician',
   manager:    '/manager',
   warehouse:  '/warehouse',
@@ -25,7 +25,7 @@ export function VehicleHistoryPage() {
     if (window.history.length > 1) {
       navigate(-1)
     } else {
-      navigate(employee ? roleHomeRoute[employee.role] : '/login', { replace: true })
+      navigate(employee ? homeRouteByPermissions[employee.permissions] : '/login', { replace: true })
     }
   }
 
@@ -54,15 +54,15 @@ export function VehicleHistoryPage() {
             <CardHeader>
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <h2 className="text-lg font-semibold text-foreground">{vehicleNumber}</h2>
-                {data.vehicle?.professions?.name && (
-                  <Badge tone="neutral">{data.vehicle.professions.name}</Badge>
+                {data.vehicle?.type_name && (
+                  <Badge tone="neutral">{data.vehicle.type_name}</Badge>
                 )}
               </div>
             </CardHeader>
             <CardBody>
               {data.vehicle ? (
                 <div className="text-sm text-muted">
-                  {data.vehicle.model ?? 'ללא דגם רשום'}
+                  {data.vehicle.department ?? 'ללא מחלקה'}
                 </div>
               ) : (
                 <p className="text-sm text-warning">

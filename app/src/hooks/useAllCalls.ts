@@ -4,7 +4,7 @@ import type { ServiceCall, CallStatus, Profession } from '../types/db'
 
 export interface AllCallsFilters {
   statuses?: CallStatus[]
-  professionIds?: number[]
+  professionNames?: string[]
 }
 
 export interface AllCallsData {
@@ -16,12 +16,12 @@ export function useAllCalls(filters: AllCallsFilters) {
   return useQuery({
     queryKey: ['all_calls', filters],
     queryFn: async (): Promise<AllCallsData> => {
-      let q = supabase.from('service_calls').select('*, professions(name)')
+      let q = supabase.from('service_calls').select('*')
       if (filters.statuses && filters.statuses.length > 0) {
         q = q.in('status', filters.statuses)
       }
-      if (filters.professionIds && filters.professionIds.length > 0) {
-        q = q.in('profession_id', filters.professionIds)
+      if (filters.professionNames && filters.professionNames.length > 0) {
+        q = q.in('profession_name', filters.professionNames)
       }
       q = q.order('created_at', { ascending: false }).limit(200)
 

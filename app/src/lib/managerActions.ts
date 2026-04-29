@@ -20,12 +20,12 @@ async function invoke(body: Record<string, unknown>): Promise<CallActionResult> 
 export async function resolveAnomalySetProfession(
   employeeNumber: number,
   callId: string,
-  professionId: number,
+  professionName: string,
 ): Promise<CallActionResult> {
   return invoke({
     employee_number: employeeNumber,
     action: 'resolve_anomaly_set_profession',
-    params: { call_id: callId, profession_id: professionId },
+    params: { call_id: callId, profession_name: professionName },
   })
 }
 

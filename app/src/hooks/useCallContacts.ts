@@ -11,31 +11,29 @@ export interface ContactPerson extends Employee {
  * Returns contacts relevant to a service call:
  *   - All managers (always shown)
  *   - All warehouse staff (always shown)
- *   - All technicians whose profession matches the call's profession_id
+ *   - All technicians whose profession matches the call's profession_name
  */
-export function useCallContacts(professionId: number | null | undefined) {
+export function useCallContacts(professionName: string | null | undefined) {
   return useQuery({
-    queryKey: ['call_contacts', professionId],
+    queryKey: ['call_contacts', professionName],
     queryFn: async (): Promise<ContactPerson[]> => {
-      // Build a profession filter: managers/warehouse always; technicians filtered.
       const { data: emps, error: empErr } = await supabase
         .from('employees')
         .select('*')
-        .order('role')
+        .order('permissions')
         .order('name')
       if (empErr) throw empErr
 
       const relevant = (emps ?? []).filter((e: Employee) => {
-        if (e.role === 'manager' || e.role === 'warehouse') return true
-        if (e.role === 'technician') {
-          return professionId != null && e.profession_id === professionId
+        if (e.permissions === 'manager' || e.permissions === 'warehouse') return true
+        if (e.permissions === 'technician') {
+          return professionName != null && e.profession_name === professionName
         }
         return false
       })
 
       if (relevant.length === 0) return []
 
-      // Mark who's unavailable today.
       const today = new Date().toISOString().slice(0, 10)
       const empNums = relevant.map((e) => e.employee_number)
       const { data: unavail, error: unErr } = await supabase

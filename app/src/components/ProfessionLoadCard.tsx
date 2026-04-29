@@ -25,11 +25,12 @@ export function ProfessionLoadCard({ rows }: { rows: ProfessionLoad[] }) {
             </thead>
             <tbody>
               {rows.map((r) => {
-                const noTechs    = r.profession_id !== null && r.technician_count === 0
+                const isUnclassified = r.profession_name.startsWith('(')
+                const noTechs    = !isUnclassified && r.technician_count === 0
                 const heavyLoad  = r.technician_count > 0 && r.open_total / r.technician_count >= 5
                 return (
                   <tr
-                    key={r.profession_id ?? 'unclassified'}
+                    key={r.profession_name}
                     className="border-b border-border last:border-0"
                   >
                     <td className="px-4 py-2 text-foreground">{r.profession_name}</td>

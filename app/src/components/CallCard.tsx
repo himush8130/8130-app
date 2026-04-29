@@ -37,8 +37,8 @@ export function CallCard({ call }: { call: ServiceCall }) {
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-semibold text-foreground">{call.display_id}</span>
                 <Badge tone={statusTone[call.status]}>{statusLabel[call.status]}</Badge>
-                {call.professions?.name && (
-                  <Badge tone="neutral">{call.professions.name}</Badge>
+                {call.profession_name && (
+                  <Badge tone="neutral">{call.profession_name}</Badge>
                 )}
                 {call.anomaly_flags.length > 0 && (
                   <Badge tone="warning">{call.anomaly_flags.length} חריגות</Badge>

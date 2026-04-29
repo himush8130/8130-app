@@ -3,7 +3,6 @@ import { supabase } from '../lib/supabase'
 import type { CallStatus } from '../types/db'
 
 export interface ProfessionLoad {
-  profession_id: number | null
   profession_name: string
   open_total: number
   waiting_for_parts: number
@@ -31,15 +30,15 @@ export function useManagerReports() {
       const [callsRes, profsRes, employeesRes] = await Promise.all([
         supabase
           .from('service_calls')
-          .select('profession_id, status'),
+          .select('profession_name, status'),
         supabase
           .from('professions')
-          .select('id, name')
-          .order('id'),
+          .select('name')
+          .order('name'),
         supabase
           .from('employees')
-          .select('profession_id, role')
-          .eq('role', 'technician'),
+          .select('profession_name, permissions')
+          .eq('permissions', 'technician'),
       ])
       if (callsRes.error)     throw callsRes.error
       if (profsRes.error)     throw profsRes.error
@@ -49,34 +48,29 @@ export function useManagerReports() {
       const professions = profsRes.data ?? []
       const employees = employeesRes.data ?? []
 
-      // Status distribution
       const byStatus: StatusDistribution[] = ALL_STATUSES.map((s) => ({
         status: s,
         count: calls.filter((c) => c.status === s).length,
       }))
 
-      // Profession load — only counts ACTIVE work (open / waiting_for_parts)
       const byProfession: ProfessionLoad[] = professions.map((p) => {
-        const callsForProf = calls.filter((c) => c.profession_id === p.id)
+        const callsForProf = calls.filter((c) => c.profession_name === p.name)
         return {
-          profession_id: p.id,
           profession_name: p.name,
           open_total: callsForProf.filter((c) =>
             c.status === 'in_treatment' || c.status === 'waiting_for_parts',
           ).length,
           waiting_for_parts: callsForProf.filter((c) => c.status === 'waiting_for_parts').length,
-          technician_count: employees.filter((e) => e.profession_id === p.id).length,
+          technician_count: employees.filter((e) => e.profession_name === p.name).length,
         }
       })
 
-      // Add a synthetic row for unclassified (profession_id IS NULL = hard anomalies)
       const unclassifiedActive = calls.filter(
-        (c) => c.profession_id === null &&
+        (c) => c.profession_name === null &&
                (c.status === 'new' || c.status === 'in_treatment' || c.status === 'waiting_for_parts'),
       ).length
       if (unclassifiedActive > 0) {
         byProfession.push({
-          profession_id: null,
           profession_name: '(לא מסווג — חריגה)',
           open_total: unclassifiedActive,
           waiting_for_parts: 0,

@@ -12,9 +12,9 @@ import { CallContactsPanel } from '../components/CallContactsPanel'
 import { PhoneActions } from '../components/PhoneActions'
 import { CopyCallSummaryButton } from '../components/CopyCallSummaryButton'
 import { ComponentBadge } from '../feedback/ComponentBadge'
-import type { CallStatus, EmployeeRole } from '../types/db'
+import type { CallStatus, EmployeePermissions } from '../types/db'
 
-const roleHomeRoute: Record<EmployeeRole, string> = {
+const homeRouteByPermissions: Record<EmployeePermissions, string> = {
   technician: '/technician',
   manager:    '/manager',
   warehouse:  '/warehouse',
@@ -55,7 +55,7 @@ export function CallDetailPage() {
     if (window.history.length > 1) {
       navigate(-1)
     } else {
-      navigate(employee ? roleHomeRoute[employee.role] : '/login', { replace: true })
+      navigate(employee ? homeRouteByPermissions[employee.permissions] : '/login', { replace: true })
     }
   }
 
@@ -107,8 +107,8 @@ export function CallDetailPage() {
               <h2 className="text-lg font-semibold text-foreground">{call.display_id}</h2>
               <div className="flex gap-2 flex-wrap">
                 <Badge tone={statusTone[call.status]}>{statusLabel[call.status]}</Badge>
-                {call.professions?.name && (
-                  <Badge tone="neutral">{call.professions.name}</Badge>
+                {call.profession_name && (
+                  <Badge tone="neutral">{call.profession_name}</Badge>
                 )}
                 {call.anomaly_flags.length > 0 && (
                   <Badge tone="warning">{call.anomaly_flags.length} חריגות</Badge>
@@ -132,7 +132,7 @@ export function CallDetailPage() {
               )}
             </div>
             <FieldRow label="שם רכב"   value={call.vehicle_name} />
-            <FieldRow label="מקצוע"    value={call.professions?.name ?? null} />
+            <FieldRow label="מקצוע"    value={call.profession_name ?? null} />
             <FieldRow label="מדווח"    value={call.reporter_name} />
             <div className="flex flex-col gap-0.5">
               <span className="text-xs text-muted">טלפון</span>
@@ -168,7 +168,7 @@ export function CallDetailPage() {
 
         <CallActions call={call} />
 
-        <CallContactsPanel professionId={call.profession_id} />
+        <CallContactsPanel professionName={call.profession_name} />
 
         <CallPartsSection
           callId={call.id}

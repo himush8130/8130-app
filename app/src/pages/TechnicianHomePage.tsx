@@ -7,7 +7,7 @@ import { ComponentBadge } from '../feedback/ComponentBadge'
 
 export function TechnicianHomePage() {
   const employee = useAuthStore((s) => s.employee)!
-  const { data: calls, isLoading, error } = useTechnicianCalls(employee.profession_id)
+  const { data: calls, isLoading, error } = useTechnicianCalls(employee.profession_name)
 
   return (
     <>

@@ -5,7 +5,10 @@
 // Future improvement: generate from Supabase via `supabase gen types`.
 // =====================================================================
 
-export type EmployeeRole = 'technician' | 'manager' | 'warehouse'
+export type EmployeePermissions = 'technician' | 'manager' | 'warehouse'
+
+/** Backwards-compatible alias for code paths that haven't been renamed. */
+export type EmployeeRole = EmployeePermissions
 
 export type CallStatus =
   | 'new'
@@ -31,15 +34,15 @@ export interface Employee {
   employee_number: number
   name: string
   phone: string | null
-  profession_id: number | null
-  role: EmployeeRole
+  profession_name: string | null
+  permissions: EmployeePermissions
   created_at: string
 }
 
 export interface Vehicle {
   vehicle_number: string
-  type_id: number
-  model: string | null
+  type_name: string
+  department: string | null
   created_at: string
 }
 
@@ -53,14 +56,12 @@ export interface ServiceCall {
   reporter_phone: string | null
   description: string | null
   status: CallStatus
-  profession_id: number | null
+  profession_name: string | null
   anomaly_flags: Array<{ code: string; detail?: string }>
   created_at: string
   updated_at: string
   closed_at: string | null
   closed_by: number | null
-  /** Embedded via PostgREST: select('*, professions(name)') */
-  professions?: { name: string } | null
 }
 
 export interface CallComment {

@@ -8,7 +8,7 @@
 //   { employee_number: number, action: string, params: {...} }
 //
 // Manager-only:
-//   - resolve_anomaly_set_profession: { call_id, profession_id }
+//   - resolve_anomaly_set_profession: { call_id, profession_name }
 //   - resolve_anomaly_fix_vehicle:    { call_id, vehicle_number }
 //   - cancel_call:                    { call_id }
 //
@@ -59,10 +59,10 @@ Deno.serve(async (req: Request) => {
     return json(400, { ok: false, error: 'missing_employee_number_or_action' })
   }
 
-  // --- Authorize: caller must be a manager ---
+  // --- Authorize: caller must be a manager (for some actions) ---
   const { data: caller, error: callerErr } = await admin
     .from('employees')
-    .select('role, name')
+    .select('permissions, name')
     .eq('employee_number', employee_number)
     .maybeSingle()
 
@@ -70,7 +70,7 @@ Deno.serve(async (req: Request) => {
   if (!caller)   return json(403, { ok: false, error: 'unknown_employee' })
 
   const managerOnly = (next: () => Promise<Response>): Promise<Response> => {
-    if (caller.role !== 'manager') {
+    if (caller.permissions !== 'manager') {
       return Promise.resolve(json(403, { ok: false, error: 'requires_manager' }))
     }
     return next()
@@ -97,20 +97,20 @@ Deno.serve(async (req: Request) => {
 // ----- Action handlers -----
 
 async function resolveSetProfession(params: any): Promise<Response> {
-  const { call_id, profession_id } = params ?? {}
-  if (typeof call_id !== 'string' || typeof profession_id !== 'number') {
+  const { call_id, profession_name } = params ?? {}
+  if (typeof call_id !== 'string' || typeof profession_name !== 'string' || profession_name.trim() === '') {
     return json(400, { ok: false, error: 'invalid_params' })
   }
 
   const { data, error } = await admin
     .from('service_calls')
     .update({
-      profession_id,
+      profession_name: profession_name.trim(),
       status: 'in_treatment',
       anomaly_flags: stripAnomalies(['unknown_vehicle', 'no_technicians_for_profession', 'all_technicians_unavailable_today']),
     })
     .eq('id', call_id)
-    .select('id, display_id, status, profession_id')
+    .select('id, display_id, status, profession_name')
     .single()
 
   if (error) return json(500, { ok: false, error: 'update_failed', detail: error.message })
@@ -123,10 +123,9 @@ async function resolveFixVehicle(params: any): Promise<Response> {
     return json(400, { ok: false, error: 'invalid_params' })
   }
 
-  // Look up the corrected vehicle to derive its profession
   const { data: vehicle, error: vehErr } = await admin
     .from('vehicles')
-    .select('type_id')
+    .select('type_name')
     .eq('vehicle_number', vehicle_number)
     .maybeSingle()
 
@@ -137,12 +136,12 @@ async function resolveFixVehicle(params: any): Promise<Response> {
     .from('service_calls')
     .update({
       vehicle_number,
-      profession_id: vehicle.type_id,
+      profession_name: vehicle.type_name,
       status: 'in_treatment',
       anomaly_flags: stripAnomalies(['unknown_vehicle']),
     })
     .eq('id', call_id)
-    .select('id, display_id, status, profession_id, vehicle_number')
+    .select('id, display_id, status, profession_name, vehicle_number')
     .single()
 
   if (error) return json(500, { ok: false, error: 'update_failed', detail: error.message })

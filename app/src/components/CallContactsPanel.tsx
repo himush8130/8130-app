@@ -4,22 +4,22 @@ import { Card, CardBody, CardHeader } from './ui/Card'
 import { Badge } from './ui/Badge'
 import { PhoneActions } from './PhoneActions'
 import { ComponentBadge } from '../feedback/ComponentBadge'
-import type { EmployeeRole } from '../types/db'
+import type { EmployeePermissions } from '../types/db'
 
-const roleLabel: Record<EmployeeRole, string> = {
+const permLabel: Record<EmployeePermissions, string> = {
   technician: 'טכנאי',
   manager:    'מנהל',
   warehouse:  'מחסנאי',
 }
 
-const roleTone: Record<EmployeeRole, 'info' | 'neutral'> = {
+const permTone: Record<EmployeePermissions, 'info' | 'neutral'> = {
   technician: 'info',
   manager:    'neutral',
   warehouse:  'neutral',
 }
 
-export function CallContactsPanel({ professionId }: { professionId: number | null | undefined }) {
-  const { data, isLoading } = useCallContacts(professionId)
+export function CallContactsPanel({ professionName }: { professionName: string | null | undefined }) {
+  const { data, isLoading } = useCallContacts(professionName)
   const [showUnavailable, setShowUnavailable] = useState(false)
 
   const all = data ?? []
@@ -69,7 +69,7 @@ export function CallContactsPanel({ professionId }: { professionId: number | nul
                 <ComponentBadge id={5011} />
                 <div className="flex items-center gap-2 flex-wrap min-w-0">
                   <span className="text-sm text-foreground truncate">{c.name}</span>
-                  <Badge tone={roleTone[c.role]}>{roleLabel[c.role]}</Badge>
+                  <Badge tone={permTone[c.permissions]}>{permLabel[c.permissions]}</Badge>
                   {!c.available_today && <Badge tone="warning">לא זמין היום</Badge>}
                 </div>
                 {c.phone && <PhoneActions phone={c.phone} />}

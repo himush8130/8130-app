@@ -11,7 +11,7 @@
 // row, with anomalies surfaced via `anomaly_flags`.
 //
 // Auto-classification (per docs/SPEC.md §5):
-//   1. Look up vehicle_number → profession_id.
+//   1. Look up vehicle_number → profession_name (from vehicles.type_name).
 //   2. If found AND at least one technician of that profession is
 //      available today → status='in_treatment'.
 //   3. If vehicle unknown OR no available technician → status='new'
@@ -68,28 +68,27 @@ Deno.serve(async (req: Request) => {
   if (!description)    anomalies.push({ code: 'missing_description' })
 
   // -------- Auto-classification --------
-  let profession_id: number | null = null
+  let profession_name: string | null = null
   let status: 'new' | 'in_treatment' = 'new'
 
   if (vehicle_number) {
     const { data: vehicle } = await admin
       .from('vehicles')
-      .select('type_id')
+      .select('type_name')
       .eq('vehicle_number', vehicle_number)
       .maybeSingle()
 
     if (!vehicle) {
       anomalies.push({ code: 'unknown_vehicle', detail: vehicle_number })
     } else {
-      profession_id = vehicle.type_id
+      profession_name = vehicle.type_name
 
-      // Check at least one tech of this profession is available today.
-      const today = new Date().toISOString().slice(0, 10) // YYYY-MM-DD UTC; close enough for M2
+      const today = new Date().toISOString().slice(0, 10)
       const { data: techs } = await admin
         .from('employees')
         .select('employee_number')
-        .eq('profession_id', profession_id)
-        .eq('role', 'technician')
+        .eq('profession_name', profession_name)
+        .eq('permissions', 'technician')
 
       if (!techs || techs.length === 0) {
         anomalies.push({ code: 'no_technicians_for_profession' })
@@ -124,10 +123,10 @@ Deno.serve(async (req: Request) => {
       reporter_phone,
       description,
       status,
-      profession_id,
+      profession_name,
       anomaly_flags: anomalies,
     })
-    .select('id, display_id, status, profession_id')
+    .select('id, display_id, status, profession_name')
     .single()
 
   if (error) {

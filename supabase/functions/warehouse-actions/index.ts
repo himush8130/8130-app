@@ -55,7 +55,7 @@ Deno.serve(async (req: Request) => {
 
   const { data: caller, error: callerErr } = await admin
     .from('employees')
-    .select('role')
+    .select('permissions')
     .eq('employee_number', employee_number)
     .maybeSingle()
 
@@ -66,12 +66,12 @@ Deno.serve(async (req: Request) => {
     case 'add_required_part':
       return await addRequiredPart(params, employee_number)
     case 'update_required_part_status':
-      if (caller.role !== 'warehouse' && caller.role !== 'manager') {
+      if (caller.permissions !== 'warehouse' && caller.permissions !== 'manager') {
         return json(403, { ok: false, error: 'requires_warehouse_or_manager' })
       }
       return await updateRequiredPartStatus(params)
     case 'record_withdrawal':
-      if (caller.role !== 'warehouse' && caller.role !== 'manager') {
+      if (caller.permissions !== 'warehouse' && caller.permissions !== 'manager') {
         return json(403, { ok: false, error: 'requires_warehouse_or_manager' })
       }
       return await recordWithdrawal(params, employee_number)

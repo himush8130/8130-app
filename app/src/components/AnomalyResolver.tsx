@@ -27,7 +27,7 @@ export function AnomalyResolver({ call, professions }: Props) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [vehicleNumber, setVehicleNumber] = useState(call.vehicle_number ?? '')
-  const [professionId, setProfessionId] = useState<number>(professions[0]?.id ?? 0)
+  const [professionName, setProfessionName] = useState<string>(professions[0]?.name ?? '')
 
   function refresh() {
     queryClient.invalidateQueries({ queryKey: ['anomaly_calls'] })
@@ -51,7 +51,7 @@ export function AnomalyResolver({ call, professions }: Props) {
   async function handleSetProfession() {
     setError(null)
     setBusy(true)
-    const res = await resolveAnomalySetProfession(employee.employee_number, call.id, professionId)
+    const res = await resolveAnomalySetProfession(employee.employee_number, call.id, professionName)
     setBusy(false)
     if (!res.ok) {
       setError('שגיאה בעדכון')
@@ -151,12 +151,12 @@ export function AnomalyResolver({ call, professions }: Props) {
             <label className="flex flex-col gap-1">
               <span className="text-sm font-medium">בחר מקצוע</span>
               <select
-                value={professionId}
-                onChange={(e) => setProfessionId(parseInt(e.target.value, 10))}
+                value={professionName}
+                onChange={(e) => setProfessionName(e.target.value)}
                 className="px-3 py-2 bg-card border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {professions.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
+                  <option key={p.id} value={p.name}>{p.name}</option>
                 ))}
               </select>
             </label>

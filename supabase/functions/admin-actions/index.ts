@@ -48,12 +48,12 @@ Deno.serve(async (req: Request) => {
 
   const { data: caller } = await admin
     .from('employees')
-    .select('role')
+    .select('permissions')
     .eq('employee_number', employee_number)
     .maybeSingle()
 
   if (!caller) return json(403, { ok: false, error: 'unknown_employee' })
-  if (caller.role !== 'manager') return json(403, { ok: false, error: 'requires_manager' })
+  if (caller.permissions !== 'manager') return json(403, { ok: false, error: 'requires_manager' })
 
   switch (action) {
     case 'create_profession': return await createProfession(params)
@@ -87,14 +87,28 @@ async function createProfession(params: any): Promise<Response> {
 
 async function updateProfession(params: any): Promise<Response> {
   const id = params?.id
-  const name = typeof params?.name === 'string' ? params.name.trim() : ''
-  if (typeof id !== 'number' || !name) {
+  const newName = typeof params?.name === 'string' ? params.name.trim() : ''
+  if (typeof id !== 'number' || !newName) {
     return json(400, { ok: false, error: 'invalid_params' })
+  }
+
+  // Read the current name first so we can propagate the rename to the
+  // tables that store profession_name as text (no FK).
+  const { data: current, error: curErr } = await admin
+    .from('professions')
+    .select('name')
+    .eq('id', id)
+    .maybeSingle()
+  if (curErr)   return json(500, { ok: false, error: 'lookup_failed', detail: curErr.message })
+  if (!current) return json(404, { ok: false, error: 'not_found' })
+
+  if (current.name === newName) {
+    return json(200, { ok: true, profession: { id, name: newName } })
   }
 
   const { data, error } = await admin
     .from('professions')
-    .update({ name })
+    .update({ name: newName })
     .eq('id', id)
     .select('id, name')
     .single()
@@ -103,6 +117,14 @@ async function updateProfession(params: any): Promise<Response> {
     if (error.code === '23505') return json(409, { ok: false, error: 'name_taken' })
     return json(500, { ok: false, error: 'update_failed', detail: error.message })
   }
+
+  // Propagate the rename to denormalized references.
+  await Promise.all([
+    admin.from('employees')      .update({ profession_name: newName }).eq('profession_name', current.name),
+    admin.from('vehicles')       .update({ type_name:        newName }).eq('type_name',        current.name),
+    admin.from('service_calls')  .update({ profession_name: newName }).eq('profession_name', current.name),
+  ])
+
   return json(200, { ok: true, profession: data })
 }
 
@@ -110,10 +132,18 @@ async function deleteProfession(params: any): Promise<Response> {
   const id = params?.id
   if (typeof id !== 'number') return json(400, { ok: false, error: 'invalid_params' })
 
-  // Block if anything still references this profession.
+  // Look up the name first; usage checks query the denormalized text.
+  const { data: prof, error: profErr } = await admin
+    .from('professions')
+    .select('name')
+    .eq('id', id)
+    .maybeSingle()
+  if (profErr) return json(500, { ok: false, error: 'lookup_failed', detail: profErr.message })
+  if (!prof)   return json(404, { ok: false, error: 'not_found' })
+
   const [vRes, eRes] = await Promise.all([
-    admin.from('vehicles')  .select('vehicle_number', { count: 'exact', head: true }).eq('type_id', id),
-    admin.from('employees') .select('employee_number', { count: 'exact', head: true }).eq('profession_id', id),
+    admin.from('vehicles')  .select('vehicle_number', { count: 'exact', head: true }).eq('type_name',        prof.name),
+    admin.from('employees') .select('employee_number', { count: 'exact', head: true }).eq('profession_name', prof.name),
   ])
   const vehicleCount  = vRes.count ?? 0
   const employeeCount = eRes.count ?? 0

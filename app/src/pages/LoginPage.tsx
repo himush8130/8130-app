@@ -6,12 +6,12 @@ import { Card, CardBody } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
 import { Button } from '../components/ui/Button'
 import { ComponentBadge } from '../feedback/ComponentBadge'
-import type { Employee, EmployeeRole } from '../types/db'
+import type { Employee, EmployeePermissions } from '../types/db'
 
-const roleHomeRoute: Record<EmployeeRole, string> = {
+const homeRouteByPermissions: Record<EmployeePermissions, string> = {
   technician: '/technician',
-  manager:    '/manager',     // M4 — falls back to /login redirect for now
-  warehouse:  '/warehouse',   // M5 — same
+  manager:    '/manager',
+  warehouse:  '/warehouse',
 }
 
 export function LoginPage() {
@@ -49,7 +49,7 @@ export function LoginPage() {
     }
 
     setEmployee(data)
-    navigate(roleHomeRoute[data.role], { replace: true })
+    navigate(homeRouteByPermissions[data.permissions], { replace: true })
   }
 
   return (

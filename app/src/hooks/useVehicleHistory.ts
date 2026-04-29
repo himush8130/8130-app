@@ -2,12 +2,8 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import type { Vehicle, ServiceCall } from '../types/db'
 
-interface VehicleWithProfession extends Vehicle {
-  professions?: { name: string } | null
-}
-
 export interface VehicleHistory {
-  vehicle: VehicleWithProfession | null
+  vehicle: Vehicle | null
   calls: ServiceCall[]
 }
 
@@ -19,19 +15,19 @@ export function useVehicleHistory(vehicleNumber: string | undefined) {
       const [vehicleRes, callsRes] = await Promise.all([
         supabase
           .from('vehicles')
-          .select('*, professions:type_id(name)')
+          .select('*')
           .eq('vehicle_number', vehicleNumber!)
           .maybeSingle(),
         supabase
           .from('service_calls')
-          .select('*, professions(name)')
+          .select('*')
           .eq('vehicle_number', vehicleNumber!)
           .order('created_at', { ascending: false }),
       ])
       if (vehicleRes.error) throw vehicleRes.error
       if (callsRes.error)   throw callsRes.error
       return {
-        vehicle: (vehicleRes.data as VehicleWithProfession | null) ?? null,
+        vehicle: (vehicleRes.data as Vehicle | null) ?? null,
         calls:   (callsRes.data ?? []) as ServiceCall[],
       }
     },

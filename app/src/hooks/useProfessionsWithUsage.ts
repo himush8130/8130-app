@@ -14,8 +14,8 @@ export function useProfessionsWithUsage() {
     queryFn: async (): Promise<ProfessionWithUsage[]> => {
       const [profsRes, vehiclesRes, employeesRes] = await Promise.all([
         supabase.from('professions').select('id, name').order('id'),
-        supabase.from('vehicles').select('type_id'),
-        supabase.from('employees').select('profession_id'),
+        supabase.from('vehicles').select('type_name'),
+        supabase.from('employees').select('profession_name'),
       ])
       if (profsRes.error)     throw profsRes.error
       if (vehiclesRes.error)  throw vehiclesRes.error
@@ -27,8 +27,8 @@ export function useProfessionsWithUsage() {
       return (profsRes.data ?? []).map((p) => ({
         id: p.id,
         name: p.name,
-        vehicles_count:  vehicles.filter((v)  => v.type_id === p.id).length,
-        employees_count: employees.filter((e) => e.profession_id === p.id).length,
+        vehicles_count:  vehicles.filter((v)  => v.type_name === p.name).length,
+        employees_count: employees.filter((e) => e.profession_name === p.name).length,
       }))
     },
   })

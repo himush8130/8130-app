@@ -58,8 +58,8 @@ function ChipFilter<T extends string | number>({
 
 export function AllCallsPage() {
   const [statuses, setStatuses] = useState<CallStatus[]>([])
-  const [professionIds, setProfessionIds] = useState<number[]>([])
-  const { data, isLoading, error } = useAllCalls({ statuses, professionIds })
+  const [professionNames, setProfessionNames] = useState<string[]>([])
+  const { data, isLoading, error } = useAllCalls({ statuses, professionNames })
 
   return (
     <>
@@ -81,9 +81,9 @@ export function AllCallsPage() {
             {data && (
               <ChipFilter
                 label="מקצוע"
-                selected={professionIds}
-                options={data.professions.map((p) => ({ value: p.id, label: p.name }))}
-                onChange={setProfessionIds}
+                selected={professionNames}
+                options={data.professions.map((p) => ({ value: p.name, label: p.name }))}
+                onChange={setProfessionNames}
               />
             )}
           </CardBody>

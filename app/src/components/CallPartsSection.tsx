@@ -51,7 +51,7 @@ export function CallPartsSection({ callId, requiredParts, withdrawals }: Props) 
 
   if (!employee) return null
 
-  const isWarehouse = employee.role === 'warehouse' || employee.role === 'manager'
+  const isWarehouse = employee.permissions === 'warehouse' || employee.permissions === 'manager'
   // Active rows = anything not yet delivered. Delivered rows are
   // represented by their part_withdrawals entry shown below.
   const activeRows = requiredParts.filter((rp) => rp.status !== 'delivered')
