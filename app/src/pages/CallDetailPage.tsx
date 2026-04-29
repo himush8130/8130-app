@@ -10,6 +10,7 @@ import { CallActions } from '../components/CallActions'
 import { AddCommentForm } from '../components/AddCommentForm'
 import { CallContactsPanel } from '../components/CallContactsPanel'
 import { PhoneActions } from '../components/PhoneActions'
+import { CopyCallSummaryButton } from '../components/CopyCallSummaryButton'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { CallStatus, EmployeeRole } from '../types/db'
 
@@ -93,9 +94,12 @@ export function CallDetailPage() {
 
       <main className="max-w-3xl mx-auto p-4 flex flex-col gap-4">
         <ComponentBadge id={5001} />
-        <Button variant="ghost" onClick={handleBack} className="self-start text-primary">
-          → חזור
-        </Button>
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <Button variant="ghost" onClick={handleBack} className="text-primary">
+            → חזור
+          </Button>
+          <CopyCallSummaryButton call={call} />
+        </div>
 
         <Card>
           <CardHeader>
