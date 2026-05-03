@@ -43,6 +43,7 @@ export interface Vehicle {
   vehicle_number: string
   type_name: string
   department: string | null
+  sub_department: string | null
   created_at: string
 }
 

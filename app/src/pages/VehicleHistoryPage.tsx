@@ -63,6 +63,9 @@ export function VehicleHistoryPage() {
               {data.vehicle ? (
                 <div className="text-sm text-muted">
                   {data.vehicle.department ?? 'ללא מחלקה'}
+                  {data.vehicle.sub_department && (
+                    <span className="ms-2">· {data.vehicle.sub_department}</span>
+                  )}
                 </div>
               ) : (
                 <p className="text-sm text-warning">
