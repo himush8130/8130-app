@@ -1,26 +1,30 @@
 #!/usr/bin/env python3
 """
 Extract employees + their availability from worker_templates/av.xlsx
-and write them into the canonical templates:
-    - worker_templates/employees.xlsx
-    - worker_templates/employee_availability.xlsx
+into the canonical templates.
 
-av.xlsx layout (Hebrew, RTL):
+Inputs:
+  worker_templates/av.xlsx — source spreadsheet (Hebrew, RTL).
+
+Outputs:
+  worker_templates/employees.xlsx
+  worker_templates/employee_availability.xlsx
+
+av.xlsx layout (current):
   row 1: empty
   row 2: dates header in col 4..   (DD/MM)
   row 3: 'מקצוע' | 'שם מלא' | day-of-week labels
-  rows 4..29: 26 employees. Profession appears in col 2 only on the
-              first employee of each group; subsequent employees in
-              the same group have None.
+  rows 4..29: 26 employees, ordered freely. Profession column may be
+              blank — we look up the detailed profession by name from
+              the static NAME_PROFESSION map below (originally built
+              from av.xlsx when it had grouped headers).
 
-Availability cells are Hebrew status words. Mapped as follows:
-  Present           → V   ('נוכח', 'נוכח - פתיחת צו', 'התארגנות',
-                            'סגירת צו', 'סבב א', 'סבב ב', 'יום ראשון',
-                            holiday names)
-  Absent / on duty  → X   ('בית', 'אילוץ', 'צו סגור',
-                            'אילוץ - צו סגור', '-')
-  Names of other employees (substitution notes) → V (working that day)
-  empty cell         → V (default — assume available)
+Availability cells use V/X (case-insensitive). Anything else / empty
+is treated as available (V).
+
+Profession mapping — the canonical list our system uses is:
+  רכב / טנק / מנהל / מחסנאי / נשק
+The detailed professions in av.xlsx are folded into these five.
 """
 
 from datetime import date, timedelta
@@ -39,31 +43,66 @@ AVAILABILITY_DST = TEMPLATES / "employee_availability.xlsx"
 START = date(2026, 5, 1)
 END   = date(2026, 7, 12)
 
-# ----- helpers -----
+# ----- Profession mapping (detailed -> canonical) -----
 
-ABSENT = {
-    "בית", "אילוץ", "צו סגור", "אילוץ - צו סגור", "-",
+PROFESSION_MAP = {
+    "קצינים":   "מנהל",
+    "מכונאות":  "טנק",
+    "בק״ש":     "טנק",
+    "חשמל":     "טנק",
+    "צריח":     "טנק",
+    "חילוץ":    "טנק",
+    "רכב":      "רכב",
+    "נשק":      "נשק",
+    "א.נ.ם":    "טנק",
 }
-PRESENT = {
-    "נוכח", "נוכח - פתיחת צו", "התארגנות", "סגירת צו",
-    "סבב א", "סבב ב", "יום ראשון",
+
+# ----- Name → detailed profession (built when av.xlsx had headers) -----
+# Used as fallback when the current av.xlsx has no profession column.
+NAME_PROFESSION = {
+    "דור קריקב":         "קצינים",
+    "לאון בניאס":         "קצינים",
+    "בן ברקמן":           "מכונאות",
+    "דניס בולבינוב":      "מכונאות",
+    "משה בנעזרי":         "מכונאות",
+    "ראזי אבו עביד":      "מכונאות",
+    "גלעד גבאי":          "מכונאות",
+    "מיכאל שבצנקו":       "מכונאות",
+    "שחף ניסים":          "בק״ש",
+    "אלכסנדר לויצקי":     "בק״ש",
+    "קיריל צ׳ורקוב":      "בק״ש",
+    "דמיטרי איטקין":      "חשמל",
+    "משה שכטר":           "חשמל",
+    "אלמוג כהן":          "צריח",
+    "רוני ביאנה":         "חילוץ",
+    "אלכסיי גרינברג":     "חילוץ",
+    "מקסים פלומבויים":    "רכב",
+    "ירין דוד":           "רכב",
+    "פואד אבו עאסי":      "רכב",
+    "דניאל קורולקוב":     "רכב",
+    "טל אסטרין":          "רכב",
+    "משה זלקה":           "נשק",
+    "יוני זנה":           "נשק",
+    "ניתאי מלכה":         "נשק",
+    "סרגיי צירלוב":       "א.נ.ם",
+    "תומר סיגלוב":        "א.נ.ם",
 }
+
+
+# ----- Availability classifier -----
 
 def classify(value) -> str:
-    """Return 'V' (available) or 'X' (unavailable) for an av.xlsx cell."""
+    """Return 'V' (available) or 'X' (unavailable). Case-insensitive."""
     if value is None:
         return "V"
-    s = str(value).strip()
-    if not s:
-        return "V"
-    if s in ABSENT:
+    s = str(value).strip().upper()
+    if s == "X":
         return "X"
-    # Anything else is treated as available (present, holiday names,
-    # names of other employees as substitution notes, etc.).
+    # Anything else (V, empty, holiday name, substitution note, etc.)
     return "V"
 
 
-# ----- read av.xlsx -----
+# ----- Read av.xlsx -----
 
 def read_av():
     wb = openpyxl.load_workbook(SRC)
@@ -82,18 +121,34 @@ def read_av():
         except Exception:
             pass
 
-    employees = []          # list of {number, name, profession_name, availability: dict[date]->'V'|'X'}
-    next_num  = 2000
-    current_profession = None
+    # Stable employee numbers — same name always maps to the same number,
+    # regardless of how av.xlsx is reordered.
+    NAME_NUMBER = {name: 2000 + i for i, name in enumerate(NAME_PROFESSION)}
 
-    for r in range(4, 30):  # employees only on rows 4..29
+    employees = []
+    current_detailed = None  # falls back to col 2 header if av.xlsx still groups
+
+    for r in range(4, 30):  # employees on rows 4..29
         prof_cell = ws.cell(row=r, column=2).value
         name_cell = ws.cell(row=r, column=3).value
 
         if prof_cell:
-            current_profession = str(prof_cell).strip()
+            current_detailed = str(prof_cell).strip()
         if not name_cell or not str(name_cell).strip():
             continue
+        name = str(name_cell).strip()
+
+        # Prefer the per-name lookup; fall back to the column-grouped header.
+        detailed = NAME_PROFESSION.get(name) or current_detailed
+        if detailed is None:
+            raise SystemExit(f"לא ידוע מקצוע עבור: {name!r}")
+
+        canonical_prof = PROFESSION_MAP.get(detailed)
+        if canonical_prof is None:
+            raise SystemExit(f"מקצוע לא ממופה: {detailed!r}")
+
+        if name not in NAME_NUMBER:
+            raise SystemExit(f"לא ידוע מספר עובד עבור: {name!r}")
 
         availability = {}
         for c, d in date_cols.items():
@@ -102,17 +157,18 @@ def read_av():
             availability[d] = classify(ws.cell(row=r, column=c).value)
 
         employees.append({
-            "number":          next_num,
-            "name":            str(name_cell).strip(),
-            "profession":      current_profession,
-            "availability":    availability,
+            "number":            NAME_NUMBER[name],
+            "name":              name,
+            "detailed":          detailed,
+            "profession":        canonical_prof,
+            "availability":      availability,
         })
-        next_num += 1
 
+    employees.sort(key=lambda e: e["number"])
     return employees
 
 
-# ----- write employees.xlsx -----
+# ----- Style helpers -----
 
 HEADER_FONT  = Font(bold=True, size=12)
 HEADER_FILL  = PatternFill(start_color="DBEAFE", end_color="DBEAFE", fill_type="solid")
@@ -136,6 +192,9 @@ def add_instructions(wb, lines):
         cell = ws.cell(row=i, column=1, value=line)
         cell.alignment = Alignment(wrap_text=True, vertical="top")
 
+
+# ----- Write employees.xlsx -----
+
 def write_employees(employees):
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -146,33 +205,40 @@ def write_employees(employees):
     ws.append(headers)
     style_header(ws, len(headers))
 
+    # Permissions: officers map to manager, everyone else technician.
     for emp in employees:
-        # Phone: "1234" + number (e.g., 12342000)
         phone = f"1234{emp['number']}"
-        ws.append([emp["number"], emp["name"], phone, emp["profession"], "technician"])
+        permissions = "manager" if emp["detailed"] == "קצינים" else "technician"
+        ws.append([emp["number"], emp["name"], phone, emp["profession"], permissions])
 
     ws.column_dimensions["A"].width = 14
     ws.column_dimensions["B"].width = 22
     ws.column_dimensions["C"].width = 14
-    ws.column_dimensions["D"].width = 16
-    ws.column_dimensions["E"].width = 16
+    ws.column_dimensions["D"].width = 12
+    ws.column_dimensions["E"].width = 14
 
     add_instructions(wb, [
-        "טבלת עובדים — חולץ מתוך av.xlsx (רשימת אנשי מקצוע + זמינות).",
+        "טבלת עובדים — חולץ מתוך av.xlsx + מיפוי המקצוע המפורט.",
         "",
         "עמודות:",
-        "  • מספר עובד — מספר רץ החל מ-2000 (הערך האמיתי יוחלף בעתיד).",
+        "  • מספר עובד — מספר רץ החל מ-2000 (placeholder).",
         "  • שם — שם מלא, חולץ מ-av.xlsx.",
-        "  • טלפון — placeholder בפורמט 1234<מס׳ עובד> עד שיגיעו מספרים אמיתיים.",
-        "  • מקצוע — קבוצת המקצוע מ-av.xlsx (קצינים, מכונאות, בק״ש, חשמל, צריח, חילוץ, רכב, נשק, א.נ.ם).",
-        "  • הרשאה — כל העובדים סווגו זמנית כ-technician. נעדכן ידנית למנהל/מחסנאי בעתיד.",
+        "  • טלפון — placeholder בפורמט 1234<מס׳ עובד>.",
+        "  • מקצוע — רכב / טנק / מנהל / מחסנאי / נשק.",
+        "  • הרשאה — מנהל / מחסנאי / טכנאי. ברירת מחדל: technician.",
+        "",
+        "מיפוי מקצועות (מקור → מטרה):",
+        "  • קצינים → מנהל (גם הרשאה manager)",
+        "  • מכונאות / בק״ש / חשמל / צריח / חילוץ / א.נ.ם → טנק",
+        "  • רכב → רכב",
+        "  • נשק → נשק",
     ])
 
     wb.save(EMPLOYEES_DST)
     print(f"✓ employees.xlsx: {len(employees)} עובדים")
 
 
-# ----- write employee_availability.xlsx -----
+# ----- Write employee_availability.xlsx -----
 
 def write_availability(employees):
     wb = openpyxl.Workbook()
@@ -196,7 +262,6 @@ def write_availability(employees):
             row.append(emp["availability"].get(d, "V"))
         ws.append(row)
 
-    # Column widths
     ws.column_dimensions["A"].width = 12
     ws.column_dimensions["B"].width = 22
     for col in range(3, 3 + len(days)):
@@ -204,26 +269,18 @@ def write_availability(employees):
     ws.freeze_panes = "C2"
 
     add_instructions(wb, [
-        "טבלת זמינות — חולצה מתוך av.xlsx.",
+        "טבלת זמינות — חולצה מתוך av.xlsx (ערכי V/X).",
         "",
-        "עמודות:",
-        "  • מספר עובד / שם עובד — מתאים לערכים ב-employees.xlsx.",
-        "  • כל יום בטווח 01/05/2026 עד 12/07/2026 = עמודה משלו.",
-        "",
-        "ערכים בתאים:",
-        "  • V = העובד זמין באותו יום.",
-        "  • X = העובד לא זמין.",
-        "",
-        "מיפוי המקור (av.xlsx → V/X):",
-        "  • 'נוכח' / 'התארגנות' / 'סבב' / שם של עובד אחר / חג / תא ריק → V",
-        "  • 'בית' / 'אילוץ' / 'צו סגור' / 'אילוץ - צו סגור' / '-' → X",
+        "  • V = זמין באותו יום.",
+        "  • X = לא זמין.",
+        "  • תא ריק במקור טופל כ-V.",
     ])
 
     wb.save(AVAILABILITY_DST)
     print(f"✓ employee_availability.xlsx: {len(employees)} עובדים × {len(days)} ימים")
 
 
-# ----- main -----
+# ----- Main -----
 
 def main():
     if not SRC.exists():
@@ -234,12 +291,19 @@ def main():
     write_employees(employees)
     write_availability(employees)
     print()
-    print("=== סיכום ===")
+    print("=== סיכום מקצועות ===")
     by_prof = {}
     for e in employees:
         by_prof.setdefault(e["profession"], []).append(e["name"])
-    for prof, names in by_prof.items():
+    for prof, names in sorted(by_prof.items()):
         print(f"  {prof}: {len(names)} עובדים — {', '.join(names)}")
+
+    print()
+    print("=== סיכום זמינות ===")
+    total_v = sum(sum(1 for v in e["availability"].values() if v == "V") for e in employees)
+    total_x = sum(sum(1 for v in e["availability"].values() if v == "X") for e in employees)
+    print(f"  V (זמין):    {total_v}")
+    print(f"  X (לא זמין): {total_x}")
 
 
 if __name__ == "__main__":
