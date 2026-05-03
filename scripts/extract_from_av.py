@@ -54,7 +54,14 @@ PROFESSION_MAP = {
     "חילוץ":    "טנק",
     "רכב":      "רכב",
     "נשק":      "נשק",
-    "א.נ.ם":    "טנק",
+    "א.נ.ם":    "מחסנאי",
+}
+
+# Permissions implied by canonical profession.
+PERMISSIONS_BY_PROFESSION = {
+    "מנהל":    "manager",
+    "מחסנאי":  "warehouse",
+    # everything else (רכב, טנק, נשק) defaults to technician.
 }
 
 # ----- Name → detailed profession (built when av.xlsx had headers) -----
@@ -205,10 +212,10 @@ def write_employees(employees):
     ws.append(headers)
     style_header(ws, len(headers))
 
-    # Permissions: officers map to manager, everyone else technician.
+    # Permissions derived from canonical profession.
     for emp in employees:
         phone = f"1234{emp['number']}"
-        permissions = "manager" if emp["detailed"] == "קצינים" else "technician"
+        permissions = PERMISSIONS_BY_PROFESSION.get(emp["profession"], "technician")
         ws.append([emp["number"], emp["name"], phone, emp["profession"], permissions])
 
     ws.column_dimensions["A"].width = 14
@@ -228,8 +235,9 @@ def write_employees(employees):
         "  • הרשאה — מנהל / מחסנאי / טכנאי. ברירת מחדל: technician.",
         "",
         "מיפוי מקצועות (מקור → מטרה):",
-        "  • קצינים → מנהל (גם הרשאה manager)",
-        "  • מכונאות / בק״ש / חשמל / צריח / חילוץ / א.נ.ם → טנק",
+        "  • קצינים → מנהל   (הרשאה: manager)",
+        "  • א.נ.ם   → מחסנאי (הרשאה: warehouse)",
+        "  • מכונאות / בק״ש / חשמל / צריח / חילוץ → טנק",
         "  • רכב → רכב",
         "  • נשק → נשק",
     ])
