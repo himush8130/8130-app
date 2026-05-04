@@ -1,7 +1,11 @@
-import { useTankReadiness } from '../hooks/useTankReadiness'
+import { useTankReadiness, type CompanyReadiness } from '../hooks/useTankReadiness'
 import { Card, CardBody, CardHeader } from './ui/Card'
-import { Badge } from './ui/Badge'
+import { DonutChart } from './DonutChart'
 import { ComponentBadge } from '../feedback/ComponentBadge'
+
+const COLOR_HEALTHY  = 'var(--color-success)'
+const COLOR_ISSUES   = 'var(--color-warning)'
+const COLOR_DISABLED = 'var(--color-danger)'
 
 export function TankReadinessCard() {
   const { data, isLoading } = useTankReadiness()
@@ -20,42 +24,51 @@ export function TankReadinessCard() {
           </span>
         </div>
       </CardHeader>
-      <CardBody className="p-0">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-xs text-muted border-b border-border">
-              <th className="text-start font-medium px-4 py-2">פלוגה</th>
-              <th className="text-start font-medium px-4 py-2">סה״כ</th>
-              <th className="text-start font-medium px-4 py-2">תקינים</th>
-              <th className="text-start font-medium px-4 py-2">עם תקלות</th>
-              <th className="text-start font-medium px-4 py-2">מושבתים</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.byCompany.map((g) => (
-              <tr key={g.sub_department} className="border-b border-border last:border-0">
-                <td className="px-4 py-2 font-medium text-foreground">{g.sub_department}</td>
-                <td className="px-4 py-2 text-foreground">{g.total}</td>
-                <td className="px-4 py-2">
-                  {g.healthy === 0
-                    ? <span className="text-muted">0</span>
-                    : <Badge tone="success">{g.healthy}</Badge>}
-                </td>
-                <td className="px-4 py-2">
-                  {g.with_issues === 0
-                    ? <span className="text-muted">0</span>
-                    : <Badge tone="warning">{g.with_issues}</Badge>}
-                </td>
-                <td className="px-4 py-2">
-                  {g.disabled === 0
-                    ? <span className="text-muted">0</span>
-                    : <Badge tone="danger">{g.disabled}</Badge>}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <CardBody>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {data.byCompany.map((g) => <CompanyDonut key={g.sub_department} g={g} />)}
+        </div>
+
+        <div className="mt-4 flex items-center justify-center gap-4 flex-wrap text-xs">
+          <Legend color={COLOR_HEALTHY}  label="תקין" />
+          <Legend color={COLOR_ISSUES}   label="עם תקלה" />
+          <Legend color={COLOR_DISABLED} label="מושבת" />
+        </div>
       </CardBody>
     </Card>
+  )
+}
+
+function CompanyDonut({ g }: { g: CompanyReadiness }) {
+  const segments = [
+    { value: g.healthy,     color: COLOR_HEALTHY,  label: 'תקין' },
+    { value: g.with_issues, color: COLOR_ISSUES,   label: 'עם תקלה' },
+    { value: g.disabled,    color: COLOR_DISABLED, label: 'מושבת' },
+  ]
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <div className="text-sm font-semibold text-foreground">פלוגה {g.sub_department}</div>
+      <DonutChart
+        segments={segments}
+        size={140}
+        thickness={18}
+        centerLabel={g.total}
+        centerSubLabel="סה״כ"
+      />
+      <div className="flex items-center justify-center gap-3 text-xs text-muted">
+        <span><span className="text-success font-medium">{g.healthy}</span> תקין</span>
+        <span><span className="text-warning font-medium">{g.with_issues}</span> תקלה</span>
+        <span><span className="text-danger font-medium">{g.disabled}</span> מושבת</span>
+      </div>
+    </div>
+  )
+}
+
+function Legend({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 text-muted">
+      <span className="w-3 h-3 rounded-full" style={{ background: color }} />
+      <span>{label}</span>
+    </span>
   )
 }
