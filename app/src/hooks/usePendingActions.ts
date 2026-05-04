@@ -18,7 +18,7 @@ export function usePendingActions() {
     queryFn: async (): Promise<PendingPart[]> => {
       const { data, error } = await supabase
         .from('call_required_parts')
-        .select('*, parts(name, quantity, sku, original_sku), service_calls(display_id)')
+        .select('*, parts(name, quantity, sku), service_calls(display_id)')
         .in('status', ['in_stock', 'awaiting_order', 'awaiting_receipt', 'received'])
         .order('requested_at', { ascending: true })
       if (error) throw error

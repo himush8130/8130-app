@@ -5,18 +5,15 @@ Load worker_templates/מלאי מכולות.xlsx into the parts table.
 Usage:
     python3 scripts/import_parts.py [--dry-run]
 
-Behavior:
-    1. Wipes the parts table (truncating dependent rows in
-       call_required_parts and part_withdrawals — both empty in dev).
-    2. Reads every row from the inventory file.
-    3. Generates a unique synthetic SKU when the worker's value
-       collides (e.g. '000000000' appearing 12 times → 000000000-001..012).
-       The original value is preserved in original_sku for display.
-    4. Bulk inserts via the Supabase REST API using the service-role key.
+The SKU is preserved verbatim — duplicates are allowed (parts.id, a
+UUID, is the primary key now). For each row we also compute a `seq`
+running number within the SKU group (1, 2, ...) so the user can see
+"this is the 3rd of 12 entries with sku '000000000'" if they ever
+need to.
 
 Mapping:
     Excel "שם פריט"             → name
-    Excel "מקט"                  → original_sku  (and sku, with -NNN suffix on dups)
+    Excel "מקט"                  → sku
     Excel "כמות"                 → quantity
     Excel "מחסן"                 → warehouse
     Excel "ארון"                 → cabinet
@@ -32,12 +29,12 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+import json
+import urllib.request
+import urllib.error
 from collections import Counter
 from pathlib import Path
 import openpyxl
-import urllib.request
-import urllib.error
-import json
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "worker_templates" / "מלאי מכולות.xlsx"
@@ -82,51 +79,28 @@ def parse_inventory():
         name = to_text(ws.cell(row=r, column=1).value)
         if not name:
             continue
-        original_sku = to_text(ws.cell(row=r, column=2).value)
-        quantity   = to_int(ws.cell(row=r, column=3).value) or 0
-        warehouse  = to_text(ws.cell(row=r, column=4).value)
-        cabinet    = to_int(ws.cell(row=r, column=5).value)
-        st_type    = to_text(ws.cell(row=r, column=6).value)
-        st_num     = to_int(ws.cell(row=r, column=7).value)
-        cell_num   = to_int(ws.cell(row=r, column=8).value)
-        min_thresh = to_int(ws.cell(row=r, column=9).value) or 0
-        is_exch_v  = to_text(ws.cell(row=r, column=10).value)
-        stock_cnt  = to_int(ws.cell(row=r, column=11).value) or 0
-
-        is_exchange = is_exch_v == "כן"
-
         rows.append({
             "name":            name,
-            "original_sku":    original_sku,
-            "quantity":        quantity,
-            "warehouse":       warehouse,
-            "cabinet":         cabinet,
-            "storage_type":    st_type,
-            "storage_number":  st_num,
-            "cell_number":     cell_num,
-            "min_threshold":   min_thresh,
-            "is_exchange":     is_exchange,
-            "stock_count":     stock_cnt,
+            "sku":             to_text(ws.cell(row=r, column=2).value) or "",
+            "quantity":        to_int(ws.cell(row=r, column=3).value) or 0,
+            "warehouse":       to_text(ws.cell(row=r, column=4).value),
+            "cabinet":         to_int(ws.cell(row=r, column=5).value),
+            "storage_type":    to_text(ws.cell(row=r, column=6).value),
+            "storage_number":  to_int(ws.cell(row=r, column=7).value),
+            "cell_number":     to_int(ws.cell(row=r, column=8).value),
+            "min_threshold":   to_int(ws.cell(row=r, column=9).value) or 0,
+            "is_exchange":     to_text(ws.cell(row=r, column=10).value) == "כן",
+            "stock_count":     to_int(ws.cell(row=r, column=11).value) or 0,
         })
     return rows
 
 
-# ----- Synthetic SKU dedup -----
-
-def assign_synthetic_skus(rows):
-    """Mutate rows in place adding a unique 'sku' field. Format:
-    if a SKU is unique, sku == original_sku.
-    if duplicated, suffix '-NNN' to each occurrence in stable order."""
-    counts = Counter(r["original_sku"] or "(no-sku)" for r in rows)
-    next_idx: Counter[str] = Counter()
+def assign_seq(rows):
+    """Assign a per-SKU running number to each row (in source order)."""
+    counter: Counter[str] = Counter()
     for r in rows:
-        key = r["original_sku"] or "(no-sku)"
-        if counts[key] == 1 and r["original_sku"] is not None:
-            r["sku"] = r["original_sku"]
-        else:
-            next_idx[key] += 1
-            base = r["original_sku"] or "NOSKU"
-            r["sku"] = f"{base}-{next_idx[key]:03d}"
+        counter[r["sku"]] += 1
+        r["seq"] = counter[r["sku"]]
 
 
 # ----- Supabase REST helpers -----
@@ -143,15 +117,12 @@ def supabase_request(env, method: str, path: str, body=None):
         req.add_header("Prefer", "return=minimal")
     try:
         with urllib.request.urlopen(req) as resp:
-            payload = resp.read().decode("utf-8")
-            return resp.status, payload
+            return resp.status, resp.read().decode("utf-8")
     except urllib.error.HTTPError as e:
         return e.code, e.read().decode("utf-8")
 
 
 def truncate_dependents(env):
-    # call_required_parts and part_withdrawals reference parts.sku.
-    # We MUST clear them before truncating parts, else FK rejects.
     for table in ("call_required_parts", "part_withdrawals"):
         status, body = supabase_request(env, "DELETE", f"{table}?id=neq.00000000-0000-0000-0000-000000000000")
         print(f"  delete from {table}: HTTP {status}")
@@ -160,14 +131,13 @@ def truncate_dependents(env):
 
 
 def truncate_parts(env):
-    status, body = supabase_request(env, "DELETE", "parts?sku=neq.__never__")
+    status, body = supabase_request(env, "DELETE", "parts?id=neq.00000000-0000-0000-0000-000000000000")
     print(f"  delete from parts: HTTP {status}")
     if status >= 400:
         raise SystemExit(f"failed to clear parts: {body}")
 
 
 def insert_parts(env, rows):
-    """POST in batches of 500."""
     BATCH = 500
     inserted = 0
     for i in range(0, len(rows), BATCH):
@@ -192,13 +162,13 @@ def main():
 
     rows = parse_inventory()
     print(f"קלט: {len(rows)} שורות מהאקסל")
-    counts = Counter(r["original_sku"] or "(no-sku)" for r in rows)
-    dups = {k: v for k, v in counts.items() if v > 1}
-    print(f"  שכפולי SKU: {len(dups)} מק״טים שונים, סה״כ {sum(dups.values())} שורות.")
-    print(f"  דוגמאות: {list(dups.items())[:5]}")
+    sku_counts = Counter(r["sku"] for r in rows)
+    dup_skus = {k: v for k, v in sku_counts.items() if v > 1}
+    print(f"  שכפולי SKU: {len(dup_skus)} מק״טים שונים, סה״כ {sum(dup_skus.values())} שורות.")
+    print(f"  דוגמאות: {list(dup_skus.items())[:5]}")
+    print(f"  המק״טים נשמרים מילולית; סולק 'מספר רץ' (seq) פנימי לכל קבוצה.")
 
-    assign_synthetic_skus(rows)
-    print(f"  לאחר ייחודיות: {len(set(r['sku'] for r in rows))} SKU ייחודיים")
+    assign_seq(rows)
 
     if args.dry_run:
         print("\n(dry-run — לא נשלח כלום ל-DB)")

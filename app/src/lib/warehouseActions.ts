@@ -21,13 +21,13 @@ async function invoke<T = unknown>(body: Record<string, unknown>): Promise<Actio
 export function addRequiredPart(
   employeeNumber: number,
   callId: string,
-  partSku: string,
+  partId: string,
   quantity: number,
 ) {
   return invoke({
     employee_number: employeeNumber,
     action: 'add_required_part',
-    params: { call_id: callId, part_sku: partSku, quantity },
+    params: { call_id: callId, part_id: partId, quantity },
   })
 }
 
@@ -46,7 +46,7 @@ export function updateRequiredPartStatus(
 export function recordWithdrawal(
   employeeNumber: number,
   callId: string,
-  partSku: string,
+  partId: string,
   quantity: number,
   withdrawnBy: number,
   requiredPartId?: string,
@@ -56,7 +56,7 @@ export function recordWithdrawal(
     action: 'record_withdrawal',
     params: {
       call_id: callId,
-      part_sku: partSku,
+      part_id: partId,
       quantity,
       withdrawn_by: withdrawnBy,
       required_part_id: requiredPartId,

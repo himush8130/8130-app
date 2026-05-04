@@ -8,9 +8,9 @@
 //   { employee_number: number, action: string, params: {...} }
 //
 // Actions:
-//   - add_required_part:           {call_id, part_sku, quantity}        (any role)
-//   - update_required_part_status: {required_part_id, status}           (warehouse)
-//   - record_withdrawal:           {call_id, part_sku, quantity, withdrawn_by}  (warehouse)
+//   - add_required_part:           {call_id, part_id, quantity}                                   (any role)
+//   - update_required_part_status: {required_part_id, status}                                     (warehouse)
+//   - record_withdrawal:           {call_id, part_id, quantity, withdrawn_by, [required_part_id]} (warehouse)
 //
 // On `add_required_part` the function auto-classifies status:
 //   if parts.quantity >= requested -> 'in_stock'
@@ -88,23 +88,23 @@ Deno.serve(async (req: Request) => {
 // calls (i.e. parts already promised but not yet withdrawn).
 // ---------------------------------------------------------------------
 async function addRequiredPart(params: any, requested_by: number): Promise<Response> {
-  const { call_id, part_sku, quantity } = params ?? {}
-  if (typeof call_id !== 'string' || typeof part_sku !== 'string' || typeof quantity !== 'number' || quantity <= 0) {
+  const { call_id, part_id, quantity } = params ?? {}
+  if (typeof call_id !== 'string' || typeof part_id !== 'string' || typeof quantity !== 'number' || quantity <= 0) {
     return json(400, { ok: false, error: 'invalid_params' })
   }
 
   const { data: part, error: partErr } = await admin
     .from('parts')
-    .select('quantity')
-    .eq('sku', part_sku)
+    .select('id, quantity')
+    .eq('id', part_id)
     .maybeSingle()
   if (partErr) return json(500, { ok: false, error: 'part_lookup_failed', detail: partErr.message })
-  if (!part)   return json(400, { ok: false, error: 'unknown_part_sku' })
+  if (!part)   return json(400, { ok: false, error: 'unknown_part' })
 
   const { data: reservedRows, error: resErr } = await admin
     .from('call_required_parts')
     .select('quantity')
-    .eq('part_sku', part_sku)
+    .eq('part_id', part_id)
     .in('status', ['in_stock', 'received'])
   if (resErr) return json(500, { ok: false, error: 'reserved_lookup_failed', detail: resErr.message })
   const reserved  = (reservedRows ?? []).reduce((acc, r) => acc + (r.quantity ?? 0), 0)
@@ -123,16 +123,16 @@ async function addRequiredPart(params: any, requested_by: number): Promise<Respo
 
   const inserts: Array<Record<string, unknown>> = []
   if (inStockQty > 0) {
-    inserts.push({ call_id, part_sku, quantity: inStockQty, status: 'in_stock', requested_by })
+    inserts.push({ call_id, part_id, quantity: inStockQty, status: 'in_stock', requested_by })
   }
   if (toOrderQty > 0) {
-    inserts.push({ call_id, part_sku, quantity: toOrderQty, status: 'awaiting_order', requested_by })
+    inserts.push({ call_id, part_id, quantity: toOrderQty, status: 'awaiting_order', requested_by })
   }
 
   const { data: inserted, error: insertErr } = await admin
     .from('call_required_parts')
     .insert(inserts)
-    .select('id, status, quantity, part_sku')
+    .select('id, status, quantity, part_id')
   if (insertErr) return json(500, { ok: false, error: 'insert_failed', detail: insertErr.message })
 
   // Escalate call status if any row landed in awaiting_order.
@@ -163,7 +163,7 @@ async function updateRequiredPartStatus(params: any): Promise<Response> {
   // Read the existing row first so we can detect the transition.
   const { data: before, error: beforeErr } = await admin
     .from('call_required_parts')
-    .select('id, call_id, part_sku, quantity, status')
+    .select('id, call_id, part_id, quantity, status')
     .eq('id', required_part_id)
     .maybeSingle()
   if (beforeErr) return json(500, { ok: false, error: 'lookup_failed', detail: beforeErr.message })
@@ -173,7 +173,7 @@ async function updateRequiredPartStatus(params: any): Promise<Response> {
     .from('call_required_parts')
     .update({ status })
     .eq('id', required_part_id)
-    .select('id, call_id, part_sku, quantity, status')
+    .select('id, call_id, part_id, quantity, status')
     .single()
   if (error) return json(500, { ok: false, error: 'update_failed', detail: error.message })
 
@@ -184,24 +184,24 @@ async function updateRequiredPartStatus(params: any): Promise<Response> {
     const { data: stockRow } = await admin
       .from('parts')
       .select('quantity')
-      .eq('sku', before.part_sku)
+      .eq('id', before.part_id)
       .maybeSingle()
     const next = (stockRow?.quantity ?? 0) + before.quantity
     await admin
       .from('parts')
       .update({ quantity: next })
-      .eq('sku', before.part_sku)
+      .eq('id', before.part_id)
   } else if (before.status === 'received' && status === 'awaiting_receipt') {
     const { data: stockRow } = await admin
       .from('parts')
       .select('quantity')
-      .eq('sku', before.part_sku)
+      .eq('id', before.part_id)
       .maybeSingle()
     const next = Math.max(0, (stockRow?.quantity ?? 0) - before.quantity)
     await admin
       .from('parts')
       .update({ quantity: next })
-      .eq('sku', before.part_sku)
+      .eq('id', before.part_id)
   }
 
   // Recompute call status: if no required parts are still awaiting_*, move call back to in_treatment.
@@ -229,10 +229,10 @@ async function updateRequiredPartStatus(params: any): Promise<Response> {
 // pending queues.
 // ---------------------------------------------------------------------
 async function recordWithdrawal(params: any, released_by: number): Promise<Response> {
-  const { call_id, part_sku, quantity, withdrawn_by, required_part_id } = params ?? {}
+  const { call_id, part_id, quantity, withdrawn_by, required_part_id } = params ?? {}
   if (
     typeof call_id !== 'string' ||
-    typeof part_sku !== 'string' ||
+    typeof part_id !== 'string' ||
     typeof quantity !== 'number' || quantity <= 0 ||
     typeof withdrawn_by !== 'number'
   ) {
@@ -242,16 +242,16 @@ async function recordWithdrawal(params: any, released_by: number): Promise<Respo
   const { data: part } = await admin
     .from('parts')
     .select('quantity')
-    .eq('sku', part_sku)
+    .eq('id', part_id)
     .maybeSingle()
-  if (!part) return json(400, { ok: false, error: 'unknown_part_sku' })
+  if (!part) return json(400, { ok: false, error: 'unknown_part' })
   if (part.quantity < quantity) {
     return json(400, { ok: false, error: 'insufficient_stock', available: part.quantity })
   }
 
   const { data, error } = await admin
     .from('part_withdrawals')
-    .insert({ call_id, part_sku, quantity, withdrawn_by, released_by })
+    .insert({ call_id, part_id, quantity, withdrawn_by, released_by })
     .select('id, withdrawn_at, quantity')
     .single()
   if (error) return json(500, { ok: false, error: 'insert_failed', detail: error.message })

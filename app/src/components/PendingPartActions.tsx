@@ -55,7 +55,7 @@ export function PendingPartActions() {
     const res = await recordWithdrawal(
       employee.employee_number,
       row.call_id,
-      row.part_sku,
+      row.part_id,
       row.quantity,
       row.requested_by ?? employee.employee_number,
       row.id,
@@ -105,10 +105,10 @@ export function PendingPartActions() {
                   <div className="flex flex-col gap-0.5 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm text-foreground truncate">
-                        {row.parts?.name ?? row.part_sku}
+                        {row.parts?.name ?? '?'}
                       </span>
                       <span className="font-mono text-[11px] text-muted">
-                        {row.parts?.original_sku ?? row.part_sku}
+                        {row.parts?.sku ?? ''}
                       </span>
                       <Badge tone={statusTone[row.status]}>{statusLabel[row.status]}</Badge>
                       <span className="text-xs text-muted">×{row.quantity}</span>

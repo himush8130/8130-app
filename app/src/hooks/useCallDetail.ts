@@ -18,7 +18,7 @@ export function useCallDetail(id: string | undefined) {
       const [callRes, commentsRes, requiredRes, withdrawalsRes] = await Promise.all([
         supabase
           .from('service_calls')
-          .select('*, professions(name)')
+          .select('*')
           .eq('id', id!)
           .single<ServiceCall>(),
         supabase
@@ -28,12 +28,12 @@ export function useCallDetail(id: string | undefined) {
           .order('created_at', { ascending: true }),
         supabase
           .from('call_required_parts')
-          .select('*, parts(name, quantity, sku, original_sku)')
+          .select('*, parts(name, quantity, sku)')
           .eq('call_id', id!)
           .order('requested_at', { ascending: true }),
         supabase
           .from('part_withdrawals')
-          .select('*, parts(name, original_sku)')
+          .select('*, parts(name, sku)')
           .eq('call_id', id!)
           .order('withdrawn_at', { ascending: true }),
       ])
