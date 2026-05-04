@@ -3,6 +3,7 @@ import { useManagerOverview } from '../hooks/useManagerOverview'
 import { AppHeader } from '../components/AppHeader'
 import { StatCard } from '../components/StatCard'
 import { TankReadinessCard } from '../components/TankReadinessCard'
+import { ReleaseNoteFooter } from '../components/ReleaseNoteFooter'
 import { Card, CardBody } from '../components/ui/Card'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 
@@ -70,6 +71,8 @@ export function ManagerHomePage() {
                 </ul>
               </CardBody>
             </Card>
+
+            <ReleaseNoteFooter />
           </>
         )}
       </main>

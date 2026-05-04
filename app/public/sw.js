@@ -2,18 +2,22 @@
  * 8130 APP — Service Worker
  * =====================================================================
  * Strategy:
- *   • App shell (HTML, JS, CSS, icons): cache-first. Same shell on
- *     every load even when offline.
- *   • Supabase API (REST + functions): network-first; if the network
- *     fails, fall back to a cached response if we have one.
+ *   • Navigation / HTML: NETWORK-FIRST. The HTML must always reflect
+ *     the latest deploy so it points to the freshest hashed assets.
+ *     Falls back to cached '/' only when offline.
+ *   • Hashed assets (/assets/*): cache-first, immutable. Vite emits
+ *     content-hashed filenames, so a new build means a new URL.
+ *   • Other static (manifest, icons): cache-first.
+ *   • Supabase API: network-first with cache fallback.
  *
- * The cache name is bumped per release (see CACHE_VERSION). On
- * activate, all old caches are deleted.
+ * Updates: install → skipWaiting; activate → clients.claim. The page
+ * (registerSW.ts) reloads exactly once on `controllerchange`, so users
+ * pick up the new build automatically without closing the app.
  * ===================================================================== */
 
-const CACHE_VERSION = 'v1'
-const SHELL_CACHE   = `8130-shell-${CACHE_VERSION}`
-const API_CACHE     = `8130-api-${CACHE_VERSION}`
+const SHELL_CACHE = '8130-shell'
+const ASSET_CACHE = '8130-assets'
+const API_CACHE   = '8130-api'
 
 const SHELL_PRECACHE = [
   '/',
@@ -34,7 +38,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keys) =>
       Promise.all(
         keys
-          .filter((k) => k !== SHELL_CACHE && k !== API_CACHE)
+          .filter((k) => k !== SHELL_CACHE && k !== ASSET_CACHE && k !== API_CACHE)
           .map((k) => caches.delete(k)),
       ),
     ),
@@ -50,45 +54,45 @@ self.addEventListener('fetch', (event) => {
 
   // Supabase API — network-first with cache fallback.
   if (url.host.endsWith('.supabase.co')) {
-    event.respondWith(networkFirst(req))
+    event.respondWith(networkFirst(req, API_CACHE))
     return
   }
 
-  // Same origin: cache-first for the app shell + assets.
-  if (url.origin === self.location.origin) {
-    event.respondWith(cacheFirst(req))
+  if (url.origin !== self.location.origin) return
+
+  // SPA navigation: always try network so we get the latest HTML
+  // (which references the latest content-hashed JS/CSS).
+  if (req.mode === 'navigate') {
+    event.respondWith(networkFirstHTML(req))
     return
   }
 
-  // Anything else (e.g. Google Fonts): just pass through.
+  // Hashed assets: immutable, safe to serve from cache forever.
+  if (url.pathname.startsWith('/assets/')) {
+    event.respondWith(cacheFirst(req, ASSET_CACHE))
+    return
+  }
+
+  // Other same-origin static (manifest, icons): cache-first.
+  event.respondWith(cacheFirst(req, SHELL_CACHE))
 })
 
-async function cacheFirst(req) {
+async function cacheFirst(req, cacheName) {
   const cached = await caches.match(req)
   if (cached) return cached
-  try {
-    const res = await fetch(req)
-    if (res.ok) {
-      const cache = await caches.open(SHELL_CACHE)
-      cache.put(req, res.clone())
-    }
-    return res
-  } catch (err) {
-    // Last-ditch: return the cached root document for navigations,
-    // letting the SPA handle the 404.
-    if (req.mode === 'navigate') {
-      const root = await caches.match('/')
-      if (root) return root
-    }
-    throw err
+  const res = await fetch(req)
+  if (res.ok) {
+    const cache = await caches.open(cacheName)
+    cache.put(req, res.clone())
   }
+  return res
 }
 
-async function networkFirst(req) {
+async function networkFirst(req, cacheName) {
   try {
     const res = await fetch(req)
     if (res.ok) {
-      const cache = await caches.open(API_CACHE)
+      const cache = await caches.open(cacheName)
       cache.put(req, res.clone())
     }
     return res
@@ -96,5 +100,20 @@ async function networkFirst(req) {
     const cached = await caches.match(req)
     if (cached) return cached
     throw err
+  }
+}
+
+async function networkFirstHTML(req) {
+  try {
+    const res = await fetch(req)
+    if (res.ok) {
+      const cache = await caches.open(SHELL_CACHE)
+      cache.put('/', res.clone())
+    }
+    return res
+  } catch {
+    const cached = await caches.match('/')
+    if (cached) return cached
+    return new Response('Offline', { status: 503 })
   }
 }

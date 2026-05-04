@@ -6,4 +6,7 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   envDir: '../', // load .env files from the monorepo root
+  define: {
+    __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+  },
 })
