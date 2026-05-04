@@ -64,6 +64,72 @@ PERMISSIONS_BY_PROFESSION = {
     # everything else (רכב, טנק, נשק) defaults to technician.
 }
 
+# ----- Name overrides (preferred display spelling) -----
+NAME_OVERRIDE = {
+    "גלעד גבאי": "גילעד גבאי",
+}
+
+# ----- Real employee numbers (provided 2026-05-04) -----
+# Keyed by the name as it appears in av.xlsx (BEFORE override).
+NAME_NUMBER = {
+    "דור קריקב":         8275186,
+    "לאון בניאס":         9999999,
+    "בן ברקמן":           8048029,
+    "דניס בולבינוב":      7667042,
+    "משה בנעזרי":         7600591,
+    "ראזי אבו עביד":      8592587,
+    "גלעד גבאי":          9014610,
+    "מיכאל שבצנקו":       8266875,
+    "שחף ניסים":          7548287,
+    "אלכסנדר לויצקי":     8840972,
+    "קיריל צ׳ורקוב":      8831115,
+    "דמיטרי איטקין":      8451889,
+    "משה שכטר":           9175267,
+    "אלמוג כהן":          8183890,
+    "רוני ביאנה":         6891337,
+    "אלכסיי גרינברג":     5385987,
+    "מקסים פלומבויים":    5108573,
+    "ירין דוד":           8190085,
+    "פואד אבו עאסי":      6134018,
+    "דניאל קורולקוב":     8141927,
+    "טל אסטרין":          8169903,
+    "משה זלקה":           7414543,
+    "יוני זנה":           5763399,
+    "ניתאי מלכה":         5754689,
+    "סרגיי צירלוב":       7471311,
+    "תומר סיגלוב":        7777777,
+}
+
+# ----- Real phone numbers (provided 2026-05-04) -----
+NAME_PHONE = {
+    "דור קריקב":         "505580129",
+    "לאון בניאס":         "502880886",
+    "בן ברקמן":           "526411633",
+    "דניס בולבינוב":      "546458538",
+    "משה בנעזרי":         "508080543",
+    "ראזי אבו עביד":      "523119258",
+    "גלעד גבאי":          "542040911",
+    "מיכאל שבצנקו":       "507288003",
+    "שחף ניסים":          "504380030",
+    "אלכסנדר לויצקי":     "529579147",
+    "קיריל צ׳ורקוב":      "1234",
+    "דמיטרי איטקין":      "526354188",
+    "משה שכטר":           "5678",
+    "אלמוג כהן":          "542299927",
+    "רוני ביאנה":         "528400558",
+    "אלכסיי גרינברג":     "532812908",
+    "מקסים פלומבויים":    "546505950",
+    "ירין דוד":           "504647481",
+    "פואד אבו עאסי":      "543932707",
+    "דניאל קורולקוב":     "502798896",
+    "טל אסטרין":          "508120175",
+    "משה זלקה":           "505168600",
+    "יוני זנה":           "508123242",
+    "ניתאי מלכה":         "546526336",
+    "סרגיי צירלוב":       "526230535",
+    "תומר סיגלוב":        "536201993",
+}
+
 # ----- Name → detailed profession (built when av.xlsx had headers) -----
 # Used as fallback when the current av.xlsx has no profession column.
 NAME_PROFESSION = {
@@ -128,10 +194,6 @@ def read_av():
         except Exception:
             pass
 
-    # Stable employee numbers — same name always maps to the same number,
-    # regardless of how av.xlsx is reordered.
-    NAME_NUMBER = {name: 2000 + i for i, name in enumerate(NAME_PROFESSION)}
-
     employees = []
     current_detailed = None  # falls back to col 2 header if av.xlsx still groups
 
@@ -143,19 +205,21 @@ def read_av():
             current_detailed = str(prof_cell).strip()
         if not name_cell or not str(name_cell).strip():
             continue
-        name = str(name_cell).strip()
+        raw_name = str(name_cell).strip()
+        # Name in av.xlsx is the lookup key. Display name may differ.
+        display_name = NAME_OVERRIDE.get(raw_name, raw_name)
 
         # Prefer the per-name lookup; fall back to the column-grouped header.
-        detailed = NAME_PROFESSION.get(name) or current_detailed
+        detailed = NAME_PROFESSION.get(raw_name) or current_detailed
         if detailed is None:
-            raise SystemExit(f"לא ידוע מקצוע עבור: {name!r}")
+            raise SystemExit(f"לא ידוע מקצוע עבור: {raw_name!r}")
 
         canonical_prof = PROFESSION_MAP.get(detailed)
         if canonical_prof is None:
             raise SystemExit(f"מקצוע לא ממופה: {detailed!r}")
 
-        if name not in NAME_NUMBER:
-            raise SystemExit(f"לא ידוע מספר עובד עבור: {name!r}")
+        if raw_name not in NAME_NUMBER:
+            raise SystemExit(f"לא ידוע מספר עובד עבור: {raw_name!r}")
 
         availability = {}
         for c, d in date_cols.items():
@@ -164,8 +228,9 @@ def read_av():
             availability[d] = classify(ws.cell(row=r, column=c).value)
 
         employees.append({
-            "number":            NAME_NUMBER[name],
-            "name":              name,
+            "number":            NAME_NUMBER[raw_name],
+            "name":              display_name,
+            "phone":             NAME_PHONE.get(raw_name),
             "detailed":          detailed,
             "profession":        canonical_prof,
             "availability":      availability,
@@ -214,7 +279,7 @@ def write_employees(employees):
 
     # Permissions derived from canonical profession.
     for emp in employees:
-        phone = f"1234{emp['number']}"
+        phone = emp.get("phone") or f"1234{emp['number']}"
         permissions = PERMISSIONS_BY_PROFESSION.get(emp["profession"], "technician")
         ws.append([emp["number"], emp["name"], phone, emp["profession"], permissions])
 
@@ -228,9 +293,9 @@ def write_employees(employees):
         "טבלת עובדים — חולץ מתוך av.xlsx + מיפוי המקצוע המפורט.",
         "",
         "עמודות:",
-        "  • מספר עובד — מספר רץ החל מ-2000 (placeholder).",
-        "  • שם — שם מלא, חולץ מ-av.xlsx.",
-        "  • טלפון — placeholder בפורמט 1234<מס׳ עובד>.",
+        "  • מספר עובד — מספר אישי אמיתי (מ-NAME_NUMBER ב-extract_from_av.py).",
+        "  • שם — שם מלא, חולץ מ-av.xlsx (עם NAME_OVERRIDE לאיותים מועדפים).",
+        "  • טלפון — מספר טלפון אמיתי (מ-NAME_PHONE), עם נפילה ל-1234<מס׳> עבור עובדים שלא ניתן להם מספר.",
         "  • מקצוע — רכב / טנק / מנהל / מחסנאי / נשק.",
         "  • הרשאה — מנהל / מחסנאי / טכנאי. ברירת מחדל: technician.",
         "",
