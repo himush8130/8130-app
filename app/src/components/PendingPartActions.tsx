@@ -107,7 +107,9 @@ export function PendingPartActions() {
                       <span className="text-sm text-foreground truncate">
                         {row.parts?.name ?? row.part_sku}
                       </span>
-                      <span className="font-mono text-[11px] text-muted">{row.part_sku}</span>
+                      <span className="font-mono text-[11px] text-muted">
+                        {row.parts?.original_sku ?? row.part_sku}
+                      </span>
                       <Badge tone={statusTone[row.status]}>{statusLabel[row.status]}</Badge>
                       <span className="text-xs text-muted">×{row.quantity}</span>
                     </div>

@@ -118,7 +118,9 @@ export function CallPartsSection({ callId, requiredParts, withdrawals }: Props) 
                 >
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-foreground">{w.parts?.name ?? w.part_sku}</span>
-                    <span className="font-mono text-[11px] text-muted">{w.part_sku}</span>
+                    <span className="font-mono text-[11px] text-muted">
+                      {w.parts?.original_sku ?? w.part_sku}
+                    </span>
                     <span className="text-muted text-xs">×{w.quantity}</span>
                   </div>
                   <span className="text-xs text-muted">
@@ -162,7 +164,8 @@ function AddPartForm({
     if (!sku && !name) return []
     return catalog
       .filter((p) => {
-        const skuOk  = !sku  || p.sku.toLowerCase().includes(sku)
+        const checkSku = (p.original_sku ?? p.sku).toLowerCase()
+        const skuOk  = !sku  || checkSku.includes(sku)
         const nameOk = !name || p.name.toLowerCase().includes(name)
         return skuOk && nameOk
       })
@@ -171,7 +174,7 @@ function AddPartForm({
 
   function pick(part: Part) {
     setSelected(part)
-    setSkuQuery(part.sku)
+    setSkuQuery(part.original_sku ?? part.sku)
     setNameQuery(part.name)
   }
 
@@ -226,7 +229,7 @@ function AddPartForm({
               >
                 <span className="text-foreground">{p.name}</span>
                 <span className="font-mono text-[11px] text-muted">
-                  {p.sku} · במלאי: {p.quantity}
+                  {p.original_sku ?? p.sku} · במלאי: {p.quantity}
                 </span>
               </button>
             </li>
@@ -236,7 +239,7 @@ function AddPartForm({
 
       {selected && (
         <div className="text-xs text-success">
-          ✓ נבחר: {selected.name} ({selected.sku})
+          ✓ נבחר: {selected.name} ({selected.original_sku ?? selected.sku})
           {' '}
           <button type="button" onClick={() => setSelected(null)} className="text-muted underline">
             (החלף)
@@ -324,7 +327,9 @@ function RequiredPartRow({
           <span className="text-sm text-foreground truncate">
             {row.parts?.name ?? row.part_sku}
           </span>
-          <span className="font-mono text-[11px] text-muted">{row.part_sku}</span>
+          <span className="font-mono text-[11px] text-muted">
+            {row.parts?.original_sku ?? row.part_sku}
+          </span>
           <span className="text-xs text-muted">×{row.quantity}</span>
           <Badge tone={statusTone[row.status]}>{statusLabel[row.status]}</Badge>
         </div>

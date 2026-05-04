@@ -28,12 +28,12 @@ export function useCallDetail(id: string | undefined) {
           .order('created_at', { ascending: true }),
         supabase
           .from('call_required_parts')
-          .select('*, parts(name, quantity, sku)')
+          .select('*, parts(name, quantity, sku, original_sku)')
           .eq('call_id', id!)
           .order('requested_at', { ascending: true }),
         supabase
           .from('part_withdrawals')
-          .select('*, parts(name)')
+          .select('*, parts(name, original_sku)')
           .eq('call_id', id!)
           .order('withdrawn_at', { ascending: true }),
       ])
