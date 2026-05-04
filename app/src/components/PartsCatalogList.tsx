@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useReducer, useRef, useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import type { Part } from '../types/parts'
 import { Card, CardBody, CardHeader } from './ui/Card'
@@ -237,7 +237,24 @@ function PartRow({ part, canEdit, employeeNumber }: RowProps) {
   )
 }
 
-// ---------- inline quantity editor ----------
+// ---------- inline quantity editor (optimistic + debounced) ----------
+//
+// UX requirements:
+//   * Each +/- click feels instant.
+//   * Several rapid clicks coalesce into a single server call.
+//   * Typed-absolute commits override any pending delta.
+//   * If the server rejects the change, the optimistic value rolls back.
+//
+// Implementation: pending state lives in a ref so the debounced flush
+// always reads the latest value. A `tick` reducer triggers re-renders
+// when the ref changes.
+
+const FLUSH_DELAY_MS = 400
+
+interface PendingState {
+  delta: number
+  abs:   number | null
+}
 
 function QuantityCell({
   part, employeeNumber, onChange, low,
@@ -247,30 +264,67 @@ function QuantityCell({
   onChange: () => void
   low: boolean
 }) {
+  const pending  = useRef<PendingState>({ delta: 0, abs: null })
+  const flushT   = useRef<number | null>(null)
+  const lastErr  = useRef<string | null>(null)
+  const inFlight = useRef<boolean>(false)
+  const [, force] = useReducer((x) => x + 1, 0)
   const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState(String(part.quantity))
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [draft, setDraft] = useState('')
 
-  async function commit(value: number) {
-    if (value === part.quantity) { setEditing(false); return }
-    setBusy(true); setError(null)
-    const res = await setPartQuantity(employeeNumber, part.id, value)
-    setBusy(false)
-    if (!res.ok) {
-      setError('שגיאה')
-      return
-    }
-    setEditing(false)
-    onChange()
+  const displayQty = pending.current.abs ?? Math.max(0, part.quantity + pending.current.delta)
+
+  function scheduleFlush() {
+    if (flushT.current) window.clearTimeout(flushT.current)
+    flushT.current = window.setTimeout(flush, FLUSH_DELAY_MS)
   }
 
-  async function delta(d: number) {
-    if (busy) return
-    setBusy(true); setError(null)
-    const res = await changePartQuantity(employeeNumber, part.id, d)
-    setBusy(false)
-    if (!res.ok) { setError('שגיאה'); return }
+  function bump(d: number) {
+    if (pending.current.abs !== null) {
+      pending.current = { delta: (pending.current.abs + d) - part.quantity, abs: null }
+    } else {
+      pending.current.delta += d
+    }
+    lastErr.current = null
+    force()
+    scheduleFlush()
+  }
+
+  function setAbs(v: number) {
+    pending.current = { delta: 0, abs: v }
+    lastErr.current = null
+    force()
+    scheduleFlush()
+  }
+
+  async function flush() {
+    if (inFlight.current) {
+      // Server still busy — push the next attempt out a bit.
+      scheduleFlush()
+      return
+    }
+    const snap = pending.current
+    if (snap.abs === null && snap.delta === 0) return
+
+    inFlight.current = true
+    pending.current = { delta: 0, abs: null }
+    force()
+
+    const res = snap.abs !== null
+      ? await setPartQuantity(employeeNumber, part.id, snap.abs)
+      : await changePartQuantity(employeeNumber, part.id, snap.delta)
+    inFlight.current = false
+
+    if (!res.ok) {
+      // Re-apply the snapshot on top of any newer pending edits.
+      pending.current = {
+        delta: pending.current.delta + (snap.abs === null ? snap.delta : 0),
+        abs:   pending.current.abs ?? snap.abs,
+      }
+      lastErr.current = 'שגיאה'
+      force()
+      return
+    }
     onChange()
   }
 
@@ -284,17 +338,26 @@ function QuantityCell({
         onChange={(e) => setDraft(e.target.value)}
         onBlur={() => {
           const n = parseInt(draft, 10)
-          if (Number.isNaN(n) || n < 0) { setEditing(false); setDraft(String(part.quantity)); return }
-          commit(n)
+          setEditing(false)
+          if (!Number.isNaN(n) && n >= 0 && n !== displayQty) setAbs(n)
         }}
         onKeyDown={(e) => {
           if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
-          if (e.key === 'Escape') { setEditing(false); setDraft(String(part.quantity)) }
+          if (e.key === 'Escape') { setEditing(false) }
         }}
         className="w-16 px-2 py-1 bg-card border border-primary rounded-md text-foreground"
       />
     )
   }
+
+  const dirty = pending.current.abs !== null || pending.current.delta !== 0
+  const cellTone = lastErr.current
+    ? 'bg-danger/10 text-danger'
+    : low
+      ? 'bg-warning/15 text-warning'
+      : dirty
+        ? 'bg-info/10 text-info'
+        : 'text-foreground hover:bg-muted-surface'
 
   return (
     <div className="inline-flex items-center gap-1">
@@ -302,33 +365,30 @@ function QuantityCell({
         <ComponentBadge id={4004} />
         <button
           type="button"
-          onClick={() => delta(-1)}
-          disabled={busy || part.quantity <= 0}
+          onClick={() => bump(-1)}
+          disabled={displayQty <= 0}
           className="w-6 h-6 inline-flex items-center justify-center rounded-md border border-border text-muted hover:bg-muted-surface disabled:opacity-30"
           title="הפחת 1"
         >−</button>
       </span>
       <button
         type="button"
-        onClick={() => { setDraft(String(part.quantity)); setEditing(true) }}
+        onClick={() => { setDraft(String(displayQty)); setEditing(true) }}
         title="לחץ לעריכה"
-        className={`min-w-[2.5rem] px-2 py-0.5 rounded-md text-center font-medium ${
-          low ? 'bg-warning/15 text-warning' : 'text-foreground hover:bg-muted-surface'
-        }`}
+        className={`min-w-[2.5rem] px-2 py-0.5 rounded-md text-center font-medium ${cellTone}`}
       >
-        {part.quantity}
+        {displayQty}
       </button>
       <span className="contents">
         <ComponentBadge id={4005} />
         <button
           type="button"
-          onClick={() => delta(+1)}
-          disabled={busy}
-          className="w-6 h-6 inline-flex items-center justify-center rounded-md border border-border text-muted hover:bg-muted-surface disabled:opacity-30"
+          onClick={() => bump(+1)}
+          className="w-6 h-6 inline-flex items-center justify-center rounded-md border border-border text-muted hover:bg-muted-surface"
           title="הוסף 1"
         >+</button>
       </span>
-      {error && <span className="text-xs text-danger ms-1">{error}</span>}
+      {lastErr.current && <span className="text-xs text-danger ms-1">{lastErr.current}</span>}
     </div>
   )
 }
