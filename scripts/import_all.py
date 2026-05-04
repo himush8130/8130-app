@@ -118,6 +118,17 @@ def to_text(v):
     return s or None
 
 
+def to_phone(v):
+    # Excel may store phones as numbers, dropping the leading 0. Restore it.
+    s = to_text(v)
+    if s is None:
+        return None
+    digits = ''.join(ch for ch in s if ch.isdigit())
+    if len(digits) == 9 and digits.startswith('5'):
+        return '0' + digits
+    return s
+
+
 def read_employees():
     wb = openpyxl.load_workbook(TEMPLATES / "employees.xlsx", data_only=True)
     ws = wb["data"]
@@ -129,7 +140,7 @@ def read_employees():
         rows.append({
             "employee_number":  emp_num,
             "name":             to_text(ws.cell(row=r, column=2).value) or "",
-            "phone":            to_text(ws.cell(row=r, column=3).value),
+            "phone":            to_phone(ws.cell(row=r, column=3).value),
             "profession_name":  to_text(ws.cell(row=r, column=4).value),
             "permissions":      to_text(ws.cell(row=r, column=5).value) or "technician",
         })
