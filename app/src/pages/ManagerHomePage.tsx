@@ -1,17 +1,27 @@
 import { Link } from 'react-router-dom'
 import { useManagerOverview } from '../hooks/useManagerOverview'
-import { useManagerReports } from '../hooks/useManagerReports'
 import { AppHeader } from '../components/AppHeader'
 import { StatCard } from '../components/StatCard'
-import { ProfessionLoadCard } from '../components/ProfessionLoadCard'
-import { StatusDistributionCard } from '../components/StatusDistributionCard'
 import { TankReadinessCard } from '../components/TankReadinessCard'
 import { Card, CardBody } from '../components/ui/Card'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 
+interface SettingsLink {
+  to: string
+  label: string
+  desc: string
+}
+
+const SETTINGS_LINKS: SettingsLink[] = [
+  { to: '/manager/settings/professions', label: 'ניהול מקצועות',  desc: 'הוספה / עריכה / מחיקה של רשימת המקצועות' },
+  { to: '/manager/settings/employees',   label: 'ניהול עובדים',   desc: 'מספרי עובד, שמות, טלפונים, מקצוע, הרשאה' },
+  { to: '/manager/settings/vehicles',    label: 'ניהול רכבים',    desc: 'הרכב והציוד שמטופלים במערכת' },
+  { to: '/warehouse',                    label: 'ניהול חלקי חילוף', desc: 'קטלוג, חיפוש, עדכון כמויות וערכי שדה' },
+  { to: '/manager/settings/availability',label: 'ניהול זמינות עובדים', desc: 'ימי חופש / מילואים / מחלה לכל עובד' },
+]
+
 export function ManagerHomePage() {
   const { data, isLoading } = useManagerOverview()
-  const { data: reports } = useManagerReports()
 
   return (
     <>
@@ -46,25 +56,24 @@ export function ManagerHomePage() {
               />
             </div>
 
-            {reports && (
-              <>
-                <ProfessionLoadCard rows={reports.byProfession} />
-                <StatusDistributionCard rows={reports.byStatus} />
-              </>
-            )}
-
             <TankReadinessCard />
 
             <Card>
               <CardBody>
                 <ComponentBadge id={3014} />
-                <h3 className="text-sm font-semibold text-foreground mb-2">הגדרות</h3>
-                <ul className="flex flex-col gap-1 text-sm">
-                  <li>
-                    <Link to="/manager/settings/professions" className="text-primary hover:underline">
-                      ניהול מקצועות →
-                    </Link>
-                  </li>
+                <h3 className="text-sm font-semibold text-foreground mb-3">הגדרות וניהול נתונים</h3>
+                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                  {SETTINGS_LINKS.map((s) => (
+                    <li key={s.to}>
+                      <Link
+                        to={s.to}
+                        className="block px-3 py-2 rounded-md border border-border hover:bg-muted-surface"
+                      >
+                        <div className="text-primary font-medium">{s.label} →</div>
+                        <div className="text-xs text-muted">{s.desc}</div>
+                      </Link>
+                    </li>
+                  ))}
                 </ul>
               </CardBody>
             </Card>

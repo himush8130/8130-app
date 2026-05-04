@@ -59,6 +59,16 @@ Deno.serve(async (req: Request) => {
     case 'create_profession': return await createProfession(params)
     case 'update_profession': return await updateProfession(params)
     case 'delete_profession': return await deleteProfession(params)
+
+    case 'create_employee':   return await createEmployee(params)
+    case 'update_employee':   return await updateEmployee(params)
+    case 'delete_employee':   return await deleteEmployee(params)
+
+    case 'create_vehicle':    return await createVehicle(params)
+    case 'update_vehicle':    return await updateVehicle(params)
+    case 'delete_vehicle':    return await deleteVehicle(params)
+
+    case 'set_availability':  return await setAvailability(params)
     default:
       return json(400, { ok: false, error: 'unknown_action', action })
   }
@@ -162,6 +172,187 @@ async function deleteProfession(params: any): Promise<Response> {
     .eq('id', id)
   if (error) return json(500, { ok: false, error: 'delete_failed', detail: error.message })
   return json(200, { ok: true })
+}
+
+// ----- Employee actions -----
+
+const ALLOWED_EMP_FIELDS = new Set([
+  'name', 'phone', 'profession_name', 'permissions',
+])
+
+async function createEmployee(params: any): Promise<Response> {
+  const { employee_number, ...rest } = params ?? {}
+  if (typeof employee_number !== 'number' || typeof rest.name !== 'string' || !rest.name.trim()) {
+    return json(400, { ok: false, error: 'invalid_params' })
+  }
+  const row: Record<string, unknown> = { employee_number, name: rest.name.trim() }
+  if (typeof rest.phone === 'string')           row.phone           = rest.phone.trim() || null
+  if (typeof rest.profession_name === 'string') row.profession_name = rest.profession_name.trim() || null
+  if (typeof rest.permissions === 'string')     row.permissions     = rest.permissions
+
+  const { data, error } = await admin
+    .from('employees')
+    .insert(row)
+    .select('*')
+    .single()
+  if (error) {
+    if (error.code === '23505') return json(409, { ok: false, error: 'employee_number_taken' })
+    return json(500, { ok: false, error: 'insert_failed', detail: error.message })
+  }
+  return json(200, { ok: true, employee: data })
+}
+
+async function updateEmployee(params: any): Promise<Response> {
+  const employee_number = params?.employee_number
+  const updates = params?.updates
+  if (typeof employee_number !== 'number' || !updates || typeof updates !== 'object') {
+    return json(400, { ok: false, error: 'invalid_params' })
+  }
+  const patch: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(updates)) {
+    if (!ALLOWED_EMP_FIELDS.has(k)) continue
+    if (k === 'phone' || k === 'profession_name') {
+      const s = (v == null) ? null : String(v).trim()
+      patch[k] = s || null
+    } else {
+      patch[k] = v
+    }
+  }
+  if (Object.keys(patch).length === 0) return json(400, { ok: false, error: 'no_valid_fields' })
+
+  const { data, error } = await admin
+    .from('employees')
+    .update(patch)
+    .eq('employee_number', employee_number)
+    .select('*')
+    .single()
+  if (error) return json(500, { ok: false, error: 'update_failed', detail: error.message })
+  return json(200, { ok: true, employee: data })
+}
+
+async function deleteEmployee(params: any): Promise<Response> {
+  const employee_number = params?.employee_number
+  if (typeof employee_number !== 'number') return json(400, { ok: false, error: 'invalid_params' })
+
+  // Block when restrictive FKs would prevent it (feedback_notes, withdrawals).
+  const [fbRes, wRes] = await Promise.all([
+    admin.from('feedback_notes')   .select('id', { count: 'exact', head: true }).eq('author_employee_number', employee_number),
+    admin.from('part_withdrawals') .select('id', { count: 'exact', head: true }).or(`withdrawn_by.eq.${employee_number},released_by.eq.${employee_number}`),
+  ])
+  const feedbackCount = fbRes.count ?? 0
+  const withdrawCount = wRes.count ?? 0
+  if (feedbackCount > 0 || withdrawCount > 0) {
+    return json(409, {
+      ok: false,
+      error: 'in_use',
+      feedback_notes:   feedbackCount,
+      part_withdrawals: withdrawCount,
+    })
+  }
+
+  const { error } = await admin
+    .from('employees')
+    .delete()
+    .eq('employee_number', employee_number)
+  if (error) return json(500, { ok: false, error: 'delete_failed', detail: error.message })
+  return json(200, { ok: true })
+}
+
+// ----- Vehicle actions -----
+
+const ALLOWED_VEH_FIELDS = new Set([
+  'type_name', 'department', 'sub_department',
+])
+
+async function createVehicle(params: any): Promise<Response> {
+  const { vehicle_number, ...rest } = params ?? {}
+  if (typeof vehicle_number !== 'string' || !vehicle_number.trim()) {
+    return json(400, { ok: false, error: 'invalid_params' })
+  }
+  if (typeof rest.type_name !== 'string' || !rest.type_name.trim()) {
+    return json(400, { ok: false, error: 'type_name_required' })
+  }
+  const row: Record<string, unknown> = {
+    vehicle_number: vehicle_number.trim(),
+    type_name:      rest.type_name.trim(),
+  }
+  if (typeof rest.department === 'string')     row.department     = rest.department.trim()     || null
+  if (typeof rest.sub_department === 'string') row.sub_department = rest.sub_department.trim() || null
+
+  const { data, error } = await admin
+    .from('vehicles')
+    .insert(row)
+    .select('*')
+    .single()
+  if (error) {
+    if (error.code === '23505') return json(409, { ok: false, error: 'vehicle_number_taken' })
+    return json(500, { ok: false, error: 'insert_failed', detail: error.message })
+  }
+  return json(200, { ok: true, vehicle: data })
+}
+
+async function updateVehicle(params: any): Promise<Response> {
+  const vehicle_number = params?.vehicle_number
+  const updates = params?.updates
+  if (typeof vehicle_number !== 'string' || !updates || typeof updates !== 'object') {
+    return json(400, { ok: false, error: 'invalid_params' })
+  }
+  const patch: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(updates)) {
+    if (!ALLOWED_VEH_FIELDS.has(k)) continue
+    const s = (v == null) ? null : String(v).trim()
+    patch[k] = s || null
+  }
+  if (Object.keys(patch).length === 0) return json(400, { ok: false, error: 'no_valid_fields' })
+  // type_name is NOT NULL on the table; reject empty here.
+  if ('type_name' in patch && !patch.type_name) {
+    return json(400, { ok: false, error: 'type_name_required' })
+  }
+
+  const { data, error } = await admin
+    .from('vehicles')
+    .update(patch)
+    .eq('vehicle_number', vehicle_number)
+    .select('*')
+    .single()
+  if (error) return json(500, { ok: false, error: 'update_failed', detail: error.message })
+  return json(200, { ok: true, vehicle: data })
+}
+
+async function deleteVehicle(params: any): Promise<Response> {
+  const vehicle_number = params?.vehicle_number
+  if (typeof vehicle_number !== 'string') return json(400, { ok: false, error: 'invalid_params' })
+
+  const { error } = await admin
+    .from('vehicles')
+    .delete()
+    .eq('vehicle_number', vehicle_number)
+  if (error) return json(500, { ok: false, error: 'delete_failed', detail: error.message })
+  return json(200, { ok: true })
+}
+
+// ----- Availability action -----
+
+async function setAvailability(params: any): Promise<Response> {
+  const { employee_number, date, available, reason } = params ?? {}
+  if (typeof employee_number !== 'number' || typeof date !== 'string' || typeof available !== 'boolean') {
+    return json(400, { ok: false, error: 'invalid_params' })
+  }
+  if (available) {
+    const { error } = await admin
+      .from('employee_availability')
+      .delete()
+      .eq('employee_number', employee_number)
+      .eq('date', date)
+    if (error) return json(500, { ok: false, error: 'delete_failed', detail: error.message })
+    return json(200, { ok: true, available: true })
+  }
+  // Mark as unavailable: upsert.
+  const { error } = await admin
+    .from('employee_availability')
+    .upsert({ employee_number, date, reason: reason ?? null }, { onConflict: 'employee_number,date' })
+  if (error) return json(500, { ok: false, error: 'upsert_failed', detail: error.message })
+  return json(200, { ok: true, available: false })
 }
 
 // ----- helpers -----

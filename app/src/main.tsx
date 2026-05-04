@@ -16,6 +16,9 @@ import { WarehouseHomePage } from './pages/WarehouseHomePage'
 import { VehicleHistoryPage } from './pages/VehicleHistoryPage'
 import { NotesPage } from './pages/NotesPage'
 import { SettingsProfessionsPage } from './pages/SettingsProfessionsPage'
+import { SettingsEmployeesPage } from './pages/SettingsEmployeesPage'
+import { SettingsVehiclesPage } from './pages/SettingsVehiclesPage'
+import { SettingsAvailabilityPage } from './pages/SettingsAvailabilityPage'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { FeedbackBar } from './feedback/FeedbackBar'
 import { registerServiceWorker } from './lib/registerSW'
@@ -89,6 +92,30 @@ createRoot(document.getElementById('root')!).render(
             element={
               <ProtectedRoute allow={['manager']}>
                 <SettingsProfessionsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/manager/settings/employees"
+            element={
+              <ProtectedRoute allow={['manager']}>
+                <SettingsEmployeesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/manager/settings/vehicles"
+            element={
+              <ProtectedRoute allow={['manager']}>
+                <SettingsVehiclesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/manager/settings/availability"
+            element={
+              <ProtectedRoute allow={['manager']}>
+                <SettingsAvailabilityPage />
               </ProtectedRoute>
             }
           />

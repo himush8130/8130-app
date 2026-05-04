@@ -40,3 +40,84 @@ export function deleteProfession(employeeNumber: number, id: number) {
     params: { id },
   })
 }
+
+// ----- Employees -----
+
+export interface EmployeeUpdates {
+  name?: string
+  phone?: string | null
+  profession_name?: string | null
+  permissions?: 'technician' | 'manager' | 'warehouse'
+}
+
+export function createEmployee(employeeNumber: number, payload: { employee_number: number } & EmployeeUpdates) {
+  return invoke({
+    employee_number: employeeNumber,
+    action: 'create_employee',
+    params: payload,
+  })
+}
+
+export function updateEmployee(employeeNumber: number, target: number, updates: EmployeeUpdates) {
+  return invoke({
+    employee_number: employeeNumber,
+    action: 'update_employee',
+    params: { employee_number: target, updates },
+  })
+}
+
+export function deleteEmployee(employeeNumber: number, target: number) {
+  return invoke({
+    employee_number: employeeNumber,
+    action: 'delete_employee',
+    params: { employee_number: target },
+  })
+}
+
+// ----- Vehicles -----
+
+export interface VehicleUpdates {
+  type_name?: string
+  department?: string | null
+  sub_department?: string | null
+}
+
+export function createVehicle(employeeNumber: number, payload: { vehicle_number: string } & VehicleUpdates) {
+  return invoke({
+    employee_number: employeeNumber,
+    action: 'create_vehicle',
+    params: payload,
+  })
+}
+
+export function updateVehicle(employeeNumber: number, vehicleNumber: string, updates: VehicleUpdates) {
+  return invoke({
+    employee_number: employeeNumber,
+    action: 'update_vehicle',
+    params: { vehicle_number: vehicleNumber, updates },
+  })
+}
+
+export function deleteVehicle(employeeNumber: number, vehicleNumber: string) {
+  return invoke({
+    employee_number: employeeNumber,
+    action: 'delete_vehicle',
+    params: { vehicle_number: vehicleNumber },
+  })
+}
+
+// ----- Availability -----
+
+export function setEmployeeAvailability(
+  employeeNumber: number,
+  target: number,
+  date: string,
+  available: boolean,
+  reason?: string | null,
+) {
+  return invoke({
+    employee_number: employeeNumber,
+    action: 'set_availability',
+    params: { employee_number: target, date, available, reason: reason ?? null },
+  })
+}
