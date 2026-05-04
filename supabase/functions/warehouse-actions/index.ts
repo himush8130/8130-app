@@ -105,6 +105,7 @@ Deno.serve(async (req: Request) => {
 // ---------------------------------------------------------------------
 async function addRequiredPart(params: any, requested_by: number): Promise<Response> {
   const { call_id, part_id, quantity } = params ?? {}
+  const force_order = !!params?.force_order
   if (typeof call_id !== 'string' || typeof part_id !== 'string' || typeof quantity !== 'number' || quantity <= 0) {
     return json(400, { ok: false, error: 'invalid_params' })
   }
@@ -117,24 +118,30 @@ async function addRequiredPart(params: any, requested_by: number): Promise<Respo
   if (partErr) return json(500, { ok: false, error: 'part_lookup_failed', detail: partErr.message })
   if (!part)   return json(400, { ok: false, error: 'unknown_part' })
 
-  const { data: reservedRows, error: resErr } = await admin
-    .from('call_required_parts')
-    .select('quantity')
-    .eq('part_id', part_id)
-    .in('status', ['in_stock', 'received'])
-  if (resErr) return json(500, { ok: false, error: 'reserved_lookup_failed', detail: resErr.message })
-  const reserved  = (reservedRows ?? []).reduce((acc, r) => acc + (r.quantity ?? 0), 0)
-  const available = Math.max(0, part.quantity - reserved)
-
   let inStockQty = 0
   let toOrderQty = 0
-  if (available >= quantity) {
-    inStockQty = quantity
-  } else if (available > 0) {
-    inStockQty = available
-    toOrderQty = quantity - available
-  } else {
+
+  if (force_order) {
+    // Caller asked to walk the ordering pipeline regardless of inventory.
     toOrderQty = quantity
+  } else {
+    const { data: reservedRows, error: resErr } = await admin
+      .from('call_required_parts')
+      .select('quantity')
+      .eq('part_id', part_id)
+      .in('status', ['in_stock', 'received'])
+    if (resErr) return json(500, { ok: false, error: 'reserved_lookup_failed', detail: resErr.message })
+    const reserved  = (reservedRows ?? []).reduce((acc, r) => acc + (r.quantity ?? 0), 0)
+    const available = Math.max(0, part.quantity - reserved)
+
+    if (available >= quantity) {
+      inStockQty = quantity
+    } else if (available > 0) {
+      inStockQty = available
+      toOrderQty = quantity - available
+    } else {
+      toOrderQty = quantity
+    }
   }
 
   const inserts: Array<Record<string, unknown>> = []

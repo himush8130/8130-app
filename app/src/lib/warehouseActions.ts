@@ -23,11 +23,12 @@ export function addRequiredPart(
   callId: string,
   partId: string,
   quantity: number,
+  forceOrder: boolean = false,
 ) {
   return invoke({
     employee_number: employeeNumber,
     action: 'add_required_part',
-    params: { call_id: callId, part_id: partId, quantity },
+    params: { call_id: callId, part_id: partId, quantity, force_order: forceOrder },
   })
 }
 

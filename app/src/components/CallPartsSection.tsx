@@ -157,6 +157,7 @@ function AddPartForm({
   const [nameQuery, setNameQuery] = useState('')
   const [quantity, setQuantity] = useState('1')
   const [selected, setSelected] = useState<Part | null>(null)
+  const [forceOrder, setForceOrder] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -191,7 +192,7 @@ function AddPartForm({
       return
     }
     setBusy(true)
-    const res = await addRequiredPart(employeeNumber, callId, selected.id, q)
+    const res = await addRequiredPart(employeeNumber, callId, selected.id, q, forceOrder)
     setBusy(false)
     if (!res.ok) {
       setError('שגיאה בהוספה')
@@ -214,7 +215,7 @@ function AddPartForm({
       setError(created.detail || created.error || 'שגיאה ביצירת מקט')
       return
     }
-    const res = await addRequiredPart(employeeNumber, callId, created.part.id, q)
+    const res = await addRequiredPart(employeeNumber, callId, created.part.id, q, forceOrder)
     setBusy(false)
     if (!res.ok) { setError('המקט נוצר אך הוספתו לקריאה נכשלה'); return }
     onDone()
@@ -284,6 +285,16 @@ function AddPartForm({
         error={error ?? undefined}
         className="max-w-[8rem]"
       />
+
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={forceOrder}
+          onChange={(e) => setForceOrder(e.target.checked)}
+        />
+        <span className="text-foreground">הזמן גם אם קיים במלאי</span>
+        <span className="text-xs text-muted">(תהליך הזמנה גם בלי לרוקן את המלאי הקיים)</span>
+      </label>
 
       <div className="flex gap-2 flex-wrap">
         {selected ? (
