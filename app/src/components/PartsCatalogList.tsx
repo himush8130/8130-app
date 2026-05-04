@@ -1,9 +1,18 @@
 import { useMemo, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import type { Part } from '../types/parts'
 import { Card, CardBody, CardHeader } from './ui/Card'
 import { Badge } from './ui/Badge'
+import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { ComponentBadge } from '../feedback/ComponentBadge'
+import { useAuthStore } from '../store/auth'
+import {
+  changePartQuantity,
+  setPartQuantity,
+  updatePart,
+  type PartUpdates,
+} from '../lib/warehouseActions'
 
 interface Filters {
   sku: string
@@ -45,6 +54,9 @@ function uniqueValues<T>(items: T[], get: (t: T) => string | number | null | und
 }
 
 export function PartsCatalogList({ parts }: { parts: Part[] }) {
+  const employee = useAuthStore((s) => s.employee)
+  const canEdit = employee?.permissions === 'warehouse' || employee?.permissions === 'manager'
+
   const [f, setF] = useState<Filters>(EMPTY_FILTERS)
 
   const warehouses    = useMemo(() => uniqueValues(parts, (p) => p.warehouse),    [parts])
@@ -132,30 +144,23 @@ export function PartsCatalogList({ parts }: { parts: Part[] }) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-xs text-muted border-b border-border">
-                  <th className="text-start font-medium px-4 py-2">מק"ט</th>
-                  <th className="text-start font-medium px-4 py-2">שם</th>
-                  <th className="text-start font-medium px-4 py-2">מלאי</th>
-                  <th className="text-start font-medium px-4 py-2">סף נמוך</th>
-                  <th className="text-start font-medium px-4 py-2">מיקום</th>
+                  <th className="text-start font-medium px-3 py-2">מק"ט</th>
+                  <th className="text-start font-medium px-3 py-2">שם</th>
+                  <th className="text-start font-medium px-3 py-2">מלאי</th>
+                  <th className="text-start font-medium px-3 py-2">סף נמוך</th>
+                  <th className="text-start font-medium px-3 py-2">מיקום</th>
+                  {canEdit && <th className="px-3 py-2"></th>}
                 </tr>
               </thead>
               <tbody>
-                {filtered.slice(0, VISIBLE_LIMIT).map((p) => {
-                  const low = p.quantity <= p.min_threshold
-                  return (
-                    <tr key={p.id} className="border-b border-border last:border-0">
-                      <td className="px-4 py-2 text-muted font-mono text-xs whitespace-nowrap">{p.sku}</td>
-                      <td className="px-4 py-2 text-foreground">{p.name}</td>
-                      <td className="px-4 py-2">
-                        {low
-                          ? <Badge tone="warning">{p.quantity}</Badge>
-                          : <span className="text-foreground">{p.quantity}</span>}
-                      </td>
-                      <td className="px-4 py-2 text-muted">{p.min_threshold}</td>
-                      <td className="px-4 py-2 text-muted whitespace-nowrap">{formatLocation(p)}</td>
-                    </tr>
-                  )
-                })}
+                {filtered.slice(0, VISIBLE_LIMIT).map((p) => (
+                  <PartRow
+                    key={p.id}
+                    part={p}
+                    canEdit={canEdit}
+                    employeeNumber={employee?.employee_number}
+                  />
+                ))}
               </tbody>
             </table>
             {filtered.length > VISIBLE_LIMIT && (
@@ -167,6 +172,269 @@ export function PartsCatalogList({ parts }: { parts: Part[] }) {
         )}
       </CardBody>
     </Card>
+  )
+}
+
+// ---------- single row with quick-edit + full-edit ----------
+
+interface RowProps {
+  part: Part
+  canEdit: boolean
+  employeeNumber: number | undefined
+}
+
+function PartRow({ part, canEdit, employeeNumber }: RowProps) {
+  const queryClient = useQueryClient()
+  const [expanded, setExpanded] = useState(false)
+  const low = part.quantity <= part.min_threshold
+
+  function refresh() {
+    queryClient.invalidateQueries({ queryKey: ['parts'] })
+  }
+
+  return (
+    <>
+      <tr className="border-b border-border last:border-0">
+        <td className="px-3 py-2 text-muted font-mono text-xs whitespace-nowrap align-middle">{part.sku}</td>
+        <td className="px-3 py-2 text-foreground align-middle">{part.name}</td>
+        <td className="px-3 py-2 align-middle">
+          {canEdit && employeeNumber != null
+            ? <QuantityCell part={part} employeeNumber={employeeNumber} onChange={refresh} low={low} />
+            : (low
+                ? <Badge tone="warning">{part.quantity}</Badge>
+                : <span className="text-foreground">{part.quantity}</span>)}
+        </td>
+        <td className="px-3 py-2 text-muted align-middle">{part.min_threshold}</td>
+        <td className="px-3 py-2 text-muted align-middle whitespace-nowrap">{formatLocation(part)}</td>
+        {canEdit && (
+          <td className="px-2 py-2 align-middle">
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              className="relative inline-flex items-center justify-center w-7 h-7 rounded-md text-muted hover:bg-muted-surface hover:text-foreground"
+              title={expanded ? 'סגור עריכה' : 'ערוך פריט'}
+              aria-label="ערוך פריט"
+            >
+              <ComponentBadge id={4006} />
+              {expanded ? '✕' : '✎'}
+            </button>
+          </td>
+        )}
+      </tr>
+      {expanded && employeeNumber != null && (
+        <tr className="bg-muted-surface">
+          <td colSpan={canEdit ? 6 : 5} className="px-3 py-3">
+            <PartEditForm
+              part={part}
+              employeeNumber={employeeNumber}
+              onDone={() => { setExpanded(false); refresh() }}
+              onCancel={() => setExpanded(false)}
+            />
+          </td>
+        </tr>
+      )}
+    </>
+  )
+}
+
+// ---------- inline quantity editor ----------
+
+function QuantityCell({
+  part, employeeNumber, onChange, low,
+}: {
+  part: Part
+  employeeNumber: number
+  onChange: () => void
+  low: boolean
+}) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(String(part.quantity))
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function commit(value: number) {
+    if (value === part.quantity) { setEditing(false); return }
+    setBusy(true); setError(null)
+    const res = await setPartQuantity(employeeNumber, part.id, value)
+    setBusy(false)
+    if (!res.ok) {
+      setError('שגיאה')
+      return
+    }
+    setEditing(false)
+    onChange()
+  }
+
+  async function delta(d: number) {
+    if (busy) return
+    setBusy(true); setError(null)
+    const res = await changePartQuantity(employeeNumber, part.id, d)
+    setBusy(false)
+    if (!res.ok) { setError('שגיאה'); return }
+    onChange()
+  }
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        type="number"
+        inputMode="numeric"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => {
+          const n = parseInt(draft, 10)
+          if (Number.isNaN(n) || n < 0) { setEditing(false); setDraft(String(part.quantity)); return }
+          commit(n)
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+          if (e.key === 'Escape') { setEditing(false); setDraft(String(part.quantity)) }
+        }}
+        className="w-16 px-2 py-1 bg-card border border-primary rounded-md text-foreground"
+      />
+    )
+  }
+
+  return (
+    <div className="inline-flex items-center gap-1">
+      <span className="contents">
+        <ComponentBadge id={4004} />
+        <button
+          type="button"
+          onClick={() => delta(-1)}
+          disabled={busy || part.quantity <= 0}
+          className="w-6 h-6 inline-flex items-center justify-center rounded-md border border-border text-muted hover:bg-muted-surface disabled:opacity-30"
+          title="הפחת 1"
+        >−</button>
+      </span>
+      <button
+        type="button"
+        onClick={() => { setDraft(String(part.quantity)); setEditing(true) }}
+        title="לחץ לעריכה"
+        className={`min-w-[2.5rem] px-2 py-0.5 rounded-md text-center font-medium ${
+          low ? 'bg-warning/15 text-warning' : 'text-foreground hover:bg-muted-surface'
+        }`}
+      >
+        {part.quantity}
+      </button>
+      <span className="contents">
+        <ComponentBadge id={4005} />
+        <button
+          type="button"
+          onClick={() => delta(+1)}
+          disabled={busy}
+          className="w-6 h-6 inline-flex items-center justify-center rounded-md border border-border text-muted hover:bg-muted-surface disabled:opacity-30"
+          title="הוסף 1"
+        >+</button>
+      </span>
+      {error && <span className="text-xs text-danger ms-1">{error}</span>}
+    </div>
+  )
+}
+
+// ---------- full-row edit form ----------
+
+function PartEditForm({
+  part, employeeNumber, onDone, onCancel,
+}: {
+  part: Part
+  employeeNumber: number
+  onDone: () => void
+  onCancel: () => void
+}) {
+  const [draft, setDraft] = useState({
+    name:           part.name,
+    sku:            part.sku,
+    quantity:       String(part.quantity),
+    min_threshold:  String(part.min_threshold),
+    warehouse:      part.warehouse        ?? '',
+    cabinet:        part.cabinet         != null ? String(part.cabinet)         : '',
+    storage_type:   part.storage_type     ?? '',
+    storage_number: part.storage_number  != null ? String(part.storage_number)  : '',
+    cell_number:    part.cell_number     != null ? String(part.cell_number)     : '',
+    is_exchange:    part.is_exchange,
+    supplier:       part.supplier         ?? '',
+  })
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  function set<K extends keyof typeof draft>(k: K, v: (typeof draft)[K]) {
+    setDraft((d) => ({ ...d, [k]: v }))
+  }
+
+  function nullableInt(s: string): number | null {
+    const t = s.trim()
+    if (!t) return null
+    const n = parseInt(t, 10)
+    return Number.isNaN(n) ? null : n
+  }
+
+  async function save() {
+    setError(null)
+    if (!draft.name.trim()) { setError('שם חובה'); return }
+    const q = parseInt(draft.quantity, 10)
+    if (Number.isNaN(q) || q < 0) { setError('כמות לא תקינה'); return }
+    const m = parseInt(draft.min_threshold, 10)
+    if (Number.isNaN(m) || m < 0) { setError('סף מינימום לא תקין'); return }
+
+    const updates: PartUpdates = {
+      name:           draft.name.trim(),
+      sku:            draft.sku.trim(),
+      quantity:       q,
+      min_threshold:  m,
+      warehouse:      draft.warehouse.trim()    || null,
+      cabinet:        nullableInt(draft.cabinet),
+      storage_type:   draft.storage_type.trim() || null,
+      storage_number: nullableInt(draft.storage_number),
+      cell_number:    nullableInt(draft.cell_number),
+      is_exchange:    draft.is_exchange,
+      supplier:       draft.supplier.trim() || null,
+    }
+
+    setBusy(true)
+    const res = await updatePart(employeeNumber, part.id, updates)
+    setBusy(false)
+    if (!res.ok) { setError('שגיאה בעדכון'); return }
+    onDone()
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <ComponentBadge id={4007} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <Input label="שם פריט" name="ed-name" value={draft.name} onChange={(e) => set('name', e.target.value)} />
+        <Input label="מק״ט" name="ed-sku" value={draft.sku} onChange={(e) => set('sku', e.target.value)} />
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Input label="כמות" name="ed-qty" type="number" value={draft.quantity} onChange={(e) => set('quantity', e.target.value)} />
+        <Input label="סף מינימום" name="ed-min" type="number" value={draft.min_threshold} onChange={(e) => set('min_threshold', e.target.value)} />
+        <Input label="ספק" name="ed-supplier" value={draft.supplier} onChange={(e) => set('supplier', e.target.value)} />
+        <label className="flex flex-col gap-1">
+          <span className="text-sm font-medium text-foreground">פריט בתמורה</span>
+          <select
+            value={draft.is_exchange ? 'yes' : 'no'}
+            onChange={(e) => set('is_exchange', e.target.value === 'yes')}
+            className="px-3 py-2 bg-card border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+          >
+            <option value="no">לא</option>
+            <option value="yes">כן</option>
+          </select>
+        </label>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <Input label="מחסן" name="ed-wh" value={draft.warehouse} onChange={(e) => set('warehouse', e.target.value)} />
+        <Input label="ארון" name="ed-cab" type="number" value={draft.cabinet} onChange={(e) => set('cabinet', e.target.value)} />
+        <Input label="סוג מאחסן" name="ed-stype" value={draft.storage_type} onChange={(e) => set('storage_type', e.target.value)} />
+        <Input label="מספר מאחסן" name="ed-snum" type="number" value={draft.storage_number} onChange={(e) => set('storage_number', e.target.value)} />
+        <Input label="מספר תא" name="ed-cell" type="number" value={draft.cell_number} onChange={(e) => set('cell_number', e.target.value)} />
+      </div>
+      <div className="flex gap-2 items-center">
+        <Button onClick={save} disabled={busy}>{busy ? 'שומר...' : 'שמור'}</Button>
+        <Button variant="ghost" onClick={onCancel}>ביטול</Button>
+        {error && <span className="text-xs text-danger">{error}</span>}
+      </div>
+    </div>
   )
 }
 

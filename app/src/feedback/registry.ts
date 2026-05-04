@@ -53,6 +53,10 @@ export const COMPONENTS: Record<number, string> = {
   4001: 'WHS_HOME',
   4002: 'PARTS_CATALOG',
   4003: 'PENDING_ACTIONS',
+  4004: 'BTN_DEC_QTY',
+  4005: 'BTN_INC_QTY',
+  4006: 'BTN_EDIT_PART',
+  4007: 'PART_EDIT_FORM',
 
   // 5xxx — call detail
   5001: 'CALL_DETAIL',

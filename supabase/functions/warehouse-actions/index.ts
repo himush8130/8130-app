@@ -11,6 +11,8 @@
 //   - add_required_part:           {call_id, part_id, quantity}                                   (any role)
 //   - update_required_part_status: {required_part_id, status}                                     (warehouse)
 //   - record_withdrawal:           {call_id, part_id, quantity, withdrawn_by, [required_part_id]} (warehouse)
+//   - update_part:                 {part_id, updates: {field: value, ...}}                        (warehouse)
+//   - update_part_quantity:        {part_id, delta} or {part_id, quantity}                        (warehouse)
 //
 // On `add_required_part` the function auto-classifies status:
 //   if parts.quantity >= requested -> 'in_stock'
@@ -75,6 +77,16 @@ Deno.serve(async (req: Request) => {
         return json(403, { ok: false, error: 'requires_warehouse_or_manager' })
       }
       return await recordWithdrawal(params, employee_number)
+    case 'update_part':
+      if (caller.permissions !== 'warehouse' && caller.permissions !== 'manager') {
+        return json(403, { ok: false, error: 'requires_warehouse_or_manager' })
+      }
+      return await updatePart(params)
+    case 'update_part_quantity':
+      if (caller.permissions !== 'warehouse' && caller.permissions !== 'manager') {
+        return json(403, { ok: false, error: 'requires_warehouse_or_manager' })
+      }
+      return await updatePartQuantity(params)
     default:
       return json(400, { ok: false, error: 'unknown_action', action })
   }
@@ -264,6 +276,84 @@ async function recordWithdrawal(params: any, released_by: number): Promise<Respo
   }
 
   return json(200, { ok: true, withdrawal: data })
+}
+
+// ---------------------------------------------------------------------
+// update_part — warehouse edits arbitrary fields of a parts row.
+// ---------------------------------------------------------------------
+const ALLOWED_PART_FIELDS = new Set([
+  'name', 'sku', 'quantity', 'min_threshold',
+  'warehouse', 'cabinet', 'storage_type', 'storage_number', 'cell_number',
+  'is_exchange', 'supplier', 'location', 'stock_count',
+])
+
+async function updatePart(params: any): Promise<Response> {
+  const { part_id, updates } = params ?? {}
+  if (typeof part_id !== 'string' || !updates || typeof updates !== 'object') {
+    return json(400, { ok: false, error: 'invalid_params' })
+  }
+
+  const patch: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(updates)) {
+    if (!ALLOWED_PART_FIELDS.has(k)) continue
+    patch[k] = v
+  }
+  if (Object.keys(patch).length === 0) {
+    return json(400, { ok: false, error: 'no_valid_fields' })
+  }
+
+  // Numeric guards.
+  if (typeof patch.quantity === 'number' && patch.quantity < 0) {
+    return json(400, { ok: false, error: 'quantity_negative' })
+  }
+  if (typeof patch.min_threshold === 'number' && patch.min_threshold < 0) {
+    return json(400, { ok: false, error: 'min_threshold_negative' })
+  }
+
+  const { data, error } = await admin
+    .from('parts')
+    .update(patch)
+    .eq('id', part_id)
+    .select('*')
+    .single()
+  if (error) return json(500, { ok: false, error: 'update_failed', detail: error.message })
+  return json(200, { ok: true, part: data })
+}
+
+// ---------------------------------------------------------------------
+// update_part_quantity — convenience for ±1 buttons / quick edit.
+// Either pass an absolute `quantity` or a relative `delta`.
+// ---------------------------------------------------------------------
+async function updatePartQuantity(params: any): Promise<Response> {
+  const { part_id, quantity, delta } = params ?? {}
+  if (typeof part_id !== 'string') {
+    return json(400, { ok: false, error: 'invalid_params' })
+  }
+
+  let next: number | null = null
+  if (typeof quantity === 'number') {
+    if (quantity < 0) return json(400, { ok: false, error: 'quantity_negative' })
+    next = Math.floor(quantity)
+  } else if (typeof delta === 'number') {
+    const { data: cur } = await admin
+      .from('parts')
+      .select('quantity')
+      .eq('id', part_id)
+      .maybeSingle()
+    if (!cur) return json(404, { ok: false, error: 'not_found' })
+    next = Math.max(0, cur.quantity + Math.floor(delta))
+  } else {
+    return json(400, { ok: false, error: 'missing_quantity_or_delta' })
+  }
+
+  const { data, error } = await admin
+    .from('parts')
+    .update({ quantity: next })
+    .eq('id', part_id)
+    .select('id, quantity')
+    .single()
+  if (error) return json(500, { ok: false, error: 'update_failed', detail: error.message })
+  return json(200, { ok: true, part: data })
 }
 
 // ---------------------------------------------------------------------

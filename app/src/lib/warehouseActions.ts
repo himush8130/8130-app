@@ -63,3 +63,43 @@ export function recordWithdrawal(
     },
   })
 }
+
+export interface PartUpdates {
+  name?: string
+  sku?: string
+  quantity?: number
+  min_threshold?: number
+  warehouse?: string | null
+  cabinet?: number | null
+  storage_type?: string | null
+  storage_number?: number | null
+  cell_number?: number | null
+  is_exchange?: boolean
+  supplier?: string | null
+  location?: string | null
+  stock_count?: number
+}
+
+export function updatePart(employeeNumber: number, partId: string, updates: PartUpdates) {
+  return invoke({
+    employee_number: employeeNumber,
+    action: 'update_part',
+    params: { part_id: partId, updates },
+  })
+}
+
+export function setPartQuantity(employeeNumber: number, partId: string, quantity: number) {
+  return invoke({
+    employee_number: employeeNumber,
+    action: 'update_part_quantity',
+    params: { part_id: partId, quantity },
+  })
+}
+
+export function changePartQuantity(employeeNumber: number, partId: string, delta: number) {
+  return invoke({
+    employee_number: employeeNumber,
+    action: 'update_part_quantity',
+    params: { part_id: partId, delta },
+  })
+}
