@@ -1,4 +1,4 @@
-import { StrictMode } from 'react'
+import { StrictMode, Suspense, lazy } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient } from '@tanstack/react-query'
@@ -7,21 +7,23 @@ import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persist
 
 import './index.css'
 import { LoginPage } from './pages/LoginPage'
-import { TechnicianHomePage } from './pages/TechnicianHomePage'
-import { CallDetailPage } from './pages/CallDetailPage'
-import { ManagerHomePage } from './pages/ManagerHomePage'
-import { AnomalyQueuePage } from './pages/AnomalyQueuePage'
-import { AllCallsPage } from './pages/AllCallsPage'
-import { WarehouseHomePage } from './pages/WarehouseHomePage'
-import { VehicleHistoryPage } from './pages/VehicleHistoryPage'
-import { NotesPage } from './pages/NotesPage'
-import { SettingsProfessionsPage } from './pages/SettingsProfessionsPage'
-import { SettingsEmployeesPage } from './pages/SettingsEmployeesPage'
-import { SettingsVehiclesPage } from './pages/SettingsVehiclesPage'
-import { SettingsAvailabilityPage } from './pages/SettingsAvailabilityPage'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { FeedbackBar } from './feedback/FeedbackBar'
 import { registerServiceWorker } from './lib/registerSW'
+
+// Lazy-loaded routes — keeps initial bundle small for faster mobile load.
+const TechnicianHomePage      = lazy(() => import('./pages/TechnicianHomePage').then(m => ({ default: m.TechnicianHomePage })))
+const CallDetailPage          = lazy(() => import('./pages/CallDetailPage').then(m => ({ default: m.CallDetailPage })))
+const ManagerHomePage         = lazy(() => import('./pages/ManagerHomePage').then(m => ({ default: m.ManagerHomePage })))
+const AnomalyQueuePage        = lazy(() => import('./pages/AnomalyQueuePage').then(m => ({ default: m.AnomalyQueuePage })))
+const AllCallsPage            = lazy(() => import('./pages/AllCallsPage').then(m => ({ default: m.AllCallsPage })))
+const WarehouseHomePage       = lazy(() => import('./pages/WarehouseHomePage').then(m => ({ default: m.WarehouseHomePage })))
+const VehicleHistoryPage      = lazy(() => import('./pages/VehicleHistoryPage').then(m => ({ default: m.VehicleHistoryPage })))
+const NotesPage               = lazy(() => import('./pages/NotesPage').then(m => ({ default: m.NotesPage })))
+const SettingsProfessionsPage = lazy(() => import('./pages/SettingsProfessionsPage').then(m => ({ default: m.SettingsProfessionsPage })))
+const SettingsEmployeesPage   = lazy(() => import('./pages/SettingsEmployeesPage').then(m => ({ default: m.SettingsEmployeesPage })))
+const SettingsVehiclesPage    = lazy(() => import('./pages/SettingsVehiclesPage').then(m => ({ default: m.SettingsVehiclesPage })))
+const SettingsAvailabilityPage = lazy(() => import('./pages/SettingsAvailabilityPage').then(m => ({ default: m.SettingsAvailabilityPage })))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -50,6 +52,7 @@ createRoot(document.getElementById('root')!).render(
       }}
     >
       <BrowserRouter>
+        <Suspense fallback={<div className="flex items-center justify-center min-h-screen text-muted text-sm">טוען…</div>}>
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<LoginPage />} />
@@ -158,6 +161,7 @@ createRoot(document.getElementById('root')!).render(
 
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
+        </Suspense>
         <FeedbackBar />
       </BrowserRouter>
     </PersistQueryClientProvider>
