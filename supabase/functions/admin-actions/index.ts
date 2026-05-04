@@ -177,7 +177,7 @@ async function deleteProfession(params: any): Promise<Response> {
 // ----- Employee actions -----
 
 const ALLOWED_EMP_FIELDS = new Set([
-  'name', 'phone', 'profession_name', 'permissions',
+  'name', 'phone', 'profession_name', 'permissions', 'specialty',
 ])
 
 async function createEmployee(params: any): Promise<Response> {
@@ -189,6 +189,8 @@ async function createEmployee(params: any): Promise<Response> {
   if (typeof rest.phone === 'string')           row.phone           = rest.phone.trim() || null
   if (typeof rest.profession_name === 'string') row.profession_name = rest.profession_name.trim() || null
   if (typeof rest.permissions === 'string')     row.permissions     = rest.permissions
+  if (typeof rest.specialty === 'string')       row.specialty       = rest.specialty.trim() || null
+  if (rest.specialty === null)                  row.specialty       = null
 
   const { data, error } = await admin
     .from('employees')
@@ -211,7 +213,7 @@ async function updateEmployee(params: any): Promise<Response> {
   const patch: Record<string, unknown> = {}
   for (const [k, v] of Object.entries(updates)) {
     if (!ALLOWED_EMP_FIELDS.has(k)) continue
-    if (k === 'phone' || k === 'profession_name') {
+    if (k === 'phone' || k === 'profession_name' || k === 'specialty') {
       const s = (v == null) ? null : String(v).trim()
       patch[k] = s || null
     } else {

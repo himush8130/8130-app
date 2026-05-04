@@ -2,8 +2,22 @@ import { useTankReadiness, type CompanyReadiness } from '../hooks/useTankReadine
 import { Card, CardBody, CardHeader } from './ui/Card'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 
-export function TankReadinessCard() {
-  const { data, isLoading } = useTankReadiness()
+interface Props {
+  title?:      string
+  typeName?:   string
+  groupBy?:    'sub_department' | 'department'
+  groupLabel?: string
+  badgeId?:    number
+}
+
+export function TankReadinessCard({
+  title      = 'כשירות טנקים',
+  typeName   = 'טנק',
+  groupBy    = 'sub_department',
+  groupLabel = 'פלוגה',
+  badgeId    = 3019,
+}: Props = {}) {
+  const { data, isLoading } = useTankReadiness(typeName, groupBy)
   if (isLoading || !data || data.byCompany.length === 0) return null
 
   const totalOperational = data.totals.healthy + data.totals.with_issues
@@ -12,9 +26,9 @@ export function TankReadinessCard() {
   return (
     <Card>
       <CardHeader>
-        <ComponentBadge id={3019} />
+        <ComponentBadge id={badgeId} />
         <div className="flex items-center justify-between gap-2 flex-wrap">
-          <h3 className="text-sm font-semibold text-foreground">כשירות טנקים</h3>
+          <h3 className="text-sm font-semibold text-foreground">{title}</h3>
           <span className="text-xs text-muted">
             סה״כ {data.totals.total} כלים · אחוז כשירות כללי{' '}
             <strong className={tone(totalReadiness)}>{totalReadiness}%</strong>
@@ -25,7 +39,7 @@ export function TankReadinessCard() {
         <table className="w-full text-sm">
           <thead>
             <tr className="text-xs text-muted border-b border-border">
-              <th className="text-start font-medium px-4 py-2">פלוגה</th>
+              <th className="text-start font-medium px-4 py-2">{groupLabel}</th>
               <th className="text-start font-medium px-4 py-2">סה״כ</th>
               <th className="text-start font-medium px-4 py-2">תקין</th>
               <th className="text-start font-medium px-4 py-2">מושבת</th>

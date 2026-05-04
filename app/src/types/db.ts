@@ -36,8 +36,13 @@ export interface Employee {
   phone: string | null
   profession_name: string | null
   permissions: EmployeePermissions
+  specialty: TankSpecialty | null
   created_at: string
 }
+
+export type TankSpecialty = 'מכונאות' | 'חשמל' | 'צריח' | 'בק״ש'
+
+export const TANK_SPECIALTIES: TankSpecialty[] = ['מכונאות', 'חשמל', 'צריח', 'בק״ש']
 
 export interface Vehicle {
   vehicle_number: string
@@ -60,6 +65,7 @@ export interface ServiceCall {
   profession_name: string | null
   anomaly_flags: Array<{ code: string; detail?: string }>
   is_disabling: boolean
+  specialty: TankSpecialty | null
   created_at: string
   updated_at: string
   closed_at: string | null

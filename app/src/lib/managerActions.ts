@@ -97,3 +97,15 @@ export async function setCallDisabling(
     params: { call_id: callId, is_disabling: isDisabling },
   })
 }
+
+export async function setCallSpecialty(
+  employeeNumber: number,
+  callId: string,
+  specialty: string | null,
+): Promise<CallActionResult> {
+  return invoke({
+    employee_number: employeeNumber,
+    action: 'set_call_specialty',
+    params: { call_id: callId, specialty },
+  })
+}

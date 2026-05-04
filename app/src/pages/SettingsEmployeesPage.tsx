@@ -12,7 +12,8 @@ import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Badge } from '../components/ui/Badge'
-import type { Employee, EmployeePermissions } from '../types/db'
+import type { Employee, EmployeePermissions, TankSpecialty } from '../types/db'
+import { TANK_SPECIALTIES } from '../types/db'
 
 const PERMS: EmployeePermissions[] = ['technician', 'manager', 'warehouse']
 const PERM_LABEL: Record<EmployeePermissions, string> = {
@@ -119,6 +120,7 @@ function AddRow({
   const [phone, setPhone] = useState('')
   const [prof, setProf] = useState('')
   const [perms, setPerms] = useState<EmployeePermissions>('technician')
+  const [specialty, setSpecialty] = useState<TankSpecialty | ''>('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -134,6 +136,7 @@ function AddRow({
       phone: phone.trim() || null,
       profession_name: prof.trim() || null,
       permissions: perms,
+      specialty: specialty || null,
     })
     setBusy(false)
     if (!res.ok) {
@@ -151,6 +154,7 @@ function AddRow({
         <Input label="טלפון"       name="phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
         <ProfSelect label="מקצוע" value={prof} options={profs} onChange={setProf} />
         <PermsSelect value={perms} onChange={setPerms} />
+        <SpecialtySelect value={specialty} onChange={setSpecialty} />
       </div>
       <div className="flex gap-2 items-center">
         <Button onClick={save} disabled={busy}>{busy ? 'שומר...' : 'הוסף'}</Button>
@@ -176,6 +180,7 @@ function EmployeeRow({
   const [phone, setPhone] = useState(emp.phone ?? '')
   const [prof, setProf] = useState(emp.profession_name ?? '')
   const [perms, setPerms] = useState<EmployeePermissions>(emp.permissions)
+  const [specialty, setSpecialty] = useState<TankSpecialty | ''>(emp.specialty ?? '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -187,6 +192,7 @@ function EmployeeRow({
       phone: phone.trim() || null,
       profession_name: prof.trim() || null,
       permissions: perms,
+      specialty: specialty || null,
     })
     setBusy(false)
     if (!res.ok) { setError('שגיאה'); return }
@@ -222,6 +228,9 @@ function EmployeeRow({
             {emp.profession_name && (
               <span className="text-xs text-muted">· {emp.profession_name}</span>
             )}
+            {emp.specialty && (
+              <Badge tone="info">{emp.specialty}</Badge>
+            )}
             {emp.phone && (
               <span className="text-xs text-muted font-mono" dir="ltr">· {emp.phone}</span>
             )}
@@ -243,10 +252,11 @@ function EmployeeRow({
             <Input label="טלפון" name={`p-${emp.employee_number}`} value={phone} onChange={(e) => setPhone(e.target.value)} />
             <ProfSelect label="מקצוע" value={prof} options={profs} onChange={setProf} />
             <PermsSelect value={perms} onChange={setPerms} />
+            <SpecialtySelect value={specialty} onChange={setSpecialty} />
           </div>
           <div className="flex gap-2 items-center">
             <Button onClick={save} disabled={busy}>{busy ? 'שומר...' : 'שמור'}</Button>
-            <Button variant="ghost" onClick={() => { setEditing(false); setName(emp.name); setPhone(emp.phone ?? ''); setProf(emp.profession_name ?? ''); setPerms(emp.permissions) }}>ביטול</Button>
+            <Button variant="ghost" onClick={() => { setEditing(false); setName(emp.name); setPhone(emp.phone ?? ''); setProf(emp.profession_name ?? ''); setPerms(emp.permissions); setSpecialty(emp.specialty ?? '') }}>ביטול</Button>
             {error && <span className="text-xs text-danger">{error}</span>}
           </div>
         </div>
@@ -298,6 +308,24 @@ function PermsSelect({
         className="px-3 py-2 bg-card border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
       >
         {PERMS.map((p) => <option key={p} value={p}>{PERM_LABEL[p]}</option>)}
+      </select>
+    </label>
+  )
+}
+
+function SpecialtySelect({
+  value, onChange,
+}: { value: TankSpecialty | ''; onChange: (v: TankSpecialty | '') => void }) {
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="text-sm font-medium text-foreground">התמחות (טנקים)</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value as TankSpecialty | '')}
+        className="px-3 py-2 bg-card border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+      >
+        <option value="">— ללא —</option>
+        {TANK_SPECIALTIES.map((s) => <option key={s} value={s}>{s}</option>)}
       </select>
     </label>
   )

@@ -17,18 +17,20 @@ export interface TankReadiness {
 const ACTIVE_STATUSES = ['in_treatment', 'waiting_for_parts', 'new']
 
 /**
- * Aggregate readiness for the tank fleet (vehicles.type_name = 'טנק'),
- * grouped by sub_department (company / פלוגה).
+ * Aggregate readiness grouped by sub_department (company / פלוגה).
+ *
+ * @param typeName    Filter vehicles by exact type_name (e.g. 'טנק')
+ * @param groupBy     'sub_department' (default) or 'department'
  */
-export function useTankReadiness() {
+export function useTankReadiness(typeName: string = 'טנק', groupBy: 'sub_department' | 'department' = 'sub_department') {
   return useQuery({
-    queryKey: ['tank_readiness'],
+    queryKey: ['readiness', typeName, groupBy],
     queryFn: async (): Promise<TankReadiness> => {
       const [vehiclesRes, callsRes] = await Promise.all([
         supabase
           .from('vehicles')
-          .select('vehicle_number, sub_department')
-          .eq('type_name', 'טנק'),
+          .select(`vehicle_number, ${groupBy}`)
+          .eq('type_name', typeName),
         supabase
           .from('service_calls')
           .select('vehicle_number, is_disabling')
@@ -50,15 +52,15 @@ export function useTankReadiness() {
       }
 
       const groups = new Map<string, CompanyReadiness>()
-      for (const v of vehicles) {
-        const key = v.sub_department || '(ללא פלוגה)'
+      for (const v of vehicles as Array<Record<string, string | null>>) {
+        const key = v[groupBy] || '(ללא קבוצה)'
         const g = groups.get(key) ?? {
           sub_department: key,
           total: 0, healthy: 0, with_issues: 0, disabled: 0,
         }
         g.total += 1
 
-        const myCalls = callsByVehicle.get(v.vehicle_number) ?? []
+        const myCalls = callsByVehicle.get(v.vehicle_number!) ?? []
         if (myCalls.length === 0) {
           g.healthy += 1
         } else if (myCalls.some((c) => c.is_disabling)) {

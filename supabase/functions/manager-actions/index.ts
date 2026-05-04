@@ -86,6 +86,7 @@ Deno.serve(async (req: Request) => {
     case 'close_call':                     return await closeCall(params, employee_number)
     case 'add_comment':                    return await addComment(params, employee_number)
     case 'set_call_disabling':             return await setCallDisabling(params)
+    case 'set_call_specialty':             return managerOnly(() => setCallSpecialty(params))
     case 'add_feedback_note':              return await addFeedbackNote(params, employee_number, caller.name)
     case 'edit_feedback_note':             return await editFeedbackNote(params, employee_number)
     case 'delete_feedback_note':           return await deleteFeedbackNote(params, employee_number)
@@ -358,6 +359,31 @@ async function setCallDisabling(params: any): Promise<Response> {
     .update({ is_disabling })
     .eq('id', call_id)
     .select('id, display_id, is_disabling')
+    .single()
+  if (error) return json(500, { ok: false, error: 'update_failed', detail: error.message })
+  return json(200, { ok: true, call: data })
+}
+
+const ALLOWED_SPECIALTIES = new Set(['מכונאות', 'חשמל', 'צריח', 'בק״ש'])
+
+async function setCallSpecialty(params: any): Promise<Response> {
+  const { call_id, specialty } = params ?? {}
+  if (typeof call_id !== 'string') {
+    return json(400, { ok: false, error: 'invalid_params' })
+  }
+  let value: string | null = null
+  if (specialty !== null && specialty !== undefined && specialty !== '') {
+    if (typeof specialty !== 'string' || !ALLOWED_SPECIALTIES.has(specialty)) {
+      return json(400, { ok: false, error: 'invalid_specialty' })
+    }
+    value = specialty
+  }
+
+  const { data, error } = await admin
+    .from('service_calls')
+    .update({ specialty: value })
+    .eq('id', call_id)
+    .select('id, display_id, specialty')
     .single()
   if (error) return json(500, { ok: false, error: 'update_failed', detail: error.message })
   return json(200, { ok: true, call: data })

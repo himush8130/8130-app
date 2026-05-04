@@ -48,6 +48,7 @@ export interface EmployeeUpdates {
   phone?: string | null
   profession_name?: string | null
   permissions?: 'technician' | 'manager' | 'warehouse'
+  specialty?: string | null
 }
 
 export function createEmployee(employeeNumber: number, payload: { employee_number: number } & EmployeeUpdates) {

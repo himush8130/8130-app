@@ -72,7 +72,6 @@ export function LoginPage() {
               value={employeeNumber}
               onChange={(e) => setEmployeeNumber(e.target.value)}
               error={error ?? undefined}
-              hint="לדוגמה: 1003 / 1004 / 1005 (טכנאים), 1001 (מנהל), 1002 (מחסנאי)"
             />
 
             <Button type="submit" disabled={loading}>

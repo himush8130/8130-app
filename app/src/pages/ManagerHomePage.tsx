@@ -43,6 +43,13 @@ export function ManagerHomePage() {
             </div>
 
             <TankReadinessCard />
+            <TankReadinessCard
+              title="כשירות שאר הכלים"
+              typeName="רכב"
+              groupBy="department"
+              groupLabel="מחלקה"
+              badgeId={3023}
+            />
 
             <Card>
               <CardBody>
