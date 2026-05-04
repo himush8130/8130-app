@@ -109,3 +109,22 @@ export async function setCallSpecialty(
     params: { call_id: callId, specialty },
   })
 }
+
+export interface CreateCallParams {
+  vehicle_number: string
+  description: string
+  reporter_phone?: string | null
+  is_disabling?: boolean
+  specialty?: string | null
+}
+
+export async function createCall(
+  employeeNumber: number,
+  params: CreateCallParams,
+): Promise<CallActionResult & { anomalies?: Array<{ code: string; detail?: string }> }> {
+  return invoke({
+    employee_number: employeeNumber,
+    action: 'create_call',
+    params,
+  }) as any
+}

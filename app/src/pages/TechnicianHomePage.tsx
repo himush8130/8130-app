@@ -1,10 +1,13 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '../store/auth'
 import { useTechnicianCalls } from '../hooks/useTechnicianCalls'
 import { supabase } from '../lib/supabase'
 import { AppHeader } from '../components/AppHeader'
 import { CallCard } from '../components/CallCard'
+import { NewCallForm } from '../components/NewCallForm'
 import { Card, CardBody } from '../components/ui/Card'
+import { Button } from '../components/ui/Button'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { ServiceCall } from '../types/db'
 
@@ -13,6 +16,7 @@ const ACTIVE_STATUSES = ['in_treatment', 'waiting_for_parts']
 export function TechnicianHomePage() {
   const employee = useAuthStore((s) => s.employee)!
   const isManager = employee.permissions === 'manager'
+  const [showForm, setShowForm] = useState(false)
 
   // Technicians see their own profession's calls.
   const techQuery = useTechnicianCalls(isManager ? null : employee.profession_name)
@@ -47,6 +51,17 @@ export function TechnicianHomePage() {
             אתה צופה במצב טכנאי. מוצגות כל הקריאות הפעילות בכל המקצועות.
           </p>
         )}
+
+        <div className="mb-3">
+          {!showForm ? (
+            <Button onClick={() => setShowForm(true)}>
+              <ComponentBadge id={6011} />
+              + פתח תקלה חדשה
+            </Button>
+          ) : (
+            <NewCallForm onCancel={() => setShowForm(false)} onCreated={() => setShowForm(false)} />
+          )}
+        </div>
 
         {isLoading && (
           <p className="text-sm text-muted text-center py-8">טוען...</p>

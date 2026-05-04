@@ -82,6 +82,8 @@ export const COMPONENTS: Record<number, string> = {
   // 6xxx — technician
   6001: 'TECH_HOME',
   6002: 'CALL_CARD',
+  6010: 'NEW_CALL_FORM',
+  6011: 'BTN_OPEN_NEW_CALL',
 
   // 7xxx — vehicle history
   7001: 'VEHICLE_HISTORY',

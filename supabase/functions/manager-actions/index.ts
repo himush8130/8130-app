@@ -87,6 +87,7 @@ Deno.serve(async (req: Request) => {
     case 'add_comment':                    return await addComment(params, employee_number)
     case 'set_call_disabling':             return await setCallDisabling(params)
     case 'set_call_specialty':             return managerOnly(() => setCallSpecialty(params))
+    case 'create_call':                    return await createCall(params, employee_number, caller.name)
     case 'add_feedback_note':              return await addFeedbackNote(params, employee_number, caller.name)
     case 'edit_feedback_note':             return await editFeedbackNote(params, employee_number)
     case 'delete_feedback_note':           return await deleteFeedbackNote(params, employee_number)
@@ -387,6 +388,93 @@ async function setCallSpecialty(params: any): Promise<Response> {
     .single()
   if (error) return json(500, { ok: false, error: 'update_failed', detail: error.message })
   return json(200, { ok: true, call: data })
+}
+
+type Anomaly = { code: string; detail?: string }
+
+// Mirrors the auto-classification done by webhook-base44, so calls created
+// in-app behave identically to those arriving from the form.
+async function createCall(params: any, _employeeNumber: number, callerName: string): Promise<Response> {
+  const vehicle_number = strOrNull(params?.vehicle_number)
+  const description    = strOrNull(params?.description)
+  const reporter_name  = strOrNull(params?.reporter_name)  ?? callerName
+  const reporter_phone = strOrNull(params?.reporter_phone) ?? null
+  const is_disabling   = !!params?.is_disabling
+  const specialty_in   = strOrNull(params?.specialty)
+
+  const anomalies: Anomaly[] = []
+  if (!vehicle_number) anomalies.push({ code: 'missing_vehicle_number' })
+  if (!description)    anomalies.push({ code: 'missing_description' })
+  if (!reporter_phone) anomalies.push({ code: 'missing_reporter_phone' })
+
+  let profession_name: string | null = null
+  let status: 'new' | 'in_treatment' = 'new'
+
+  if (vehicle_number) {
+    const { data: vehicle } = await admin
+      .from('vehicles')
+      .select('type_name')
+      .eq('vehicle_number', vehicle_number)
+      .maybeSingle()
+
+    if (!vehicle) {
+      anomalies.push({ code: 'unknown_vehicle', detail: vehicle_number })
+    } else {
+      profession_name = vehicle.type_name
+
+      const today = new Date().toISOString().slice(0, 10)
+      const { data: techs } = await admin
+        .from('employees')
+        .select('employee_number')
+        .eq('profession_name', profession_name)
+        .eq('permissions', 'technician')
+
+      if (!techs || techs.length === 0) {
+        anomalies.push({ code: 'no_technicians_for_profession' })
+      } else {
+        const techNums = techs.map((t: any) => t.employee_number)
+        const { data: unavailable } = await admin
+          .from('employee_availability')
+          .select('employee_number')
+          .in('employee_number', techNums)
+          .eq('date', today)
+
+        const unavailableSet = new Set((unavailable ?? []).map((u: any) => u.employee_number))
+        const someoneAvailable = techNums.some((n: number) => !unavailableSet.has(n))
+
+        if (someoneAvailable) status = 'in_treatment'
+        else                  anomalies.push({ code: 'all_technicians_unavailable_today' })
+      }
+    }
+  }
+
+  const ALLOWED_SPECS = new Set(['מכונאות', 'חשמל', 'צריח', 'בק״ש'])
+  const specialty = specialty_in && ALLOWED_SPECS.has(specialty_in) ? specialty_in : null
+
+  const { data: inserted, error } = await admin
+    .from('service_calls')
+    .insert({
+      vehicle_number,
+      description,
+      reporter_name,
+      reporter_phone,
+      status,
+      profession_name,
+      anomaly_flags: anomalies,
+      is_disabling,
+      specialty,
+    })
+    .select('id, display_id, status, profession_name')
+    .single()
+
+  if (error) return json(500, { ok: false, error: 'insert_failed', detail: error.message })
+  return json(200, { ok: true, call: inserted, anomalies })
+}
+
+function strOrNull(v: unknown): string | null {
+  if (typeof v !== 'string') return null
+  const t = v.trim()
+  return t.length === 0 ? null : t
 }
 
 async function addComment(params: any, employeeNumber: number): Promise<Response> {
