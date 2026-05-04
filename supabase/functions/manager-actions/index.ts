@@ -88,6 +88,8 @@ Deno.serve(async (req: Request) => {
     case 'set_call_disabling':             return await setCallDisabling(params)
     case 'set_call_specialty':             return managerOnly(() => setCallSpecialty(params))
     case 'create_call':                    return await createCall(params, employee_number, caller.name)
+    case 'edit_call':                      return await editCall(params)
+    case 'delete_call':                    return await deleteCall(params)
     case 'add_feedback_note':              return await addFeedbackNote(params, employee_number, caller.name)
     case 'edit_feedback_note':             return await editFeedbackNote(params, employee_number)
     case 'delete_feedback_note':           return await deleteFeedbackNote(params, employee_number)
@@ -475,6 +477,79 @@ function strOrNull(v: unknown): string | null {
   if (typeof v !== 'string') return null
   const t = v.trim()
   return t.length === 0 ? null : t
+}
+
+const EDITABLE_CALL_FIELDS = new Set([
+  'vehicle_number', 'description', 'reporter_name', 'reporter_phone',
+  'is_disabling', 'specialty',
+])
+const ALLOWED_SPECS_EDIT = new Set(['מכונאות', 'חשמל', 'צריח', 'בק״ש'])
+
+async function editCall(params: any): Promise<Response> {
+  const { call_id, updates } = params ?? {}
+  if (typeof call_id !== 'string' || !updates || typeof updates !== 'object') {
+    return json(400, { ok: false, error: 'invalid_params' })
+  }
+
+  const patch: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(updates)) {
+    if (!EDITABLE_CALL_FIELDS.has(k)) continue
+    if (k === 'is_disabling') {
+      patch[k] = !!v
+    } else if (k === 'specialty') {
+      if (v == null || v === '') patch[k] = null
+      else if (typeof v === 'string' && ALLOWED_SPECS_EDIT.has(v)) patch[k] = v
+      else return json(400, { ok: false, error: 'invalid_specialty' })
+    } else {
+      const s = (v == null) ? null : String(v).trim()
+      patch[k] = s || null
+    }
+  }
+  if (Object.keys(patch).length === 0) return json(400, { ok: false, error: 'no_valid_fields' })
+
+  // If the vehicle_number changed, re-derive profession_name from the catalog
+  // and clear the unknown_vehicle anomaly when applicable.
+  if ('vehicle_number' in patch) {
+    const vn = patch.vehicle_number as string | null
+    if (vn) {
+      const { data: vehicle } = await admin
+        .from('vehicles')
+        .select('type_name')
+        .eq('vehicle_number', vn)
+        .maybeSingle()
+      if (vehicle) {
+        patch.profession_name = vehicle.type_name
+      }
+    }
+  }
+
+  const { data, error } = await admin
+    .from('service_calls')
+    .update(patch)
+    .eq('id', call_id)
+    .select('*')
+    .single()
+  if (error) return json(500, { ok: false, error: 'update_failed', detail: error.message })
+  return json(200, { ok: true, call: data })
+}
+
+async function deleteCall(params: any): Promise<Response> {
+  const { call_id } = params ?? {}
+  if (typeof call_id !== 'string') {
+    return json(400, { ok: false, error: 'invalid_params' })
+  }
+
+  // Cascade-clean child rows so the delete succeeds regardless of FK config.
+  await admin.from('call_comments')        .delete().eq('call_id', call_id)
+  await admin.from('call_required_parts')  .delete().eq('call_id', call_id)
+  await admin.from('part_withdrawals')     .delete().eq('call_id', call_id)
+
+  const { error } = await admin
+    .from('service_calls')
+    .delete()
+    .eq('id', call_id)
+  if (error) return json(500, { ok: false, error: 'delete_failed', detail: error.message })
+  return json(200, { ok: true })
 }
 
 async function addComment(params: any, employeeNumber: number): Promise<Response> {

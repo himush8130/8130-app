@@ -128,3 +128,35 @@ export async function createCall(
     params,
   }) as any
 }
+
+export interface CallUpdates {
+  vehicle_number?: string | null
+  description?:    string | null
+  reporter_name?:  string | null
+  reporter_phone?: string | null
+  is_disabling?:   boolean
+  specialty?:      string | null
+}
+
+export async function editCall(
+  employeeNumber: number,
+  callId: string,
+  updates: CallUpdates,
+): Promise<CallActionResult> {
+  return invoke({
+    employee_number: employeeNumber,
+    action: 'edit_call',
+    params: { call_id: callId, updates },
+  })
+}
+
+export async function deleteCall(
+  employeeNumber: number,
+  callId: string,
+): Promise<CallActionResult> {
+  return invoke({
+    employee_number: employeeNumber,
+    action: 'delete_call',
+    params: { call_id: callId },
+  })
+}

@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { useCallDetail } from '../hooks/useCallDetail'
 import { useAuthStore } from '../store/auth'
 import { AppHeader } from '../components/AppHeader'
@@ -11,7 +13,9 @@ import { AddCommentForm } from '../components/AddCommentForm'
 import { CallContactsPanel } from '../components/CallContactsPanel'
 import { PhoneActions } from '../components/PhoneActions'
 import { CopyCallSummaryButton } from '../components/CopyCallSummaryButton'
+import { EditCallForm } from '../components/EditCallForm'
 import { ComponentBadge } from '../feedback/ComponentBadge'
+import { deleteCall } from '../lib/managerActions'
 import type { CallStatus, EmployeePermissions } from '../types/db'
 
 const homeRouteByPermissions: Record<EmployeePermissions, string> = {
@@ -49,7 +53,27 @@ export function CallDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const employee = useAuthStore((s) => s.employee)
+  const queryClient = useQueryClient()
   const { data, isLoading, error } = useCallDetail(id)
+  const [editing, setEditing] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+
+  async function handleDelete() {
+    if (!data || !employee) return
+    setDeleting(true); setDeleteError(null)
+    const res = await deleteCall(employee.employee_number, data.call.id)
+    setDeleting(false)
+    if (!res.ok) {
+      setDeleteError(res.detail || res.error || 'מחיקה נכשלה')
+      return
+    }
+    queryClient.invalidateQueries({ queryKey: ['service_calls'] })
+    queryClient.invalidateQueries({ queryKey: ['technician_calls'] })
+    queryClient.invalidateQueries({ queryKey: ['vehicle_history'] })
+    navigate(employee ? homeRouteByPermissions[employee.permissions] : '/login', { replace: true })
+  }
 
   function handleBack() {
     if (window.history.length > 1) {
@@ -98,8 +122,50 @@ export function CallDetailPage() {
           <Button variant="ghost" onClick={handleBack} className="text-primary">
             → חזור
           </Button>
-          <CopyCallSummaryButton call={call} />
+          <div className="flex gap-1.5 flex-wrap">
+            <CopyCallSummaryButton call={call} />
+            {!editing && !confirmDelete && (
+              <>
+                <Button variant="secondary" onClick={() => setEditing(true)}>
+                  <ComponentBadge id={5016} />
+                  ערוך
+                </Button>
+                <Button variant="ghost" onClick={() => setConfirmDelete(true)}>
+                  <ComponentBadge id={5017} />
+                  מחק
+                </Button>
+              </>
+            )}
+          </div>
         </div>
+
+        {confirmDelete && (
+          <Card>
+            <CardBody className="bg-danger/5">
+              <p className="text-sm text-foreground">
+                למחוק לצמיתות את קריאה <strong>{call.display_id}</strong>?
+                גם תגובות, חלקים נדרשים ויציאות מלאי שצמודות אליה יימחקו.
+              </p>
+              <div className="flex gap-2 items-center mt-2">
+                <Button onClick={handleDelete} disabled={deleting}>
+                  {deleting ? 'מוחק...' : 'אשר מחיקה'}
+                </Button>
+                <Button variant="ghost" onClick={() => { setConfirmDelete(false); setDeleteError(null) }}>
+                  ביטול
+                </Button>
+                {deleteError && <span className="text-xs text-danger">{deleteError}</span>}
+              </div>
+            </CardBody>
+          </Card>
+        )}
+
+        {editing && (
+          <EditCallForm
+            call={call}
+            onSaved={() => setEditing(false)}
+            onCancel={() => setEditing(false)}
+          />
+        )}
 
         <Card>
           <CardHeader>

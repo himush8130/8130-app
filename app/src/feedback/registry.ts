@@ -78,6 +78,9 @@ export const COMPONENTS: Record<number, string> = {
   5012: 'BTN_CALL_PHONE',
   5013: 'BTN_WHATSAPP',
   5014: 'BTN_COPY_CALL_SUMMARY',
+  5015: 'EDIT_CALL_FORM',
+  5016: 'BTN_EDIT_CALL',
+  5017: 'BTN_DELETE_CALL',
 
   // 6xxx — technician
   6001: 'TECH_HOME',
