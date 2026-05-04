@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useVehicles } from '../hooks/useVehicles'
 import { Card, CardBody, CardHeader } from './ui/Card'
 import { Input } from './ui/Input'
+import { ComponentBadge } from '../feedback/ComponentBadge'
 
 export function VehiclePicker() {
   const { data: vehicles } = useVehicles()
@@ -22,6 +23,7 @@ export function VehiclePicker() {
 
   return (
     <Card>
+      <ComponentBadge id={3022} />
       <CardHeader>
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <h3 className="text-sm font-semibold text-foreground">כלים בגדוד</h3>

@@ -50,6 +50,8 @@ export const COMPONENTS: Record<number, string> = {
   3018: 'BTN_DELETE_PROFESSION',
   3019: 'TANK_READINESS_TABLE',
   3020: 'BTN_ROLE_SWITCH',
+  3021: 'VEHICLES_BOOK_PAGE',
+  3022: 'VEHICLE_PICKER',
 
   // 4xxx — warehouse
   4001: 'WHS_HOME',

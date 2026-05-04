@@ -24,6 +24,7 @@ const SettingsProfessionsPage = lazy(() => import('./pages/SettingsProfessionsPa
 const SettingsEmployeesPage   = lazy(() => import('./pages/SettingsEmployeesPage').then(m => ({ default: m.SettingsEmployeesPage })))
 const SettingsVehiclesPage    = lazy(() => import('./pages/SettingsVehiclesPage').then(m => ({ default: m.SettingsVehiclesPage })))
 const SettingsAvailabilityPage = lazy(() => import('./pages/SettingsAvailabilityPage').then(m => ({ default: m.SettingsAvailabilityPage })))
+const VehiclesBookPage         = lazy(() => import('./pages/VehiclesBookPage').then(m => ({ default: m.VehiclesBookPage })))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -71,6 +72,14 @@ createRoot(document.getElementById('root')!).render(
             element={
               <ProtectedRoute allow={['manager']}>
                 <ManagerHomePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/manager/vehicles"
+            element={
+              <ProtectedRoute allow={['manager']}>
+                <VehiclesBookPage />
               </ProtectedRoute>
             }
           />

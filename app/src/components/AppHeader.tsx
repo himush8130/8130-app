@@ -5,9 +5,10 @@ import { Button } from './ui/Button'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 
 const MANAGER_VIEWS: Array<{ to: string; label: string; matches: (p: string) => boolean }> = [
-  { to: '/manager',    label: 'מנהל',    matches: (p) => p.startsWith('/manager') },
-  { to: '/warehouse',  label: 'מחסנאי',  matches: (p) => p.startsWith('/warehouse') },
-  { to: '/technician', label: 'טכנאי',   matches: (p) => p.startsWith('/technician') },
+  { to: '/manager',          label: 'מנהל',          matches: (p) => p.startsWith('/manager') && !p.startsWith('/manager/vehicles') },
+  { to: '/manager/vehicles', label: 'ספר רק״ם/רכב',  matches: (p) => p.startsWith('/manager/vehicles') },
+  { to: '/warehouse',        label: 'מחסנאי',        matches: (p) => p.startsWith('/warehouse') },
+  { to: '/technician',       label: 'טכנאי',         matches: (p) => p.startsWith('/technician') },
 ]
 
 export function AppHeader({ subtitle }: { subtitle?: string }) {

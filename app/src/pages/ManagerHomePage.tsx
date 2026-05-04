@@ -3,7 +3,6 @@ import { useManagerOverview } from '../hooks/useManagerOverview'
 import { AppHeader } from '../components/AppHeader'
 import { StatCard } from '../components/StatCard'
 import { TankReadinessCard } from '../components/TankReadinessCard'
-import { VehiclePicker } from '../components/VehiclePicker'
 import { Card, CardBody } from '../components/ui/Card'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 
@@ -42,8 +41,6 @@ export function ManagerHomePage() {
                 to="/manager/calls"
               />
             </div>
-
-            <VehiclePicker />
 
             <TankReadinessCard />
 
