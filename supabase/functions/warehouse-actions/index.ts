@@ -67,6 +67,10 @@ Deno.serve(async (req: Request) => {
   switch (action) {
     case 'add_required_part':
       return await addRequiredPart(params, employee_number)
+    case 'create_part':
+      return await createPart(params)
+    case 'delete_required_part':
+      return await deleteRequiredPart(params)
     case 'update_required_part_status':
       if (caller.permissions !== 'warehouse' && caller.permissions !== 'manager') {
         return json(403, { ok: false, error: 'requires_warehouse_or_manager' })
@@ -286,6 +290,42 @@ const ALLOWED_PART_FIELDS = new Set([
   'warehouse', 'cabinet', 'storage_type', 'storage_number', 'cell_number',
   'is_exchange', 'supplier', 'location', 'stock_count',
 ])
+
+async function createPart(params: any): Promise<Response> {
+  const sku   = typeof params?.sku   === 'string' ? params.sku.trim()   : ''
+  const name  = typeof params?.name  === 'string' ? params.name.trim()  : ''
+  if (!sku || !name) return json(400, { ok: false, error: 'invalid_params' })
+
+  const row: Record<string, unknown> = {
+    sku,
+    name,
+    quantity:      typeof params?.quantity      === 'number' ? params.quantity      : 0,
+    min_threshold: typeof params?.min_threshold === 'number' ? params.min_threshold : 0,
+    location:      typeof params?.location      === 'string' ? params.location      : null,
+    supplier:      typeof params?.supplier      === 'string' ? params.supplier      : null,
+  }
+
+  const { data, error } = await admin
+    .from('parts')
+    .insert(row)
+    .select('*')
+    .single()
+  if (error) return json(500, { ok: false, error: 'insert_failed', detail: error.message })
+  return json(200, { ok: true, part: data })
+}
+
+async function deleteRequiredPart(params: any): Promise<Response> {
+  const { required_part_id } = params ?? {}
+  if (typeof required_part_id !== 'string') {
+    return json(400, { ok: false, error: 'invalid_params' })
+  }
+  const { error } = await admin
+    .from('call_required_parts')
+    .delete()
+    .eq('id', required_part_id)
+  if (error) return json(500, { ok: false, error: 'delete_failed', detail: error.message })
+  return json(200, { ok: true })
+}
 
 async function updatePart(params: any): Promise<Response> {
   const { part_id, updates } = params ?? {}

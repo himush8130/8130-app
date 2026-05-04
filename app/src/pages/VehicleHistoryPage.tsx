@@ -9,7 +9,7 @@ import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { ComponentBadge } from '../feedback/ComponentBadge'
-import { setCallSpecialty } from '../lib/managerActions'
+import { setCallSpecialties } from '../lib/managerActions'
 import type { EmployeePermissions, ServiceCall, TankSpecialty } from '../types/db'
 import { TANK_SPECIALTIES } from '../types/db'
 
@@ -38,7 +38,7 @@ export function VehicleHistoryPage() {
   const visibleCalls = useMemo(() => {
     const all = data?.calls ?? []
     if (!isTank || filter === 'all') return all
-    return all.filter((c) => c.specialty === filter)
+    return all.filter((c) => (c.specialties ?? []).includes(filter))
   }, [data?.calls, isTank, filter])
 
   // Calls already arrive sorted newest-first; partition into 3 buckets.
@@ -54,9 +54,13 @@ export function VehicleHistoryPage() {
     return { disabling, regular, closed }
   }, [visibleCalls])
 
-  async function handleSetSpecialty(callId: string, specialty: TankSpecialty | null) {
+  async function handleToggleSpecialty(call: ServiceCall, specialty: TankSpecialty) {
     if (!employee) return
-    await setCallSpecialty(employee.employee_number, callId, specialty)
+    const current = call.specialties ?? []
+    const next = current.includes(specialty)
+      ? current.filter((s) => s !== specialty)
+      : [...current, specialty]
+    await setCallSpecialties(employee.employee_number, call.id, next)
     queryClient.invalidateQueries({ queryKey: ['vehicle_history', vehicleNumber] })
   }
 
@@ -139,7 +143,7 @@ export function VehicleHistoryPage() {
                 call={call}
                 showSpecialty={!!isTank}
                 canEdit={!!isTank && isManager}
-                onSet={handleSetSpecialty}
+                onToggle={handleToggleSpecialty}
               />
             ))}
           </section>
@@ -154,7 +158,7 @@ export function VehicleHistoryPage() {
                 call={call}
                 showSpecialty={!!isTank}
                 canEdit={!!isTank && isManager}
-                onSet={handleSetSpecialty}
+                onToggle={handleToggleSpecialty}
               />
             ))}
           </section>
@@ -169,7 +173,7 @@ export function VehicleHistoryPage() {
                 call={call}
                 showSpecialty={!!isTank}
                 canEdit={false}
-                onSet={handleSetSpecialty}
+                onToggle={handleToggleSpecialty}
               />
             ))}
           </section>
@@ -210,13 +214,14 @@ function SpecialtyFilterBanner({
 }
 
 function CallWithSpecialty({
-  call, showSpecialty, canEdit, onSet,
+  call, showSpecialty, canEdit, onToggle,
 }: {
   call: ServiceCall
   showSpecialty: boolean
   canEdit: boolean
-  onSet: (callId: string, specialty: TankSpecialty | null) => void
+  onToggle: (call: ServiceCall, specialty: TankSpecialty) => void
 }) {
+  const current = call.specialties ?? []
   return (
     <div className="flex flex-col gap-1.5">
       <CallCard call={call} />
@@ -224,13 +229,13 @@ function CallWithSpecialty({
         <div className="flex items-center gap-1.5 flex-wrap px-1">
           <span className="text-[11px] text-muted">התמחות:</span>
           {TANK_SPECIALTIES.map((s) => {
-            const active = call.specialty === s
+            const active = current.includes(s)
             return (
               <button
                 key={s}
                 type="button"
                 disabled={!canEdit}
-                onClick={() => onSet(call.id, active ? null : s)}
+                onClick={() => onToggle(call, s)}
                 className={`text-[11px] px-2 py-0.5 rounded border transition-colors ${
                   active
                     ? 'bg-info/15 border-info text-info font-medium'

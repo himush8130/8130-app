@@ -4,7 +4,7 @@ import { Card, CardBody, CardHeader } from './ui/Card'
 import { Badge } from './ui/Badge'
 import { PhoneActions } from './PhoneActions'
 import { ComponentBadge } from '../feedback/ComponentBadge'
-import type { EmployeePermissions } from '../types/db'
+import type { EmployeePermissions, TankSpecialty } from '../types/db'
 
 const permLabel: Record<EmployeePermissions, string> = {
   technician: 'טכנאי',
@@ -18,8 +18,13 @@ const permTone: Record<EmployeePermissions, 'info' | 'neutral'> = {
   warehouse:  'neutral',
 }
 
-export function CallContactsPanel({ professionName }: { professionName: string | null | undefined }) {
-  const { data, isLoading } = useCallContacts(professionName)
+export function CallContactsPanel({
+  professionName, specialties,
+}: {
+  professionName: string | null | undefined
+  specialties?:   TankSpecialty[] | null
+}) {
+  const { data, isLoading } = useCallContacts(professionName, specialties)
   const [expanded, setExpanded] = useState(false)
   const [showUnavailable, setShowUnavailable] = useState(false)
 

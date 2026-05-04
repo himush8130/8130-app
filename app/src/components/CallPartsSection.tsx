@@ -10,6 +10,8 @@ import {
   addRequiredPart,
   recordWithdrawal,
   updateRequiredPartStatus,
+  createPart,
+  deleteRequiredPart,
 } from '../lib/warehouseActions'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { CallRequiredPart, PartWithdrawal, Part } from '../types/parts'
@@ -198,6 +200,26 @@ function AddPartForm({
     onDone()
   }
 
+  async function createAndAdd() {
+    setError(null)
+    const sku  = skuQuery.trim()
+    const name = nameQuery.trim()
+    const q    = parseInt(quantity, 10)
+    if (!sku || !name) { setError('צריך גם מק״ט וגם שם כדי ליצור חלק חדש'); return }
+    if (Number.isNaN(q) || q <= 0) { setError('כמות לא תקינה'); return }
+    setBusy(true)
+    const created: any = await createPart(employeeNumber, { sku, name, quantity: 0 })
+    if (!created.ok || !created.part) {
+      setBusy(false)
+      setError(created.detail || created.error || 'שגיאה ביצירת מקט')
+      return
+    }
+    const res = await addRequiredPart(employeeNumber, callId, created.part.id, q)
+    setBusy(false)
+    if (!res.ok) { setError('המקט נוצר אך הוספתו לקריאה נכשלה'); return }
+    onDone()
+  }
+
   return (
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -236,6 +258,12 @@ function AddPartForm({
         </ul>
       )}
 
+      {!selected && skuQuery.trim() && nameQuery.trim() && matches.length === 0 && (
+        <div className="text-xs text-muted border border-dashed border-border rounded-md p-2">
+          לא נמצא מקט תואם בקטלוג. אפשר ליצור מקט חדש (כמות התחלתית 0) ולהוסיף אותו לקריאה.
+        </div>
+      )}
+
       {selected && (
         <div className="text-xs text-success">
           ✓ נבחר: {selected.name} ({selected.sku})
@@ -257,10 +285,20 @@ function AddPartForm({
         className="max-w-[8rem]"
       />
 
-      <div className="flex gap-2">
-        <Button onClick={submit} disabled={busy}>
-          {busy ? 'מוסיף...' : 'הוסף'}
-        </Button>
+      <div className="flex gap-2 flex-wrap">
+        {selected ? (
+          <Button onClick={submit} disabled={busy}>
+            {busy ? 'מוסיף...' : 'הוסף'}
+          </Button>
+        ) : skuQuery.trim() && nameQuery.trim() && matches.length === 0 ? (
+          <Button onClick={createAndAdd} disabled={busy}>
+            {busy ? 'יוצר...' : '+ צור מקט חדש והוסף'}
+          </Button>
+        ) : (
+          <Button onClick={submit} disabled={busy}>
+            {busy ? 'מוסיף...' : 'הוסף'}
+          </Button>
+        )}
         <Button variant="ghost" onClick={onCancel}>ביטול</Button>
       </div>
     </div>
@@ -319,6 +357,16 @@ function RequiredPartRow({
     onChange()
   }
 
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  async function remove() {
+    setError(null); setBusy(true)
+    const res = await deleteRequiredPart(employeeNumber, row.id)
+    setBusy(false)
+    if (!res.ok) { setError('שגיאה במחיקה'); return }
+    setConfirmDelete(false)
+    onChange()
+  }
+
   return (
     <li className="flex flex-col gap-2 px-4 py-3 border-b border-border last:border-0">
       <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -333,19 +381,40 @@ function RequiredPartRow({
           <Badge tone={statusTone[row.status]}>{statusLabel[row.status]}</Badge>
         </div>
 
-        {canDeliver ? (
-          <span className="contents">
-            <ComponentBadge id={5007} />
-            <Button onClick={deliver} disabled={busy}>
-              {busy ? '...' : `מסור לטכנאי (${row.quantity})`}
+        <div className="flex gap-1.5 items-center flex-wrap">
+          {canDeliver ? (
+            <span className="contents">
+              <ComponentBadge id={5007} />
+              <Button onClick={deliver} disabled={busy}>
+                {busy ? '...' : `מסור לטכנאי (${row.quantity})`}
+              </Button>
+            </span>
+          ) : isWarehouse && action ? (
+            <Button onClick={advance} disabled={busy}>
+              {busy ? '...' : action.label}
             </Button>
-          </span>
-        ) : isWarehouse && action ? (
-          <Button onClick={advance} disabled={busy}>
-            {busy ? '...' : action.label}
-          </Button>
-        ) : null}
+          ) : null}
+          {!confirmDelete && (
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(true)}
+              disabled={busy}
+              className="text-xs text-muted hover:text-danger underline"
+              title="מחק חלק נדרש (במקרה שהוקלד בטעות)"
+            >
+              <ComponentBadge id={5018} />
+              מחק
+            </button>
+          )}
+        </div>
       </div>
+      {confirmDelete && (
+        <div className="flex items-center gap-2 bg-danger/5 rounded-md p-2 text-xs">
+          <span>למחוק את {row.parts?.name ?? 'הפריט'}?</span>
+          <Button onClick={remove} disabled={busy}>{busy ? '...' : 'אשר'}</Button>
+          <Button variant="ghost" onClick={() => setConfirmDelete(false)}>ביטול</Button>
+        </div>
+      )}
       {error && <span className="text-xs text-danger">{error}</span>}
     </li>
   )

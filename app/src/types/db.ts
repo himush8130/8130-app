@@ -65,7 +65,7 @@ export interface ServiceCall {
   profession_name: string | null
   anomaly_flags: Array<{ code: string; detail?: string }>
   is_disabling: boolean
-  specialty: TankSpecialty | null
+  specialties: TankSpecialty[]
   created_at: string
   updated_at: string
   closed_at: string | null

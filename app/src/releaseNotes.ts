@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'אפשרויות עריכה ומחיקה לקריאה, פתיחת תקלה מתוך אפליקציית הטכנאי, סנכרון אוטומטי כשמופץ עדכון.'
+export const LATEST_NOTE = 'מספר התמחויות לתקלה, סינון אנשי קשר לפי התמחות, יצירת מקט חדש בהוספה לקריאה, מחיקת חלק נדרש שגוי.'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build

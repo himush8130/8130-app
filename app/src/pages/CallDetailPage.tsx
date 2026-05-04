@@ -237,7 +237,10 @@ export function CallDetailPage() {
 
         <CallActions call={call} />
 
-        <CallContactsPanel professionName={call.profession_name} />
+        <CallContactsPanel
+          professionName={call.profession_name}
+          specialties={call.specialties}
+        />
 
         <CallPartsSection
           callId={call.id}

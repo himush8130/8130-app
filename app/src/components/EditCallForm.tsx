@@ -6,8 +6,9 @@ import { editCall } from '../lib/managerActions'
 import { Card, CardBody, CardHeader } from './ui/Card'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
+import { SpecialtiesPicker } from './SpecialtiesPicker'
 import { ComponentBadge } from '../feedback/ComponentBadge'
-import { TANK_SPECIALTIES, type ServiceCall, type TankSpecialty } from '../types/db'
+import type { ServiceCall, TankSpecialty } from '../types/db'
 
 export function EditCallForm({
   call, onSaved, onCancel,
@@ -20,7 +21,7 @@ export function EditCallForm({
   const [description, setDescription]     = useState(call.description ?? '')
   const [phone, setPhone]                 = useState(call.reporter_phone ?? '')
   const [isDisabling, setIsDisabling]     = useState(call.is_disabling)
-  const [specialty, setSpecialty]         = useState<TankSpecialty | ''>(call.specialty ?? '')
+  const [specialties, setSpecialties]     = useState<TankSpecialty[]>(call.specialties ?? [])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -36,7 +37,7 @@ export function EditCallForm({
       description:    description.trim() || null,
       reporter_phone: phone.trim() || null,
       is_disabling:   isDisabling,
-      specialty:      specialty || null,
+      specialties,
     })
     setBusy(false)
     if (!res.ok) { setError(res.detail || res.error || 'שגיאה'); return }
@@ -99,17 +100,7 @@ export function EditCallForm({
         </label>
 
         {isTank && (
-          <label className="flex flex-col gap-1">
-            <span className="text-sm font-medium text-foreground">התמחות נדרשת</span>
-            <select
-              value={specialty}
-              onChange={(e) => setSpecialty(e.target.value as TankSpecialty | '')}
-              className="px-3 py-2 bg-card border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option value="">— ללא —</option>
-              {TANK_SPECIALTIES.map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </label>
+          <SpecialtiesPicker value={specialties} onChange={setSpecialties} />
         )}
 
         <div className="flex gap-2 items-center pt-1">

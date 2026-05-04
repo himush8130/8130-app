@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
-import type { Employee } from '../types/db'
+import type { Employee, TankSpecialty } from '../types/db'
 
 export interface ContactPerson extends Employee {
   /** True when employee has NO availability row marking today as off. */
@@ -12,10 +12,20 @@ export interface ContactPerson extends Employee {
  *   - All managers (always shown)
  *   - All warehouse staff (always shown)
  *   - All technicians whose profession matches the call's profession_name
+ *
+ * For tank calls (profession_name='טנק') with non-empty `specialties`,
+ * tank technicians are further filtered to those whose own specialty
+ * appears in the call's list. Tank technicians with no specialty are
+ * still shown so they remain reachable.
  */
-export function useCallContacts(professionName: string | null | undefined) {
+export function useCallContacts(
+  professionName: string | null | undefined,
+  callSpecialties: TankSpecialty[] | null | undefined = null,
+) {
+  const specKey = (callSpecialties ?? []).slice().sort().join(',')
+
   return useQuery({
-    queryKey: ['call_contacts', professionName],
+    queryKey: ['call_contacts', professionName, specKey],
     queryFn: async (): Promise<ContactPerson[]> => {
       const { data: emps, error: empErr } = await supabase
         .from('employees')
@@ -24,10 +34,17 @@ export function useCallContacts(professionName: string | null | undefined) {
         .order('name')
       if (empErr) throw empErr
 
+      const isTankCall = professionName === 'טנק'
+      const specs = isTankCall && callSpecialties && callSpecialties.length > 0 ? callSpecialties : null
+
       const relevant = (emps ?? []).filter((e: Employee) => {
         if (e.permissions === 'manager' || e.permissions === 'warehouse') return true
         if (e.permissions === 'technician') {
-          return professionName != null && e.profession_name === professionName
+          if (professionName == null || e.profession_name !== professionName) return false
+          if (specs == null) return true
+          // Tank call with explicit specialties: keep matching techs + uncategorized.
+          if (e.specialty == null) return true
+          return specs.includes(e.specialty)
         }
         return false
       })

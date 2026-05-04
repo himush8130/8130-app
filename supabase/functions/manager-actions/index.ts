@@ -86,7 +86,7 @@ Deno.serve(async (req: Request) => {
     case 'close_call':                     return await closeCall(params, employee_number)
     case 'add_comment':                    return await addComment(params, employee_number)
     case 'set_call_disabling':             return await setCallDisabling(params)
-    case 'set_call_specialty':             return managerOnly(() => setCallSpecialty(params))
+    case 'set_call_specialties':           return managerOnly(() => setCallSpecialties(params))
     case 'create_call':                    return await createCall(params, employee_number, caller.name)
     case 'edit_call':                      return await editCall(params)
     case 'delete_call':                    return await deleteCall(params)
@@ -369,24 +369,30 @@ async function setCallDisabling(params: any): Promise<Response> {
 
 const ALLOWED_SPECIALTIES = new Set(['מכונאות', 'חשמל', 'צריח', 'בק״ש'])
 
-async function setCallSpecialty(params: any): Promise<Response> {
-  const { call_id, specialty } = params ?? {}
+function normalizeSpecialties(input: unknown): string[] | null {
+  if (input == null) return []
+  if (!Array.isArray(input)) return null
+  const out: string[] = []
+  for (const v of input) {
+    if (typeof v !== 'string' || !ALLOWED_SPECIALTIES.has(v)) return null
+    if (!out.includes(v)) out.push(v)
+  }
+  return out
+}
+
+async function setCallSpecialties(params: any): Promise<Response> {
+  const { call_id, specialties } = params ?? {}
   if (typeof call_id !== 'string') {
     return json(400, { ok: false, error: 'invalid_params' })
   }
-  let value: string | null = null
-  if (specialty !== null && specialty !== undefined && specialty !== '') {
-    if (typeof specialty !== 'string' || !ALLOWED_SPECIALTIES.has(specialty)) {
-      return json(400, { ok: false, error: 'invalid_specialty' })
-    }
-    value = specialty
-  }
+  const value = normalizeSpecialties(specialties)
+  if (value == null) return json(400, { ok: false, error: 'invalid_specialties' })
 
   const { data, error } = await admin
     .from('service_calls')
-    .update({ specialty: value })
+    .update({ specialties: value })
     .eq('id', call_id)
-    .select('id, display_id, specialty')
+    .select('id, display_id, specialties')
     .single()
   if (error) return json(500, { ok: false, error: 'update_failed', detail: error.message })
   return json(200, { ok: true, call: data })
@@ -402,7 +408,7 @@ async function createCall(params: any, _employeeNumber: number, callerName: stri
   const reporter_name  = strOrNull(params?.reporter_name)  ?? callerName
   const reporter_phone = strOrNull(params?.reporter_phone) ?? null
   const is_disabling   = !!params?.is_disabling
-  const specialty_in   = strOrNull(params?.specialty)
+  const specialties_in = normalizeSpecialties(params?.specialties) ?? []
 
   const anomalies: Anomaly[] = []
   if (!vehicle_number) anomalies.push({ code: 'missing_vehicle_number' })
@@ -450,9 +456,6 @@ async function createCall(params: any, _employeeNumber: number, callerName: stri
     }
   }
 
-  const ALLOWED_SPECS = new Set(['מכונאות', 'חשמל', 'צריח', 'בק״ש'])
-  const specialty = specialty_in && ALLOWED_SPECS.has(specialty_in) ? specialty_in : null
-
   const { data: inserted, error } = await admin
     .from('service_calls')
     .insert({
@@ -464,7 +467,7 @@ async function createCall(params: any, _employeeNumber: number, callerName: stri
       profession_name,
       anomaly_flags: anomalies,
       is_disabling,
-      specialty,
+      specialties: specialties_in,
     })
     .select('id, display_id, status, profession_name')
     .single()
@@ -481,9 +484,8 @@ function strOrNull(v: unknown): string | null {
 
 const EDITABLE_CALL_FIELDS = new Set([
   'vehicle_number', 'description', 'reporter_name', 'reporter_phone',
-  'is_disabling', 'specialty',
+  'is_disabling', 'specialties',
 ])
-const ALLOWED_SPECS_EDIT = new Set(['מכונאות', 'חשמל', 'צריח', 'בק״ש'])
 
 async function editCall(params: any): Promise<Response> {
   const { call_id, updates } = params ?? {}
@@ -496,10 +498,10 @@ async function editCall(params: any): Promise<Response> {
     if (!EDITABLE_CALL_FIELDS.has(k)) continue
     if (k === 'is_disabling') {
       patch[k] = !!v
-    } else if (k === 'specialty') {
-      if (v == null || v === '') patch[k] = null
-      else if (typeof v === 'string' && ALLOWED_SPECS_EDIT.has(v)) patch[k] = v
-      else return json(400, { ok: false, error: 'invalid_specialty' })
+    } else if (k === 'specialties') {
+      const norm = normalizeSpecialties(v)
+      if (norm == null) return json(400, { ok: false, error: 'invalid_specialties' })
+      patch[k] = norm
     } else {
       const s = (v == null) ? null : String(v).trim()
       patch[k] = s || null

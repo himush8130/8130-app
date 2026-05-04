@@ -103,3 +103,28 @@ export function changePartQuantity(employeeNumber: number, partId: string, delta
     params: { part_id: partId, delta },
   })
 }
+
+export interface NewPartPayload {
+  sku: string
+  name: string
+  quantity?: number
+  min_threshold?: number
+  location?: string | null
+  supplier?: string | null
+}
+
+export function createPart(employeeNumber: number, payload: NewPartPayload) {
+  return invoke<{ id: string; sku: string; name: string }>({
+    employee_number: employeeNumber,
+    action: 'create_part',
+    params: payload,
+  }) as Promise<ActionResult<any> & { part?: any }>
+}
+
+export function deleteRequiredPart(employeeNumber: number, requiredPartId: string) {
+  return invoke({
+    employee_number: employeeNumber,
+    action: 'delete_required_part',
+    params: { required_part_id: requiredPartId },
+  })
+}

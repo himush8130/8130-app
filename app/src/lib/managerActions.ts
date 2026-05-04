@@ -98,15 +98,15 @@ export async function setCallDisabling(
   })
 }
 
-export async function setCallSpecialty(
+export async function setCallSpecialties(
   employeeNumber: number,
   callId: string,
-  specialty: string | null,
+  specialties: string[],
 ): Promise<CallActionResult> {
   return invoke({
     employee_number: employeeNumber,
-    action: 'set_call_specialty',
-    params: { call_id: callId, specialty },
+    action: 'set_call_specialties',
+    params: { call_id: callId, specialties },
   })
 }
 
@@ -115,7 +115,7 @@ export interface CreateCallParams {
   description: string
   reporter_phone?: string | null
   is_disabling?: boolean
-  specialty?: string | null
+  specialties?: string[]
 }
 
 export async function createCall(
@@ -135,7 +135,7 @@ export interface CallUpdates {
   reporter_name?:  string | null
   reporter_phone?: string | null
   is_disabling?:   boolean
-  specialty?:      string | null
+  specialties?:    string[]
 }
 
 export async function editCall(
