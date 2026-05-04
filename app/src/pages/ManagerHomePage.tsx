@@ -3,6 +3,7 @@ import { useManagerOverview } from '../hooks/useManagerOverview'
 import { AppHeader } from '../components/AppHeader'
 import { StatCard } from '../components/StatCard'
 import { TankReadinessCard } from '../components/TankReadinessCard'
+import { VehiclePicker } from '../components/VehiclePicker'
 import { Card, CardBody } from '../components/ui/Card'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 
@@ -33,28 +34,16 @@ export function ManagerHomePage() {
           <p className="text-sm text-muted text-center py-8">טוען...</p>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3">
               <StatCard
                 badgeId={3002}
                 label="קריאות פתוחות"
                 value={data.openCalls}
                 to="/manager/calls"
               />
-              <StatCard
-                badgeId={3003}
-                label="חריגות דחופות"
-                value={data.urgentAnomalies}
-                tone={data.urgentAnomalies > 0 ? 'danger' : 'neutral'}
-                to="/manager/anomalies"
-              />
-              <StatCard
-                badgeId={3004}
-                label="חלקים במלאי נמוך"
-                value={data.lowStockParts}
-                tone={data.lowStockParts > 0 ? 'danger' : 'neutral'}
-                to="/warehouse?low_stock=1"
-              />
             </div>
+
+            <VehiclePicker />
 
             <TankReadinessCard />
 

@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useVehicleHistory } from '../hooks/useVehicleHistory'
 import { useAuthStore } from '../store/auth'
@@ -7,7 +8,7 @@ import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { ComponentBadge } from '../feedback/ComponentBadge'
-import type { EmployeePermissions } from '../types/db'
+import type { EmployeePermissions, ServiceCall } from '../types/db'
 
 const homeRouteByPermissions: Record<EmployeePermissions, string> = {
   technician: '/technician',
@@ -15,11 +16,28 @@ const homeRouteByPermissions: Record<EmployeePermissions, string> = {
   warehouse:  '/warehouse',
 }
 
+function isClosed(c: ServiceCall): boolean {
+  return c.status === 'closed' || c.status === 'cancelled'
+}
+
 export function VehicleHistoryPage() {
   const { vehicleNumber } = useParams<{ vehicleNumber: string }>()
   const navigate = useNavigate()
   const employee = useAuthStore((s) => s.employee)
   const { data, isLoading, error } = useVehicleHistory(vehicleNumber)
+
+  // Calls already arrive sorted newest-first; partition into 3 buckets.
+  const buckets = useMemo(() => {
+    const disabling: ServiceCall[] = []
+    const regular:   ServiceCall[] = []
+    const closed:    ServiceCall[] = []
+    for (const c of data?.calls ?? []) {
+      if (isClosed(c))         closed.push(c)
+      else if (c.is_disabling) disabling.push(c)
+      else                     regular.push(c)
+    }
+    return { disabling, regular, closed }
+  }, [data?.calls])
 
   function handleBack() {
     if (window.history.length > 1) {
@@ -87,7 +105,26 @@ export function VehicleHistoryPage() {
           </Card>
         )}
 
-        {data && data.calls.map((call) => <CallCard key={call.id} call={call} />)}
+        {buckets.disabling.length > 0 && (
+          <section className="flex flex-col gap-2">
+            <h3 className="text-sm font-semibold text-danger">תקלות משביתות ({buckets.disabling.length})</h3>
+            {buckets.disabling.map((call) => <CallCard key={call.id} call={call} />)}
+          </section>
+        )}
+
+        {buckets.regular.length > 0 && (
+          <section className="flex flex-col gap-2">
+            <h3 className="text-sm font-semibold text-foreground">תקלות פתוחות ({buckets.regular.length})</h3>
+            {buckets.regular.map((call) => <CallCard key={call.id} call={call} />)}
+          </section>
+        )}
+
+        {buckets.closed.length > 0 && (
+          <section className="flex flex-col gap-2">
+            <h3 className="text-sm font-semibold text-muted">תקלות סגורות ({buckets.closed.length})</h3>
+            {buckets.closed.map((call) => <CallCard key={call.id} call={call} />)}
+          </section>
+        )}
       </main>
     </>
   )
