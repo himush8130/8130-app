@@ -54,7 +54,7 @@ createRoot(document.getElementById('root')!).render(
           <Route
             path="/technician"
             element={
-              <ProtectedRoute allow={['technician']}>
+              <ProtectedRoute allow={['technician', 'manager']}>
                 <TechnicianHomePage />
               </ProtectedRoute>
             }

@@ -1,20 +1,53 @@
+import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '../store/auth'
 import { useTechnicianCalls } from '../hooks/useTechnicianCalls'
+import { supabase } from '../lib/supabase'
 import { AppHeader } from '../components/AppHeader'
 import { CallCard } from '../components/CallCard'
 import { Card, CardBody } from '../components/ui/Card'
 import { ComponentBadge } from '../feedback/ComponentBadge'
+import type { ServiceCall } from '../types/db'
+
+const ACTIVE_STATUSES = ['in_treatment', 'waiting_for_parts']
 
 export function TechnicianHomePage() {
   const employee = useAuthStore((s) => s.employee)!
-  const { data: calls, isLoading, error } = useTechnicianCalls(employee.profession_name)
+  const isManager = employee.permissions === 'manager'
+
+  // Technicians see their own profession's calls.
+  const techQuery = useTechnicianCalls(isManager ? null : employee.profession_name)
+
+  // Managers visiting the technician view see ALL active calls so they
+  // get the same picture a tech does — but across professions.
+  const allActiveQuery = useQuery({
+    queryKey: ['service_calls', 'active'],
+    enabled: isManager,
+    queryFn: async (): Promise<ServiceCall[]> => {
+      const { data, error } = await supabase
+        .from('service_calls')
+        .select('*')
+        .in('status', ACTIVE_STATUSES)
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return (data ?? []) as ServiceCall[]
+    },
+  })
+
+  const { data: calls, isLoading, error } = isManager ? allActiveQuery : techQuery
 
   return (
     <>
-      <AppHeader subtitle="הקריאות שלי" />
+      <AppHeader subtitle={isManager ? 'תצוגת טכנאי — כל הקריאות הפעילות' : 'הקריאות שלי'} />
 
       <main className="max-w-3xl mx-auto p-4">
         <ComponentBadge id={6001} />
+
+        {isManager && (
+          <p className="text-xs text-muted mb-3">
+            אתה צופה במצב טכנאי. מוצגות כל הקריאות הפעילות בכל המקצועות.
+          </p>
+        )}
+
         {isLoading && (
           <p className="text-sm text-muted text-center py-8">טוען...</p>
         )}

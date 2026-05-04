@@ -1,8 +1,14 @@
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../store/auth'
 import { useFeedbackMode } from '../store/feedbackMode'
 import { Button } from './ui/Button'
 import { ComponentBadge } from '../feedback/ComponentBadge'
+
+const MANAGER_VIEWS: Array<{ to: string; label: string; matches: (p: string) => boolean }> = [
+  { to: '/manager',    label: 'מנהל',    matches: (p) => p.startsWith('/manager') },
+  { to: '/warehouse',  label: 'מחסנאי',  matches: (p) => p.startsWith('/warehouse') },
+  { to: '/technician', label: 'טכנאי',   matches: (p) => p.startsWith('/technician') },
+]
 
 export function AppHeader({ subtitle }: { subtitle?: string }) {
   const employee = useAuthStore((s) => s.employee)
@@ -10,19 +16,22 @@ export function AppHeader({ subtitle }: { subtitle?: string }) {
   const feedbackEnabled = useFeedbackMode((s) => s.enabled)
   const toggleFeedback = useFeedbackMode((s) => s.toggle)
   const navigate = useNavigate()
+  const location = useLocation()
 
   function handleLogout() {
     logout()
     navigate('/login', { replace: true })
   }
 
+  const isManager = employee?.permissions === 'manager'
+
   return (
     <header className="bg-card border-b border-border">
       <ComponentBadge id={1001} />
       <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-2">
-        <div>
+        <div className="min-w-0">
           <h1 className="text-lg font-bold text-foreground">8130 APP</h1>
-          {subtitle && <p className="text-xs text-muted">{subtitle}</p>}
+          {subtitle && <p className="text-xs text-muted truncate">{subtitle}</p>}
         </div>
         {employee && (
           <div className="flex items-center gap-2 flex-wrap">
@@ -57,6 +66,29 @@ export function AppHeader({ subtitle }: { subtitle?: string }) {
           </div>
         )}
       </div>
+
+      {isManager && (
+        <div className="max-w-3xl mx-auto px-4 pb-2 flex items-center gap-1 flex-wrap">
+          <ComponentBadge id={3020} />
+          <span className="text-xs text-muted ms-1">תצוגה:</span>
+          {MANAGER_VIEWS.map((v) => {
+            const active = v.matches(location.pathname)
+            return (
+              <Link
+                key={v.to}
+                to={v.to}
+                className={`text-xs px-2.5 py-1 rounded-md border transition-colors ${
+                  active
+                    ? 'bg-primary text-primary-fg border-primary'
+                    : 'bg-card text-muted border-border hover:bg-muted-surface'
+                }`}
+              >
+                {v.label}
+              </Link>
+            )
+          })}
+        </div>
+      )}
     </header>
   )
 }

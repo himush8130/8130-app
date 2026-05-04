@@ -59,6 +59,7 @@ export interface ServiceCall {
   status: CallStatus
   profession_name: string | null
   anomaly_flags: Array<{ code: string; detail?: string }>
+  is_disabling: boolean
   created_at: string
   updated_at: string
   closed_at: string | null

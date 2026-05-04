@@ -48,6 +48,8 @@ export const COMPONENTS: Record<number, string> = {
   3016: 'BTN_ADD_PROFESSION',
   3017: 'BTN_EDIT_PROFESSION',
   3018: 'BTN_DELETE_PROFESSION',
+  3019: 'TANK_READINESS_TABLE',
+  3020: 'BTN_ROLE_SWITCH',
 
   // 4xxx — warehouse
   4001: 'WHS_HOME',

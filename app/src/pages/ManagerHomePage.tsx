@@ -5,6 +5,7 @@ import { AppHeader } from '../components/AppHeader'
 import { StatCard } from '../components/StatCard'
 import { ProfessionLoadCard } from '../components/ProfessionLoadCard'
 import { StatusDistributionCard } from '../components/StatusDistributionCard'
+import { TankReadinessCard } from '../components/TankReadinessCard'
 import { Card, CardBody } from '../components/ui/Card'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 
@@ -51,6 +52,8 @@ export function ManagerHomePage() {
                 <StatusDistributionCard rows={reports.byStatus} />
               </>
             )}
+
+            <TankReadinessCard />
 
             <Card>
               <CardBody>

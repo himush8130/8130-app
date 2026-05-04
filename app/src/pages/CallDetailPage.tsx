@@ -110,6 +110,9 @@ export function CallDetailPage() {
                 {call.profession_name && (
                   <Badge tone="neutral">{call.profession_name}</Badge>
                 )}
+                {call.is_disabling && (
+                  <Badge tone="danger">⛔ משביתה</Badge>
+                )}
                 {call.anomaly_flags.length > 0 && (
                   <Badge tone="warning">{call.anomaly_flags.length} חריגות</Badge>
                 )}

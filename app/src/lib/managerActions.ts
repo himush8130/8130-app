@@ -85,3 +85,15 @@ export async function addComment(
     params: { call_id: callId, text },
   })
 }
+
+export async function setCallDisabling(
+  employeeNumber: number,
+  callId: string,
+  isDisabling: boolean,
+): Promise<CallActionResult> {
+  return invoke({
+    employee_number: employeeNumber,
+    action: 'set_call_disabling',
+    params: { call_id: callId, is_disabling: isDisabling },
+  })
+}

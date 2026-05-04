@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Button } from './ui/Button'
 import { Card, CardBody } from './ui/Card'
 import { useAuthStore } from '../store/auth'
-import { closeCall, reopenCall } from '../lib/managerActions'
+import { closeCall, reopenCall, setCallDisabling } from '../lib/managerActions'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { ServiceCall } from '../types/db'
 
@@ -49,6 +49,14 @@ export function CallActions({ call }: Props) {
     else refresh()
   }
 
+  async function handleToggleDisabling() {
+    setError(null); setBusy(true)
+    const res = await setCallDisabling(employee!.employee_number, call.id, !call.is_disabling)
+    setBusy(false)
+    if (!res.ok) setError('שגיאה בעדכון')
+    else refresh()
+  }
+
   return (
     <Card>
       <CardBody>
@@ -68,6 +76,16 @@ export function CallActions({ call }: Props) {
                   פתח מחדש
                 </Button>
               </span>
+            )}
+            {!isClosed && (
+              <Button
+                variant={call.is_disabling ? 'primary' : 'secondary'}
+                onClick={handleToggleDisabling}
+                disabled={busy}
+                className={call.is_disabling ? 'bg-danger hover:bg-danger/90 text-primary-fg' : ''}
+              >
+                {call.is_disabling ? '⛔ תקלה משביתה — בטל סימון' : 'סמן כתקלה משביתה'}
+              </Button>
             )}
             {error && <span className="text-xs text-danger">{error}</span>}
           </div>

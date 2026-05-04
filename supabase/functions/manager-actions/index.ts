@@ -16,6 +16,7 @@
 //   - close_call:                     { call_id }
 //   - reopen_call:                    { call_id }
 //   - add_comment:                    { call_id, text }
+//   - set_call_disabling:             { call_id, is_disabling: boolean }
 //
 // Feedback notes (any role; edits/deletes restricted to author):
 //   - add_feedback_note:              { page_path, text }
@@ -84,6 +85,7 @@ Deno.serve(async (req: Request) => {
     case 'reopen_call':                    return await reopenCall(params)
     case 'close_call':                     return await closeCall(params, employee_number)
     case 'add_comment':                    return await addComment(params, employee_number)
+    case 'set_call_disabling':             return await setCallDisabling(params)
     case 'add_feedback_note':              return await addFeedbackNote(params, employee_number, caller.name)
     case 'edit_feedback_note':             return await editFeedbackNote(params, employee_number)
     case 'delete_feedback_note':           return await deleteFeedbackNote(params, employee_number)
@@ -344,6 +346,22 @@ async function deleteFeedbackNote(params: any, employeeNumber: number): Promise<
 }
 
 // =====================================================================
+
+async function setCallDisabling(params: any): Promise<Response> {
+  const { call_id, is_disabling } = params ?? {}
+  if (typeof call_id !== 'string' || typeof is_disabling !== 'boolean') {
+    return json(400, { ok: false, error: 'invalid_params' })
+  }
+
+  const { data, error } = await admin
+    .from('service_calls')
+    .update({ is_disabling })
+    .eq('id', call_id)
+    .select('id, display_id, is_disabling')
+    .single()
+  if (error) return json(500, { ok: false, error: 'update_failed', detail: error.message })
+  return json(200, { ok: true, call: data })
+}
 
 async function addComment(params: any, employeeNumber: number): Promise<Response> {
   const { call_id, text } = params ?? {}
