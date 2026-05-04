@@ -96,7 +96,7 @@ createRoot(document.getElementById('root')!).render(
           <Route
             path="/warehouse"
             element={
-              <ProtectedRoute allow={['warehouse']}>
+              <ProtectedRoute allow={['warehouse', 'manager']}>
                 <WarehouseHomePage />
               </ProtectedRoute>
             }

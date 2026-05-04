@@ -40,7 +40,8 @@ export function ManagerHomePage() {
                 badgeId={3004}
                 label="חלקים במלאי נמוך"
                 value={data.lowStockParts}
-                tone={data.lowStockParts > 0 ? 'warning' : 'neutral'}
+                tone={data.lowStockParts > 0 ? 'danger' : 'neutral'}
+                to="/warehouse?low_stock=1"
               />
             </div>
 

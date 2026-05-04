@@ -26,8 +26,10 @@ export function useManagerOverview() {
           .order('sku'),
       ])
 
+      // Strict criterion — only count parts that have actually fallen
+      // below their threshold (equality is "at the limit", not below).
       const lowStock = (partsRes.data ?? []).filter(
-        (p) => p.quantity <= p.min_threshold,
+        (p) => p.quantity < p.min_threshold,
       ).length
 
       return {

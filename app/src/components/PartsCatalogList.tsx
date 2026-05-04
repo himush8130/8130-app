@@ -1,4 +1,5 @@
-import { useReducer, useRef, useMemo, useState } from 'react'
+import { useReducer, useRef, useMemo, useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import type { Part } from '../types/parts'
 import { Card, CardBody, CardHeader } from './ui/Card'
@@ -22,15 +23,19 @@ interface Filters {
   storage_type: string
   storage_number: string
   cell_number: string
+  low_stock_only: boolean
 }
 
 const EMPTY_FILTERS: Filters = {
   sku: '', name: '', warehouse: '', cabinet: '',
   storage_type: '', storage_number: '', cell_number: '',
+  low_stock_only: false,
 }
 
 function isActive(f: Filters): boolean {
-  return Object.values(f).some((v) => v.trim() !== '')
+  if (f.low_stock_only) return true
+  const { low_stock_only: _, ...textFilters } = f
+  return Object.values(textFilters).some((v) => typeof v === 'string' && v.trim() !== '')
 }
 
 function formatLocation(p: Part): string {
@@ -57,7 +62,23 @@ export function PartsCatalogList({ parts }: { parts: Part[] }) {
   const employee = useAuthStore((s) => s.employee)
   const canEdit = employee?.permissions === 'warehouse' || employee?.permissions === 'manager'
 
-  const [f, setF] = useState<Filters>(EMPTY_FILTERS)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [f, setF] = useState<Filters>(() => ({
+    ...EMPTY_FILTERS,
+    low_stock_only: searchParams.get('low_stock') === '1',
+  }))
+
+  // Keep the URL in sync with the low_stock filter so deep-links
+  // and the back-button remain meaningful.
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams)
+    if (f.low_stock_only) next.set('low_stock', '1')
+    else                  next.delete('low_stock')
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true })
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [f.low_stock_only])
 
   const warehouses    = useMemo(() => uniqueValues(parts, (p) => p.warehouse),    [parts])
   const storageTypes  = useMemo(() => uniqueValues(parts, (p) => p.storage_type), [parts])
@@ -77,6 +98,7 @@ export function PartsCatalogList({ parts }: { parts: Part[] }) {
       if (cab   && String(p.cabinet ?? '')        !== cab)   return false
       if (stnum && String(p.storage_number ?? '') !== stnum) return false
       if (cell  && String(p.cell_number ?? '')    !== cell)  return false
+      if (f.low_stock_only && !(p.quantity < p.min_threshold)) return false
       return true
     })
   }, [parts, f])
@@ -117,15 +139,26 @@ export function PartsCatalogList({ parts }: { parts: Part[] }) {
                  onChange={(e) => setF({ ...f, cell_number: e.target.value })} type="number" />
         </div>
 
-        {active && (
-          <button
-            type="button"
-            onClick={() => setF(EMPTY_FILTERS)}
-            className="text-xs text-primary self-end hover:underline"
-          >
-            נקה סינון
-          </button>
-        )}
+        <div className="flex items-center justify-between gap-2">
+          <label className="inline-flex items-center gap-2 text-sm text-foreground cursor-pointer">
+            <input
+              type="checkbox"
+              checked={f.low_stock_only}
+              onChange={(e) => setF({ ...f, low_stock_only: e.target.checked })}
+              className="w-4 h-4 accent-danger"
+            />
+            <span>הצג רק פריטים מתחת לסף המינימום</span>
+          </label>
+          {active && (
+            <button
+              type="button"
+              onClick={() => setF(EMPTY_FILTERS)}
+              className="text-xs text-primary hover:underline"
+            >
+              נקה סינון
+            </button>
+          )}
+        </div>
       </CardBody>
 
       <CardBody className="p-0">
