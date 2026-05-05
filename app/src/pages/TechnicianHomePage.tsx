@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '../store/auth'
 import { useTechnicianCalls } from '../hooks/useTechnicianCalls'
 import { useCallsPartsStatus } from '../hooks/useCallsPartsStatus'
+import { useVehiclesMap } from '../hooks/useVehicles'
 import { supabase } from '../lib/supabase'
 import { AppHeader } from '../components/AppHeader'
 import { CallCard } from '../components/CallCard'
@@ -40,6 +41,7 @@ export function TechnicianHomePage() {
 
   const { data: calls, isLoading, error } = isManager ? allActiveQuery : techQuery
   const { data: partsMap } = useCallsPartsStatus()
+  const vehiclesMap = useVehiclesMap()
 
   return (
     <>
@@ -90,7 +92,12 @@ export function TechnicianHomePage() {
         {calls && calls.length > 0 && (
           <div className="flex flex-col gap-3 mt-4">
             {calls.map((call) => (
-              <CallCard key={call.id} call={call} partsStatus={partsMap?.get(call.id) ?? null} />
+              <CallCard
+                key={call.id}
+                call={call}
+                partsStatus={partsMap?.get(call.id) ?? null}
+                vehicle={call.vehicle_number ? vehiclesMap.get(call.vehicle_number) ?? null : null}
+              />
             ))}
           </div>
         )}

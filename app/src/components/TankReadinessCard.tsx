@@ -8,6 +8,9 @@ interface Props {
   groupBy?:     string | string[]
   groupLabels?: string[]   // one header label per group column
   badgeId?:     number
+  /** Optional CSS widths (e.g. "26%" / "8rem") per column.
+   *  Order: groupCols..., "תקין/סה״כ", "מושבת", "%". */
+  colWidths?:   string[]
 }
 
 export function TankReadinessCard({
@@ -16,6 +19,7 @@ export function TankReadinessCard({
   groupBy     = 'sub_department',
   groupLabels = ['פלוגה'],
   badgeId     = 3019,
+  colWidths,
 }: Props = {}) {
   const cols = Array.isArray(groupBy) ? groupBy : [groupBy]
   const { data, isLoading } = useTankReadiness(typeName, cols)
@@ -38,6 +42,11 @@ export function TankReadinessCard({
       </CardHeader>
       <CardBody className="p-0">
         <table className="w-full text-xs table-fixed">
+          {colWidths && (
+            <colgroup>
+              {colWidths.map((w, i) => <col key={i} style={{ width: w }} />)}
+            </colgroup>
+          )}
           <thead>
             <tr className="text-[11px] text-muted border-b border-border">
               {groupLabels.map((label) => (

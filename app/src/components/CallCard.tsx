@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { Card, CardBody } from './ui/Card'
 import { Badge } from './ui/Badge'
 import { ComponentBadge } from '../feedback/ComponentBadge'
-import type { ServiceCall, CallStatus, RequiredPartStatus } from '../types/db'
+import type { ServiceCall, CallStatus, RequiredPartStatus, Vehicle } from '../types/db'
 
 const statusLabel: Record<CallStatus, string> = {
   new:               'חדשה',
@@ -40,9 +40,10 @@ const partsLabel: Record<RequiredPartStatus, string> = {
 interface Props {
   call: ServiceCall
   partsStatus?: RequiredPartStatus | null
+  vehicle?:     Vehicle | null
 }
 
-export function CallCard({ call, partsStatus }: Props) {
+export function CallCard({ call, partsStatus, vehicle }: Props) {
   const date = new Date(call.created_at).toLocaleDateString('he-IL', {
     day:   '2-digit',
     month: '2-digit',
@@ -78,7 +79,10 @@ export function CallCard({ call, partsStatus }: Props) {
               </div>
 
               <div className="text-sm text-muted">
-                {call.vehicle_number ?? '—'} {call.vehicle_name && `· ${call.vehicle_name}`}
+                {call.vehicle_number ?? '—'}
+                {vehicle?.department && <span className="ms-2">· {vehicle.department}</span>}
+                {vehicle?.sub_department && <span className="ms-2">· פלוגה: {vehicle.sub_department}</span>}
+                {!vehicle && call.vehicle_name && <span className="ms-2">· {call.vehicle_name}</span>}
               </div>
 
               {call.description && (

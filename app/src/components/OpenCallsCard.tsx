@@ -15,21 +15,19 @@ export function OpenCallsCard({ total, breakdown }: Props) {
       <Card className="hover:bg-muted-surface transition-colors">
         <CardBody>
           <ComponentBadge id={3002} />
-          <div className="flex items-baseline justify-between gap-2 flex-wrap">
-            <span className="text-xs text-muted">קריאות פתוחות</span>
-            <span className="text-3xl font-bold text-foreground">{total}</span>
-          </div>
+          <div className="text-xs text-muted">קריאות פתוחות</div>
+          <div className="text-3xl font-bold mt-1 text-foreground">{total}</div>
 
           {buckets.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm">
+            <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-sm">
               {buckets.map((b, i) => (
                 <span key={b.label} className="flex items-baseline gap-1">
                   <span className="text-muted">{b.label}:</span>
                   <strong className="text-foreground">{b.total}</strong>
-                  <span className="text-xs text-muted">
-                    (משביתות: <span className={b.disabling > 0 ? 'text-danger font-medium' : ''}>{b.disabling}</span>)
+                  <span className={b.disabling > 0 ? 'text-danger font-medium' : 'text-muted'}>
+                    ({b.disabling})
                   </span>
-                  {i < buckets.length - 1 && <span className="text-faint">·</span>}
+                  {i < buckets.length - 1 && <span className="text-faint">|</span>}
                 </span>
               ))}
             </div>

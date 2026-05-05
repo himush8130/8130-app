@@ -74,19 +74,11 @@ export function NewCallForm({ onCreated, onCancel }: Props) {
         <label className="flex flex-col gap-1">
           <span className="text-sm font-medium text-foreground">מספר רכב</span>
           <input
-            list="vehicle-options"
             value={vehicleNumber}
             onChange={(e) => setVehicleNumber(e.target.value)}
-            placeholder="הקלד או בחר"
+            inputMode="numeric"
             className="px-3 py-2 bg-card border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           />
-          <datalist id="vehicle-options">
-            {vehicles?.map((v) => (
-              <option key={v.vehicle_number} value={v.vehicle_number}>
-                {v.type_name}{v.sub_department ? ` · ${v.sub_department}` : ''}
-              </option>
-            ))}
-          </datalist>
           {matchedVehicle && (
             <span className="text-[11px] text-muted">
               {matchedVehicle.type_name}

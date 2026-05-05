@@ -149,6 +149,7 @@ export function VehicleHistoryPage() {
                 key={call.id}
                 call={call}
                 partsStatus={partsMap?.get(call.id) ?? null}
+                vehicle={data?.vehicle ?? null}
                 showSpecialty={!!isTank}
                 canEdit={!!isTank && isManager}
                 onToggle={handleToggleSpecialty}
@@ -165,6 +166,7 @@ export function VehicleHistoryPage() {
                 key={call.id}
                 call={call}
                 partsStatus={partsMap?.get(call.id) ?? null}
+                vehicle={data?.vehicle ?? null}
                 showSpecialty={!!isTank}
                 canEdit={!!isTank && isManager}
                 onToggle={handleToggleSpecialty}
@@ -223,10 +225,11 @@ function SpecialtyFilterBanner({
 }
 
 function CallWithSpecialty({
-  call, partsStatus, showSpecialty, canEdit, onToggle,
+  call, partsStatus, vehicle, showSpecialty, canEdit, onToggle,
 }: {
   call: ServiceCall
   partsStatus?: import('../types/db').RequiredPartStatus | null
+  vehicle?: import('../types/db').Vehicle | null
   showSpecialty: boolean
   canEdit: boolean
   onToggle: (call: ServiceCall, specialty: TankSpecialty) => void
@@ -234,7 +237,7 @@ function CallWithSpecialty({
   const current = call.specialties ?? []
   return (
     <div className="flex flex-col gap-1.5">
-      <CallCard call={call} partsStatus={partsStatus} />
+      <CallCard call={call} partsStatus={partsStatus} vehicle={vehicle} />
       {showSpecialty && (
         <div className="flex items-center gap-1.5 flex-wrap px-1">
           <span className="text-[11px] text-muted">התמחות:</span>

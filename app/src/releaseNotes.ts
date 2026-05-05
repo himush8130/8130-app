@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'תיקון מסך שגיאה אחרי deploy — cache נשמר בלוקאל מתאפס בכל גרסה חדשה.'
+export const LATEST_NOTE = 'מחלקה ופלוגה ליד מספר רכב בכרטיס קריאה, פירוט קריאות פתוחות מקוצר, ויזואל קומפקטי לטבלת כשירות שאר הכלים.'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build

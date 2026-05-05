@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAllCalls } from '../hooks/useAllCalls'
 import { useCallsPartsStatus } from '../hooks/useCallsPartsStatus'
+import { useVehiclesMap } from '../hooks/useVehicles'
 import { AppHeader } from '../components/AppHeader'
 import { CallCard } from '../components/CallCard'
 import { Card, CardBody } from '../components/ui/Card'
@@ -62,6 +63,7 @@ export function AllCallsPage() {
   const [professionNames, setProfessionNames] = useState<string[]>([])
   const { data, isLoading, error } = useAllCalls({ statuses, professionNames })
   const { data: partsMap } = useCallsPartsStatus()
+  const vehiclesMap = useVehiclesMap()
 
   return (
     <>
@@ -109,7 +111,14 @@ export function AllCallsPage() {
           </Card>
         )}
 
-        {data && data.calls.map((call) => <CallCard key={call.id} call={call} partsStatus={partsMap?.get(call.id) ?? null} />)}
+        {data && data.calls.map((call) => (
+          <CallCard
+            key={call.id}
+            call={call}
+            partsStatus={partsMap?.get(call.id) ?? null}
+            vehicle={call.vehicle_number ? vehiclesMap.get(call.vehicle_number) ?? null : null}
+          />
+        ))}
       </main>
     </>
   )

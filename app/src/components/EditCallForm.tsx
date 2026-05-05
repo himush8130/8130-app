@@ -58,18 +58,17 @@ export function EditCallForm({
         <label className="flex flex-col gap-1">
           <span className="text-sm font-medium text-foreground">מספר רכב</span>
           <input
-            list="vehicle-options-edit"
             value={vehicleNumber}
             onChange={(e) => setVehicleNumber(e.target.value)}
+            inputMode="numeric"
             className="px-3 py-2 bg-card border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           />
-          <datalist id="vehicle-options-edit">
-            {vehicles?.map((v) => (
-              <option key={v.vehicle_number} value={v.vehicle_number}>
-                {v.type_name}{v.sub_department ? ` · ${v.sub_department}` : ''}
-              </option>
-            ))}
-          </datalist>
+          {matchedVehicle && (
+            <span className="text-[11px] text-muted">
+              {matchedVehicle.type_name}
+              {matchedVehicle.sub_department && ` · ${matchedVehicle.sub_department}`}
+            </span>
+          )}
         </label>
 
         <label className="flex flex-col gap-1">
