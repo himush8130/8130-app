@@ -52,6 +52,9 @@ createRoot(document.getElementById('root')!).render(
       persistOptions={{
         persister,
         maxAge: 1000 * 60 * 60 * 24, // 24h: stale cache OK for one day offline
+        // Bust persisted cache on every build so a deploy that changes
+        // a query's result shape can't crash the new code with old data.
+        buster: __BUILD_TIME__,
       }}
     >
       <BrowserRouter>
