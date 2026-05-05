@@ -326,11 +326,38 @@ async function deleteRequiredPart(params: any): Promise<Response> {
   if (typeof required_part_id !== 'string') {
     return json(400, { ok: false, error: 'invalid_params' })
   }
+
+  // Capture the call_id BEFORE we delete so we can recompute its status.
+  const { data: before } = await admin
+    .from('call_required_parts')
+    .select('call_id')
+    .eq('id', required_part_id)
+    .maybeSingle()
+
   const { error } = await admin
     .from('call_required_parts')
     .delete()
     .eq('id', required_part_id)
   if (error) return json(500, { ok: false, error: 'delete_failed', detail: error.message })
+
+  // If the call has no more awaiting_* required parts, lift it out of
+  // waiting_for_parts. Mirrors the recompute in updateRequiredPartStatus.
+  if (before?.call_id) {
+    const { data: pending } = await admin
+      .from('call_required_parts')
+      .select('id')
+      .eq('call_id', before.call_id)
+      .in('status', ['awaiting_order', 'awaiting_receipt'])
+
+    if (!pending || pending.length === 0) {
+      await admin
+        .from('service_calls')
+        .update({ status: 'in_treatment' })
+        .eq('id', before.call_id)
+        .eq('status', 'waiting_for_parts')
+    }
+  }
+
   return json(200, { ok: true })
 }
 

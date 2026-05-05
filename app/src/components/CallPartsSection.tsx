@@ -49,6 +49,14 @@ export function CallPartsSection({ callId, requiredParts, withdrawals }: Props) 
     queryClient.invalidateQueries({ queryKey: ['call_detail', callId] })
     queryClient.invalidateQueries({ queryKey: ['parts'] })
     queryClient.invalidateQueries({ queryKey: ['pending_parts_actions'] })
+    // Required-part changes can also affect the call's status badge in
+    // every list that shows CallCard, plus the per-call worst-status map.
+    queryClient.invalidateQueries({ queryKey: ['calls_parts_status'] })
+    queryClient.invalidateQueries({ queryKey: ['service_calls'] })
+    queryClient.invalidateQueries({ queryKey: ['technician_calls'] })
+    queryClient.invalidateQueries({ queryKey: ['vehicle_history'] })
+    queryClient.invalidateQueries({ queryKey: ['all_calls'] })
+    queryClient.invalidateQueries({ queryKey: ['manager_overview'] })
   }
 
   if (!employee) return null
