@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useManagerOverview } from '../hooks/useManagerOverview'
 import { AppHeader } from '../components/AppHeader'
-import { StatCard } from '../components/StatCard'
+import { OpenCallsCard } from '../components/OpenCallsCard'
 import { TankReadinessCard } from '../components/TankReadinessCard'
 import { ReleaseNoteFooter } from '../components/ReleaseNoteFooter'
 import { Card, CardBody } from '../components/ui/Card'
@@ -34,14 +34,7 @@ export function ManagerHomePage() {
           <p className="text-sm text-muted text-center py-8">טוען...</p>
         ) : (
           <>
-            <div className="grid grid-cols-1 gap-3">
-              <StatCard
-                badgeId={3002}
-                label="קריאות פתוחות"
-                value={data.openCalls}
-                to="/manager/calls"
-              />
-            </div>
+            <OpenCallsCard total={data.openCalls} breakdown={data.openCallsBreakdown} />
 
             <TankReadinessCard groupLabels={['פלוגה']} />
             <TankReadinessCard

@@ -36,17 +36,16 @@ export function TankReadinessCard({
           </span>
         </div>
       </CardHeader>
-      <CardBody className="p-0 overflow-x-auto">
-        <table className="w-full text-sm">
+      <CardBody className="p-0">
+        <table className="w-full text-xs table-fixed">
           <thead>
-            <tr className="text-xs text-muted border-b border-border">
+            <tr className="text-[11px] text-muted border-b border-border">
               {groupLabels.map((label) => (
-                <th key={label} className="text-start font-medium px-3 py-2 whitespace-nowrap">{label}</th>
+                <th key={label} className="text-start font-medium px-2 py-1.5">{label}</th>
               ))}
-              <th className="text-start font-medium px-3 py-2 whitespace-nowrap">סה״כ</th>
-              <th className="text-start font-medium px-3 py-2 whitespace-nowrap">תקין</th>
-              <th className="text-start font-medium px-3 py-2 whitespace-nowrap">מושבת</th>
-              <th className="text-start font-medium px-3 py-2 whitespace-nowrap">% כשירות</th>
+              <th className="text-start font-medium px-2 py-1.5">תקין</th>
+              <th className="text-start font-medium px-2 py-1.5">מושבת</th>
+              <th className="text-start font-medium px-2 py-1.5">%</th>
             </tr>
           </thead>
           <tbody>
@@ -64,12 +63,11 @@ function CompanyRow({ g }: { g: CompanyReadiness }) {
   return (
     <tr className="border-b border-border last:border-0">
       {g.groupValues.map((v, i) => (
-        <td key={i} className="px-3 py-2 font-medium text-foreground whitespace-nowrap">{v}</td>
+        <td key={i} className="px-2 py-1.5 font-medium text-foreground truncate">{v}</td>
       ))}
-      <td className="px-3 py-2 text-foreground whitespace-nowrap">{g.total}</td>
-      <td className="px-3 py-2 text-success font-medium whitespace-nowrap">{operational}</td>
-      <td className="px-3 py-2 text-danger font-medium whitespace-nowrap">{g.disabled}</td>
-      <td className={`px-3 py-2 font-semibold whitespace-nowrap ${tone(p)}`}>{p}%</td>
+      <td className="px-2 py-1.5 text-success font-medium">{operational}/{g.total}</td>
+      <td className="px-2 py-1.5 text-danger font-medium">{g.disabled}</td>
+      <td className={`px-2 py-1.5 font-semibold ${tone(p)}`}>{p}%</td>
     </tr>
   )
 }

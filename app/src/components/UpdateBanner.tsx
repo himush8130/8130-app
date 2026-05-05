@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { APP_UPDATE_EVENT } from '../lib/registerSW'
+import { hardReload } from '../lib/hardReload'
 
 /**
  * Banner shown at the bottom of the screen when a new service worker
@@ -10,6 +11,7 @@ import { APP_UPDATE_EVENT } from '../lib/registerSW'
 export function UpdateBanner() {
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null)
   const [dismissed, setDismissed] = useState(false)
+  const [busy, setBusy] = useState(false)
 
   useEffect(() => {
     function onUpdate(e: Event) {
@@ -23,14 +25,14 @@ export function UpdateBanner() {
 
   if (!registration || dismissed) return null
 
-  function reloadNow() {
-    const waiting = registration?.waiting
-    if (waiting) {
-      waiting.postMessage({ type: 'SKIP_WAITING' })
-    } else {
-      // Fallback: force a network-first reload.
-      window.location.reload()
-    }
+  async function reloadNow() {
+    setBusy(true)
+    // Best-effort: tell the waiting SW to activate. controllerchange
+    // (in registerSW) will reload us if it fires. Either way, we
+    // force-reload below so the user is never stuck.
+    try { registration?.waiting?.postMessage({ type: 'SKIP_WAITING' }) } catch {}
+    // Give the SW a brief moment, then bypass any cached HTML.
+    setTimeout(() => { hardReload() }, 400)
   }
 
   return (
@@ -44,9 +46,10 @@ export function UpdateBanner() {
           <button
             type="button"
             onClick={reloadNow}
-            className="bg-card text-primary text-sm font-semibold px-3 py-1.5 rounded-md hover:opacity-90"
+            disabled={busy}
+            className="bg-card text-primary text-sm font-semibold px-3 py-1.5 rounded-md hover:opacity-90 disabled:opacity-60"
           >
-            טען עכשיו
+            {busy ? 'טוען...' : 'טען עכשיו'}
           </button>
           <button
             type="button"

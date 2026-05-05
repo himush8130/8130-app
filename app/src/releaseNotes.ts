@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'באנר "טען עכשיו" לעדכוני אפליקציה, מסך התאוששות לטעינה כושלת, אינדיקטור צבע סטטוס חלקים על כרטיס קריאה.'
+export const LATEST_NOTE = 'פירוט קריאות פתוחות לפי פלוגה (משביתות), טעינה מחודשת חזקה ב-iOS, טבלת כשירות נכנסת בכרטיס.'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build

@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
+import { hardReload } from '../lib/hardReload'
 
 interface Props {
   children: ReactNode
@@ -74,14 +75,3 @@ function isChunkLoadError(error: unknown): boolean {
   return /Loading chunk \d+ failed|Failed to fetch dynamically imported module|Importing a module script failed/i.test(msg)
 }
 
-function hardReload() {
-  // Clear all caches first so the next load is genuinely fresh.
-  const reload = () => window.location.reload()
-  if ('caches' in window) {
-    caches.keys()
-      .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
-      .finally(reload)
-  } else {
-    reload()
-  }
-}
