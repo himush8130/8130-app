@@ -263,7 +263,7 @@ async function deleteEmployee(params: any): Promise<Response> {
 // ----- Vehicle actions -----
 
 const ALLOWED_VEH_FIELDS = new Set([
-  'type_name', 'department', 'sub_department',
+  'type_name', 'department', 'sub_department', 'location',
 ])
 
 async function createVehicle(params: any): Promise<Response> {
@@ -280,6 +280,7 @@ async function createVehicle(params: any): Promise<Response> {
   }
   if (typeof rest.department === 'string')     row.department     = rest.department.trim()     || null
   if (typeof rest.sub_department === 'string') row.sub_department = rest.sub_department.trim() || null
+  if (typeof rest.location === 'string')       row.location       = rest.location.trim()       || null
 
   const { data, error } = await admin
     .from('vehicles')

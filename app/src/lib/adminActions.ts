@@ -81,6 +81,7 @@ export interface VehicleUpdates {
   type_name?: string
   department?: string | null
   sub_department?: string | null
+  location?: string | null
 }
 
 export function createVehicle(employeeNumber: number, payload: { vehicle_number: string } & VehicleUpdates) {

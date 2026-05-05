@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'אפשרות לכפות תהליך הזמנה לחלק נדרש גם כשקיים במלאי.'
+export const LATEST_NOTE = 'תווית "פלוגה:" ושדה מיקום בכרטיס הרכב, צבע ייחודי לכל סטטוס חלק, עמודת תת-מחלקה בכשירות שאר הכלים.'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build

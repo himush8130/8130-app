@@ -2,34 +2,42 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 
 export interface CompanyReadiness {
-  sub_department: string  // "ל" / "כ" / "מ" / etc.
-  total: number
-  healthy: number         // no active calls
-  with_issues: number     // active calls but none disabling
-  disabled: number        // at least one active disabling call
+  /** Composite key joined by " · " for the table; useful for React keys. */
+  key:           string
+  /** One value per groupBy column, in the same order. */
+  groupValues:   string[]
+  total:         number
+  healthy:       number  // no active calls
+  with_issues:   number  // active calls but none disabling
+  disabled:      number  // at least one active disabling call
 }
 
 export interface TankReadiness {
   byCompany: CompanyReadiness[]
-  totals:    Omit<CompanyReadiness, 'sub_department'>
+  totals:    Omit<CompanyReadiness, 'key' | 'groupValues'>
 }
 
 const ACTIVE_STATUSES = ['in_treatment', 'waiting_for_parts', 'new']
 
 /**
- * Aggregate readiness grouped by sub_department (company / פלוגה).
+ * Aggregate readiness for a vehicle type, grouped by one or more columns.
  *
- * @param typeName    Filter vehicles by exact type_name (e.g. 'טנק')
- * @param groupBy     'sub_department' (default) or 'department'
+ * @param typeName  Filter vehicles by exact type_name (e.g. 'טנק')
+ * @param groupBy   One column name or an ordered list of columns. The
+ *                  table renders one column per entry.
  */
-export function useTankReadiness(typeName: string = 'טנק', groupBy: 'sub_department' | 'department' = 'sub_department') {
+export function useTankReadiness(
+  typeName: string = 'טנק',
+  groupBy: string | string[] = 'sub_department',
+) {
+  const cols = Array.isArray(groupBy) ? groupBy : [groupBy]
   return useQuery({
-    queryKey: ['readiness', typeName, groupBy],
+    queryKey: ['readiness', typeName, cols.join(',')],
     queryFn: async (): Promise<TankReadiness> => {
       const [vehiclesRes, callsRes] = await Promise.all([
         supabase
           .from('vehicles')
-          .select(`vehicle_number, ${groupBy}`)
+          .select(`vehicle_number, ${cols.join(', ')}`)
           .eq('type_name', typeName),
         supabase
           .from('service_calls')
@@ -39,10 +47,9 @@ export function useTankReadiness(typeName: string = 'טנק', groupBy: 'sub_depa
       if (vehiclesRes.error) throw vehiclesRes.error
       if (callsRes.error)    throw callsRes.error
 
-      const vehicles = vehiclesRes.data ?? []
+      const vehicles = (vehiclesRes.data ?? []) as unknown as Array<Record<string, string | null>>
       const calls    = callsRes.data ?? []
 
-      // For each vehicle, classify based on its open calls.
       const callsByVehicle = new Map<string, Array<{ is_disabling: boolean }>>()
       for (const c of calls) {
         if (!c.vehicle_number) continue
@@ -52,10 +59,12 @@ export function useTankReadiness(typeName: string = 'טנק', groupBy: 'sub_depa
       }
 
       const groups = new Map<string, CompanyReadiness>()
-      for (const v of vehicles as Array<Record<string, string | null>>) {
-        const key = v[groupBy] || '(ללא קבוצה)'
+      for (const v of vehicles) {
+        const groupValues = cols.map((c) => v[c] || '—')
+        const key = groupValues.join(' · ')
         const g = groups.get(key) ?? {
-          sub_department: key,
+          key,
+          groupValues,
           total: 0, healthy: 0, with_issues: 0, disabled: 0,
         }
         g.total += 1
@@ -72,7 +81,7 @@ export function useTankReadiness(typeName: string = 'טנק', groupBy: 'sub_depa
       }
 
       const byCompany = [...groups.values()].sort((a, b) =>
-        a.sub_department.localeCompare(b.sub_department, 'he'),
+        a.key.localeCompare(b.key, 'he'),
       )
 
       const totals = byCompany.reduce(

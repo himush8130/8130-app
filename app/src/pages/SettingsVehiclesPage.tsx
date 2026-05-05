@@ -110,6 +110,7 @@ function AddRow({
   const [type_name, setType] = useState(profs[0] ?? '')
   const [department, setDept] = useState('')
   const [sub_department, setSub] = useState('')
+  const [location, setLocation] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -123,6 +124,7 @@ function AddRow({
       type_name: type_name.trim(),
       department: department.trim() || null,
       sub_department: sub_department.trim() || null,
+      location: location.trim() || null,
     })
     setBusy(false)
     if (!res.ok) {
@@ -139,6 +141,7 @@ function AddRow({
         <ProfSelect label="מקצוע" value={type_name} options={profs} onChange={setType} required />
         <Input label="מחלקה" name="dept"  value={department}     onChange={(e) => setDept(e.target.value)} />
         <Input label="תת מחלקה" name="sub" value={sub_department} onChange={(e) => setSub(e.target.value)} />
+        <Input label="מיקום"   name="loc"  value={location}       onChange={(e) => setLocation(e.target.value)} />
       </div>
       <div className="flex gap-2 items-center">
         <Button onClick={save} disabled={busy}>{busy ? 'שומר...' : 'הוסף'}</Button>
@@ -163,6 +166,7 @@ function VehicleRow({
   const [type_name, setType] = useState(vehicle.type_name)
   const [department, setDept] = useState(vehicle.department ?? '')
   const [sub_department, setSub] = useState(vehicle.sub_department ?? '')
+  const [location, setLocation] = useState(vehicle.location ?? '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -175,6 +179,7 @@ function VehicleRow({
       type_name: type_name.trim(),
       department: department.trim() || null,
       sub_department: sub_department.trim() || null,
+      location: location.trim() || null,
     })
     setBusy(false)
     if (!res.ok) { setError('שגיאה'); return }
@@ -216,6 +221,7 @@ function VehicleRow({
             <ProfSelect label="מקצוע" value={type_name} options={profs} onChange={setType} required />
             <Input label="מחלקה" name={`d-${vehicle.vehicle_number}`} value={department} onChange={(e) => setDept(e.target.value)} />
             <Input label="תת מחלקה" name={`s-${vehicle.vehicle_number}`} value={sub_department} onChange={(e) => setSub(e.target.value)} />
+            <Input label="מיקום" name={`l-${vehicle.vehicle_number}`} value={location} onChange={(e) => setLocation(e.target.value)} />
           </div>
           <div className="flex gap-2 items-center">
             <Button onClick={save} disabled={busy}>{busy ? 'שומר...' : 'שמור'}</Button>

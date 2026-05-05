@@ -25,10 +25,10 @@ const statusLabel: Record<RequiredPartStatus, string> = {
   delivered:        'נמסר',
 }
 
-const statusTone: Record<RequiredPartStatus, 'info' | 'success' | 'warning' | 'neutral'> = {
+const statusTone: Record<RequiredPartStatus, 'info' | 'success' | 'warning' | 'danger' | 'neutral'> = {
   in_stock:         'success',
   awaiting_order:   'warning',
-  awaiting_receipt: 'warning',
+  awaiting_receipt: 'danger',
   received:         'info',
   delivered:        'neutral',
 }

@@ -43,12 +43,12 @@ export function ManagerHomePage() {
               />
             </div>
 
-            <TankReadinessCard />
+            <TankReadinessCard groupLabels={['פלוגה']} />
             <TankReadinessCard
               title="כשירות שאר הכלים"
               typeName="רכב"
-              groupBy="department"
-              groupLabel="מחלקה"
+              groupBy={['department', 'sub_department']}
+              groupLabels={['מחלקה', 'תת מחלקה']}
               badgeId={3023}
             />
 
