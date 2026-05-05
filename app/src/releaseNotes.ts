@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'תיקון: מחיקת כל החלקים הנדרשים מחזירה את הקריאה ל"בטיפול" וכל הכרטיסים מתעדכנים.'
+export const LATEST_NOTE = 'תיקון: ההתמחויות של הקריאה מוצגות עכשיו גם במסך הקריאה (לא רק במצב עריכה).'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build

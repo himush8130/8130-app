@@ -179,6 +179,9 @@ export function CallDetailPage() {
                 {call.is_disabling && (
                   <Badge tone="danger">⛔ משביתה</Badge>
                 )}
+                {(call.specialties ?? []).map((s) => (
+                  <Badge key={s} tone="info">{s}</Badge>
+                ))}
                 {call.anomaly_flags.length > 0 && (
                   <Badge tone="warning">{call.anomaly_flags.length} חריגות</Badge>
                 )}
