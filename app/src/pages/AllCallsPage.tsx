@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAllCalls } from '../hooks/useAllCalls'
+import { useCallsPartsStatus } from '../hooks/useCallsPartsStatus'
 import { AppHeader } from '../components/AppHeader'
 import { CallCard } from '../components/CallCard'
 import { Card, CardBody } from '../components/ui/Card'
@@ -60,6 +61,7 @@ export function AllCallsPage() {
   const [statuses, setStatuses] = useState<CallStatus[]>([])
   const [professionNames, setProfessionNames] = useState<string[]>([])
   const { data, isLoading, error } = useAllCalls({ statuses, professionNames })
+  const { data: partsMap } = useCallsPartsStatus()
 
   return (
     <>
@@ -107,7 +109,7 @@ export function AllCallsPage() {
           </Card>
         )}
 
-        {data && data.calls.map((call) => <CallCard key={call.id} call={call} />)}
+        {data && data.calls.map((call) => <CallCard key={call.id} call={call} partsStatus={partsMap?.get(call.id) ?? null} />)}
       </main>
     </>
   )

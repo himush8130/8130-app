@@ -38,32 +38,38 @@ export function AppHeader({ subtitle }: { subtitle?: string }) {
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm text-muted hidden sm:inline">{employee.name}</span>
 
-            <button
-              type="button"
-              onClick={toggleFeedback}
-              title="הצג/הסתר תגי קומפוננטה ושדה הערות"
-              className={`relative inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium border transition-colors ${
-                feedbackEnabled
-                  ? 'bg-primary text-primary-fg border-primary'
-                  : 'bg-card text-muted border-border hover:bg-muted-surface'
-              }`}
-            >
+            <span className="inline-flex items-center">
               <ComponentBadge id={1003} />
-              {feedbackEnabled ? '🔧 מצב הערות' : '🔧'}
-            </button>
+              <button
+                type="button"
+                onClick={toggleFeedback}
+                title="הצג/הסתר תגי קומפוננטה ושדה הערות"
+                className={`relative inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium border transition-colors ${
+                  feedbackEnabled
+                    ? 'bg-primary text-primary-fg border-primary'
+                    : 'bg-card text-muted border-border hover:bg-muted-surface'
+                }`}
+              >
+                {feedbackEnabled ? '🔧 מצב הערות' : '🔧'}
+              </button>
+            </span>
 
-            <Link
-              to="/notes"
-              className="text-xs text-muted hover:text-foreground border border-border rounded-md px-2 py-1 inline-flex items-center"
-            >
+            <span className="inline-flex items-center">
               <ComponentBadge id={1004} />
-              לוג הערות
-            </Link>
+              <Link
+                to="/notes"
+                className="text-xs text-muted hover:text-foreground border border-border rounded-md px-2 py-1 inline-flex items-center"
+              >
+                לוג הערות
+              </Link>
+            </span>
 
-            <Button variant="ghost" onClick={handleLogout}>
+            <span className="inline-flex items-center">
               <ComponentBadge id={1002} />
-              יציאה
-            </Button>
+              <Button variant="ghost" onClick={handleLogout}>
+                יציאה
+              </Button>
+            </span>
           </div>
         )}
       </div>

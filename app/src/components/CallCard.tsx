@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { Card, CardBody } from './ui/Card'
 import { Badge } from './ui/Badge'
 import { ComponentBadge } from '../feedback/ComponentBadge'
-import type { ServiceCall, CallStatus } from '../types/db'
+import type { ServiceCall, CallStatus, RequiredPartStatus } from '../types/db'
 
 const statusLabel: Record<CallStatus, string> = {
   new:               'חדשה',
@@ -20,7 +20,29 @@ const statusTone: Record<CallStatus, 'info' | 'success' | 'warning' | 'danger' |
   cancelled:         'neutral',
 }
 
-export function CallCard({ call }: { call: ServiceCall }) {
+// Tailwind classes for the parts dot — one solid color per status.
+const partsDotClass: Record<RequiredPartStatus, string> = {
+  awaiting_order:   'bg-danger',
+  awaiting_receipt: 'bg-warning',
+  received:         'bg-info',
+  in_stock:         'bg-success',
+  delivered:        'bg-muted',
+}
+
+const partsLabel: Record<RequiredPartStatus, string> = {
+  awaiting_order:   'חלקים: ממתין להזמנה',
+  awaiting_receipt: 'חלקים: ממתין לקבלה',
+  received:         'חלקים: התקבלו במחסן',
+  in_stock:         'חלקים: מוכנים במלאי',
+  delivered:        'חלקים: נמסרו',
+}
+
+interface Props {
+  call: ServiceCall
+  partsStatus?: RequiredPartStatus | null
+}
+
+export function CallCard({ call, partsStatus }: Props) {
   const date = new Date(call.created_at).toLocaleDateString('he-IL', {
     day:   '2-digit',
     month: '2-digit',
@@ -45,6 +67,13 @@ export function CallCard({ call }: { call: ServiceCall }) {
                 )}
                 {call.anomaly_flags.length > 0 && (
                   <Badge tone="warning">{call.anomaly_flags.length} חריגות</Badge>
+                )}
+                {partsStatus && (
+                  <span
+                    className={`inline-block w-3.5 h-3.5 rounded-full border border-border ${partsDotClass[partsStatus]}`}
+                    title={partsLabel[partsStatus]}
+                    aria-label={partsLabel[partsStatus]}
+                  />
                 )}
               </div>
 

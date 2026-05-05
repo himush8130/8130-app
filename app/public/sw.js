@@ -30,7 +30,15 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(SHELL_CACHE).then((cache) => cache.addAll(SHELL_PRECACHE))
   )
-  self.skipWaiting()
+  // No skipWaiting() here. The new SW stays in `waiting` state until
+  // the page sends a SKIP_WAITING message (triggered by the user
+  // clicking "עדכן עכשיו" in the UpdateBanner).
+})
+
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting()
+  }
 })
 
 self.addEventListener('activate', (event) => {

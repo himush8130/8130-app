@@ -8,6 +8,8 @@ import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persist
 import './index.css'
 import { LoginPage } from './pages/LoginPage'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { ErrorBoundary } from './components/ErrorBoundary'
+import { UpdateBanner } from './components/UpdateBanner'
 import { FeedbackBar } from './feedback/FeedbackBar'
 import { registerServiceWorker } from './lib/registerSW'
 
@@ -53,6 +55,7 @@ createRoot(document.getElementById('root')!).render(
       }}
     >
       <BrowserRouter>
+        <ErrorBoundary>
         <Suspense fallback={<div className="flex items-center justify-center min-h-screen text-muted text-sm">טוען…</div>}>
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
@@ -171,7 +174,9 @@ createRoot(document.getElementById('root')!).render(
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
         </Suspense>
+        </ErrorBoundary>
         <FeedbackBar />
+        <UpdateBanner />
       </BrowserRouter>
     </PersistQueryClientProvider>
   </StrictMode>,

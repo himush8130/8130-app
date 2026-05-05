@@ -27,8 +27,8 @@ const statusLabel: Record<RequiredPartStatus, string> = {
 
 const statusTone: Record<RequiredPartStatus, 'info' | 'success' | 'warning' | 'danger' | 'neutral'> = {
   in_stock:         'success',
-  awaiting_order:   'warning',
-  awaiting_receipt: 'danger',
+  awaiting_order:   'danger',
+  awaiting_receipt: 'warning',
   received:         'info',
   delivered:        'neutral',
 }

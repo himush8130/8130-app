@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useVehicleHistory } from '../hooks/useVehicleHistory'
+import { useCallsPartsStatus } from '../hooks/useCallsPartsStatus'
 import { useAuthStore } from '../store/auth'
 import { AppHeader } from '../components/AppHeader'
 import { CallCard } from '../components/CallCard'
@@ -29,6 +30,7 @@ export function VehicleHistoryPage() {
   const employee = useAuthStore((s) => s.employee)
   const queryClient = useQueryClient()
   const { data, isLoading, error } = useVehicleHistory(vehicleNumber)
+  const { data: partsMap } = useCallsPartsStatus()
   const [filter, setFilter] = useState<TankSpecialty | 'all'>('all')
 
   const isTank = data?.vehicle?.type_name === 'טנק'
@@ -146,6 +148,7 @@ export function VehicleHistoryPage() {
               <CallWithSpecialty
                 key={call.id}
                 call={call}
+                partsStatus={partsMap?.get(call.id) ?? null}
                 showSpecialty={!!isTank}
                 canEdit={!!isTank && isManager}
                 onToggle={handleToggleSpecialty}
@@ -161,6 +164,7 @@ export function VehicleHistoryPage() {
               <CallWithSpecialty
                 key={call.id}
                 call={call}
+                partsStatus={partsMap?.get(call.id) ?? null}
                 showSpecialty={!!isTank}
                 canEdit={!!isTank && isManager}
                 onToggle={handleToggleSpecialty}
@@ -219,9 +223,10 @@ function SpecialtyFilterBanner({
 }
 
 function CallWithSpecialty({
-  call, showSpecialty, canEdit, onToggle,
+  call, partsStatus, showSpecialty, canEdit, onToggle,
 }: {
   call: ServiceCall
+  partsStatus?: import('../types/db').RequiredPartStatus | null
   showSpecialty: boolean
   canEdit: boolean
   onToggle: (call: ServiceCall, specialty: TankSpecialty) => void
@@ -229,7 +234,7 @@ function CallWithSpecialty({
   const current = call.specialties ?? []
   return (
     <div className="flex flex-col gap-1.5">
-      <CallCard call={call} />
+      <CallCard call={call} partsStatus={partsStatus} />
       {showSpecialty && (
         <div className="flex items-center gap-1.5 flex-wrap px-1">
           <span className="text-[11px] text-muted">התמחות:</span>

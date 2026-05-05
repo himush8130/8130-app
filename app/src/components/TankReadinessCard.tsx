@@ -36,17 +36,17 @@ export function TankReadinessCard({
           </span>
         </div>
       </CardHeader>
-      <CardBody className="p-0">
+      <CardBody className="p-0 overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-xs text-muted border-b border-border">
               {groupLabels.map((label) => (
-                <th key={label} className="text-start font-medium px-4 py-2">{label}</th>
+                <th key={label} className="text-start font-medium px-3 py-2 whitespace-nowrap">{label}</th>
               ))}
-              <th className="text-start font-medium px-4 py-2">סה״כ</th>
-              <th className="text-start font-medium px-4 py-2">תקין</th>
-              <th className="text-start font-medium px-4 py-2">מושבת</th>
-              <th className="text-start font-medium px-4 py-2">אחוז כשירות</th>
+              <th className="text-start font-medium px-3 py-2 whitespace-nowrap">סה״כ</th>
+              <th className="text-start font-medium px-3 py-2 whitespace-nowrap">תקין</th>
+              <th className="text-start font-medium px-3 py-2 whitespace-nowrap">מושבת</th>
+              <th className="text-start font-medium px-3 py-2 whitespace-nowrap">% כשירות</th>
             </tr>
           </thead>
           <tbody>
@@ -64,12 +64,12 @@ function CompanyRow({ g }: { g: CompanyReadiness }) {
   return (
     <tr className="border-b border-border last:border-0">
       {g.groupValues.map((v, i) => (
-        <td key={i} className="px-4 py-2 font-medium text-foreground">{v}</td>
+        <td key={i} className="px-3 py-2 font-medium text-foreground whitespace-nowrap">{v}</td>
       ))}
-      <td className="px-4 py-2 text-foreground">{g.total}</td>
-      <td className="px-4 py-2 text-success font-medium">{operational}</td>
-      <td className="px-4 py-2 text-danger font-medium">{g.disabled}</td>
-      <td className={`px-4 py-2 font-semibold ${tone(p)}`}>{p}%</td>
+      <td className="px-3 py-2 text-foreground whitespace-nowrap">{g.total}</td>
+      <td className="px-3 py-2 text-success font-medium whitespace-nowrap">{operational}</td>
+      <td className="px-3 py-2 text-danger font-medium whitespace-nowrap">{g.disabled}</td>
+      <td className={`px-3 py-2 font-semibold whitespace-nowrap ${tone(p)}`}>{p}%</td>
     </tr>
   )
 }
