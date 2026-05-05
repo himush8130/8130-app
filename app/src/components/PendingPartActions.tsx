@@ -124,7 +124,11 @@ export function PendingPartActions() {
                     <Button
                       onClick={() => deliver(row)}
                       disabled={busyId === row.id}
-                      className="bg-success hover:bg-success/90 text-white"
+                      className={`text-xs px-3 py-1 min-w-[7rem] ${
+                        row.status === 'in_stock'
+                          ? 'bg-success hover:bg-success/90 text-white'
+                          : 'bg-info hover:bg-info/90 text-white'
+                      }`}
                     >
                       {busyId === row.id ? '...' : 'מסור לטכנאי'}
                     </Button>
@@ -132,13 +136,11 @@ export function PendingPartActions() {
                     <Button
                       onClick={() => advance(row.id, action.next)}
                       disabled={busyId === row.id}
-                      className={
+                      className={`text-xs px-3 py-1 min-w-[7rem] ${
                         row.status === 'awaiting_order'
-                          ? 'bg-purple-500 hover:bg-purple-600 text-white'
-                          : row.status === 'awaiting_receipt'
-                            ? 'bg-purple-700 hover:bg-purple-800 text-white'
-                            : ''
-                      }
+                          ? 'bg-danger hover:bg-danger/90 text-white'
+                          : 'bg-warning hover:bg-warning/90 text-white'
+                      }`}
                     >
                       {busyId === row.id ? '...' : action.label}
                     </Button>
