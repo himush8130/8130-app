@@ -20,21 +20,14 @@ const statusTone: Record<CallStatus, 'info' | 'success' | 'warning' | 'danger' |
   cancelled:         'neutral',
 }
 
-// Tailwind classes for the parts dot — one solid color per status.
-const partsDotClass: Record<RequiredPartStatus, string> = {
-  awaiting_order:   'bg-danger',
-  awaiting_receipt: 'bg-warning',
-  received:         'bg-info',
-  in_stock:         'bg-success',
-  delivered:        'bg-muted',
-}
-
-const partsLabel: Record<RequiredPartStatus, string> = {
-  awaiting_order:   'חלקים: ממתין להזמנה',
-  awaiting_receipt: 'חלקים: ממתין לקבלה',
-  received:         'חלקים: התקבלו במחסן',
-  in_stock:         'חלקים: מוכנים במלאי',
-  delivered:        'חלקים: נמסרו',
+// When the call is "ממתינה לחלקים", color it by the worst required-part
+// state so the badge alone says where things stand. Label stays the same.
+const partsStatusOverride: Record<RequiredPartStatus, 'info' | 'success' | 'warning' | 'danger' | 'neutral'> = {
+  awaiting_order:   'danger',
+  awaiting_receipt: 'warning',
+  received:         'info',
+  in_stock:         'success',
+  delivered:        'neutral',
 }
 
 interface Props {
@@ -50,6 +43,11 @@ export function CallCard({ call, partsStatus, vehicle }: Props) {
     year:  'numeric',
   })
 
+  const effectiveTone =
+    call.status === 'waiting_for_parts' && partsStatus
+      ? partsStatusOverride[partsStatus]
+      : statusTone[call.status]
+
   return (
     <Link to={`/call/${call.id}`} className="block hover:opacity-95 transition-opacity">
       <Card>
@@ -59,7 +57,7 @@ export function CallCard({ call, partsStatus, vehicle }: Props) {
             <div className="flex flex-col gap-1 flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-semibold text-foreground">{call.display_id}</span>
-                <Badge tone={statusTone[call.status]}>{statusLabel[call.status]}</Badge>
+                <Badge tone={effectiveTone}>{statusLabel[call.status]}</Badge>
                 {call.profession_name && (
                   <Badge tone="neutral">{call.profession_name}</Badge>
                 )}
@@ -68,13 +66,6 @@ export function CallCard({ call, partsStatus, vehicle }: Props) {
                 )}
                 {call.anomaly_flags.length > 0 && (
                   <Badge tone="warning">{call.anomaly_flags.length} חריגות</Badge>
-                )}
-                {partsStatus && (
-                  <span
-                    className={`inline-block w-3.5 h-3.5 rounded-full border border-border ${partsDotClass[partsStatus]}`}
-                    title={partsLabel[partsStatus]}
-                    aria-label={partsLabel[partsStatus]}
-                  />
                 )}
               </div>
 

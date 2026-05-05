@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useVehicles } from '../hooks/useVehicles'
+import { useVehicleCallStats } from '../hooks/useVehicleCallStats'
 import { Card, CardBody, CardHeader } from './ui/Card'
 import { Input } from './ui/Input'
 import { ComponentBadge } from '../feedback/ComponentBadge'
@@ -12,6 +13,7 @@ const CATEGORIES: Array<{ key: string; label: string; types: string[] }> = [
 
 export function VehiclePicker() {
   const { data: vehicles } = useVehicles()
+  const { data: stats }    = useVehicleCallStats()
   const [filter, setFilter] = useState('')
   const [category, setCategory] = useState<string | null>(null)
 
@@ -89,18 +91,39 @@ export function VehiclePicker() {
             onChange={(e) => setFilter(e.target.value)}
           />
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5 max-h-72 overflow-y-auto">
-            {filtered.map((v) => (
-              <Link
-                key={v.vehicle_number}
-                to={`/vehicle/${encodeURIComponent(v.vehicle_number)}`}
-                className="text-start text-sm px-3 py-2 rounded-md border border-border bg-card text-foreground hover:bg-muted-surface"
-              >
-                <div className="font-mono text-foreground truncate">{v.vehicle_number}</div>
-                <div className="text-[11px] opacity-70 truncate">
-                  {v.type_name}{v.sub_department ? ` · ${v.sub_department}` : ''}
-                </div>
-              </Link>
-            ))}
+            {filtered.map((v) => {
+              const s = stats?.get(v.vehicle_number)
+              const open = s?.open ?? 0
+              const disabled = !!s?.disabled
+              return (
+                <Link
+                  key={v.vehicle_number}
+                  to={`/vehicle/${encodeURIComponent(v.vehicle_number)}`}
+                  className={`relative text-start text-sm px-3 py-2 rounded-md border bg-card text-foreground hover:bg-muted-surface ${
+                    disabled ? 'border-danger/70 ring-1 ring-danger/40' : 'border-border'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="font-mono text-foreground truncate">{v.vehicle_number}</span>
+                    {open > 0 && (
+                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                        disabled
+                          ? 'bg-danger text-white'
+                          : 'bg-warning/20 text-warning'
+                      }`}>
+                        {open}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[11px] opacity-70 truncate">
+                    {v.type_name}{v.sub_department ? ` · ${v.sub_department}` : ''}
+                  </div>
+                  {disabled && (
+                    <div className="text-[10px] font-bold text-danger mt-0.5">⛔ מושבת</div>
+                  )}
+                </Link>
+              )
+            })}
           </div>
           {filtered.length === 0 && (
             <p className="text-xs text-muted text-center py-2">אין רכבים תואמים</p>
