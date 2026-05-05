@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'כפתורי מחסן מתואמים בצבע לסטטוס הפריט, גודל אחיד וקומפקטי.'
+export const LATEST_NOTE = 'תגית "ממתינה לחלקים" משנה גם את המלל לפי מצב החלקים בפועל.'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build

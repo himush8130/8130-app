@@ -20,14 +20,23 @@ const statusTone: Record<CallStatus, 'info' | 'success' | 'warning' | 'danger' |
   cancelled:         'neutral',
 }
 
-// When the call is "ממתינה לחלקים", color it by the worst required-part
-// state so the badge alone says where things stand. Label stays the same.
+// When the call is "ממתינה לחלקים", both the badge color AND its label
+// reflect the worst required-part state, so the single chip tells the
+// whole story.
 const partsStatusOverride: Record<RequiredPartStatus, 'info' | 'success' | 'warning' | 'danger' | 'neutral'> = {
   awaiting_order:   'danger',
   awaiting_receipt: 'warning',
   received:         'info',
   in_stock:         'success',
   delivered:        'neutral',
+}
+
+const partsStatusBadgeLabel: Record<RequiredPartStatus, string> = {
+  awaiting_order:   'ממתין להזמנת חלקים',
+  awaiting_receipt: 'חלקים בהזמנה',
+  received:         'חלקים התקבלו',
+  in_stock:         'חלקים במלאי',
+  delivered:        'חלקים נמסרו',
 }
 
 interface Props {
@@ -43,10 +52,13 @@ export function CallCard({ call, partsStatus, vehicle }: Props) {
     year:  'numeric',
   })
 
-  const effectiveTone =
-    call.status === 'waiting_for_parts' && partsStatus
-      ? partsStatusOverride[partsStatus]
-      : statusTone[call.status]
+  const usePartsOverride = call.status === 'waiting_for_parts' && partsStatus
+  const effectiveTone  = usePartsOverride
+    ? partsStatusOverride[partsStatus!]
+    : statusTone[call.status]
+  const effectiveLabel = usePartsOverride
+    ? partsStatusBadgeLabel[partsStatus!]
+    : statusLabel[call.status]
 
   return (
     <Link to={`/call/${call.id}`} className="block hover:opacity-95 transition-opacity">
@@ -57,7 +69,7 @@ export function CallCard({ call, partsStatus, vehicle }: Props) {
             <div className="flex flex-col gap-1 flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-semibold text-foreground">{call.display_id}</span>
-                <Badge tone={effectiveTone}>{statusLabel[call.status]}</Badge>
+                <Badge tone={effectiveTone}>{effectiveLabel}</Badge>
                 {call.profession_name && (
                   <Badge tone="neutral">{call.profession_name}</Badge>
                 )}
