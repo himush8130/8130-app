@@ -29,8 +29,10 @@ export interface CallRequiredPart {
   status: RequiredPartStatus
   requested_by: number | null
   requested_at: string
-  /** Embedded via PostgREST: select('*, parts(name, sku, quantity)') */
-  parts?: { name: string; sku: string; quantity: number } | null
+  /** Embedded via PostgREST. is_sku_blocked is optional (some queries
+   *  don't request it) but when present the UI treats blocked parts
+   *  as having a single status: blocked. */
+  parts?: { name: string; sku: string; quantity: number; is_sku_blocked?: boolean } | null
 }
 
 export interface PartWithdrawal {

@@ -81,6 +81,9 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
   }
 
   const rows = (data ?? []).filter((r) => {
+    // A blocked SKU supersedes every other status — those rows live
+    // exclusively in the BlockedSkuTable and don't appear here.
+    if (r.parts?.is_sku_blocked) return false
     if (effective === 'active')         return !ANY_REJECTED_SET.has(r.status)
     if (effective === 'rejected_final') return FINAL_REJECTED_SET.has(r.status)
     return PENDING_REJECTED_SET.has(r.status)  // 'rejected' (without _final)

@@ -352,8 +352,12 @@ function RequiredPartRow({
     awaiting_order:   { next: 'awaiting_receipt', label: 'הוזמן' },
     awaiting_receipt: { next: 'received',         label: 'התקבל' },
   }
-  const action = advanceMap[row.status]
-  const canDeliver = isWarehouse && (row.status === 'in_stock' || row.status === 'received')
+  // Blocked SKU short-circuits everything: no actions, the row only
+  // says "חסום". The required-part is preserved in the DB; the call
+  // simply waits until the warehouse assigns a fresh SKU.
+  const isBlocked = !!row.parts?.is_sku_blocked
+  const action = isBlocked ? undefined : advanceMap[row.status]
+  const canDeliver = !isBlocked && isWarehouse && (row.status === 'in_stock' || row.status === 'received')
 
   async function advance() {
     if (!action) return
@@ -403,7 +407,9 @@ function RequiredPartRow({
             {row.parts?.sku ?? ''}
           </span>
           <span className="text-xs text-muted">×{row.quantity}</span>
-          <Badge tone={statusTone[row.status]}>{statusLabel[row.status]}</Badge>
+          {isBlocked
+            ? <Badge tone="warning">⚠ מק״ט חסום</Badge>
+            : <Badge tone={statusTone[row.status]}>{statusLabel[row.status]}</Badge>}
         </div>
 
         <div className="flex gap-1.5 items-center flex-wrap">

@@ -28,7 +28,7 @@ export function useCallDetail(id: string | undefined) {
           .order('created_at', { ascending: true }),
         supabase
           .from('call_required_parts')
-          .select('*, parts(name, quantity, sku)')
+          .select('*, parts(name, quantity, sku, is_sku_blocked)')
           .eq('call_id', id!)
           .order('requested_at', { ascending: true }),
         supabase
