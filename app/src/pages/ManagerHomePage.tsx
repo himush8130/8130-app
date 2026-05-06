@@ -16,7 +16,7 @@ interface SettingsLink {
 const SETTINGS_LINKS: SettingsLink[] = [
   { to: '/manager/settings/professions', label: 'ניהול מקצועות',  desc: 'הוספה / עריכה / מחיקה של רשימת המקצועות' },
   { to: '/manager/settings/employees',   label: 'ניהול עובדים',   desc: 'מספרי עובד, שמות, טלפונים, מקצוע, הרשאה' },
-  { to: '/manager/settings/vehicles',    label: 'ניהול רכבים',    desc: 'הרכב והציוד שמטופלים במערכת' },
+  { to: '/manager/settings/vehicles',    label: 'ניהול כלים',     desc: 'הכלים והציוד שמטופלים במערכת' },
   { to: '/warehouse',                    label: 'ניהול חלקי חילוף', desc: 'קטלוג, חיפוש, עדכון כמויות וערכי שדה' },
   { to: '/manager/settings/availability',label: 'ניהול זמינות עובדים', desc: 'ימי חופש / מילואים / מחלה לכל עובד' },
 ]

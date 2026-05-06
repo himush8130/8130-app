@@ -41,7 +41,7 @@ export function AnomalyResolver({ call, professions }: Props) {
     setBusy(false)
     if (!res.ok) {
       setError(res.error === 'vehicle_still_unknown'
-        ? 'מספר רכב עדיין לא קיים במערכת'
+        ? 'מספר כלי עדיין לא קיים במערכת'
         : 'שגיאה בעדכון')
       return
     }
@@ -108,7 +108,7 @@ export function AnomalyResolver({ call, professions }: Props) {
             <span className="contents">
               <ComponentBadge id={3009} />
               <Button variant="primary" onClick={() => setMode('fix-vehicle')}>
-                תקן מספר רכב
+                תקן מספר כלי
               </Button>
             </span>
             <span className="contents">
@@ -129,7 +129,7 @@ export function AnomalyResolver({ call, professions }: Props) {
         {mode === 'fix-vehicle' && (
           <div className="flex flex-col gap-3">
             <Input
-              label="מספר רכב חדש"
+              label="מספר כלי חדש"
               name="vehicle_number"
               value={vehicleNumber}
               onChange={(e) => setVehicleNumber(e.target.value)}

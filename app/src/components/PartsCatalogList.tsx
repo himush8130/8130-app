@@ -1,4 +1,4 @@
-import { useReducer, useRef, useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import type { Part } from '../types/parts'
@@ -8,12 +8,7 @@ import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import { useAuthStore } from '../store/auth'
-import {
-  changePartQuantity,
-  setPartQuantity,
-  updatePart,
-  type PartUpdates,
-} from '../lib/warehouseActions'
+import { updatePart, type PartUpdates } from '../lib/warehouseActions'
 
 interface Filters {
   sku: string
@@ -40,14 +35,14 @@ function isActive(f: Filters): boolean {
   return Object.values(textFilters).some((v) => typeof v === 'string' && v.trim() !== '')
 }
 
-function formatLocation(p: Part): string {
-  const parts: string[] = []
-  if (p.warehouse) parts.push(p.warehouse)
-  if (p.cabinet != null && p.cabinet !== 0)               parts.push(`ארון ${p.cabinet}`)
-  if (p.storage_type)                                     parts.push(p.storage_type)
-  if (p.storage_number != null && p.storage_number !== 0) parts.push(`#${p.storage_number}`)
-  if (p.cell_number != null && p.cell_number !== 0)       parts.push(`תא ${p.cell_number}`)
-  return parts.length > 0 ? parts.join(' · ') : '—'
+function locationLines(p: Part): string[] {
+  const out: string[] = []
+  if (p.warehouse) out.push(p.warehouse)
+  if (p.cabinet != null && p.cabinet !== 0)               out.push(`ארון ${p.cabinet}`)
+  if (p.storage_type)                                     out.push(p.storage_type)
+  if (p.storage_number != null && p.storage_number !== 0) out.push(`#${p.storage_number}`)
+  if (p.cell_number != null && p.cell_number !== 0)       out.push(`תא ${p.cell_number}`)
+  return out
 }
 
 function uniqueValues<T>(items: T[], get: (t: T) => string | number | null | undefined): string[] {
@@ -135,12 +130,7 @@ export function PartsCatalogList({ parts }: { parts: Part[] }) {
     <Card id="catalog">
       <CardHeader>
         <ComponentBadge id={4002} />
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <h3 className="text-sm font-semibold text-foreground">קטלוג חלקים</h3>
-          <span className="text-xs text-muted">
-            {active ? `${filtered.length} מתוך ${parts.length} פריטים` : `${parts.length} פריטים בקטלוג`}
-          </span>
-        </div>
+        <h3 className="text-sm font-semibold text-foreground">קטלוג חלקים</h3>
       </CardHeader>
 
       <CardBody className="border-b border-border bg-muted-surface flex flex-col gap-3">
@@ -189,7 +179,7 @@ export function PartsCatalogList({ parts }: { parts: Part[] }) {
       <CardBody className="p-0">
         {!active && (
           <p className="text-sm text-muted text-center py-6">
-            הזן ערך באחד משדות הסינון כדי להציג פריטים. {parts.length.toLocaleString('he-IL')} פריטים בקטלוג.
+            הזן ערך באחד משדות הסינון כדי להציג פריטים.
           </p>
         )}
 
@@ -198,16 +188,20 @@ export function PartsCatalogList({ parts }: { parts: Part[] }) {
         )}
 
         {active && filtered.length > 0 && (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div>
+            <table className="w-full text-xs table-fixed">
+              <colgroup>
+                <col style={{ width: '26%' }} />
+                <col style={{ width: '34%' }} />
+                <col style={{ width: '14%' }} />
+                <col style={{ width: '26%' }} />
+              </colgroup>
               <thead>
-                <tr className="text-xs text-muted border-b border-border">
-                  <th className="text-start font-medium px-3 py-2">מק"ט</th>
-                  <th className="text-start font-medium px-3 py-2">שם</th>
-                  <th className="text-start font-medium px-3 py-2">מלאי</th>
-                  <th className="text-start font-medium px-3 py-2">סף נמוך</th>
-                  <th className="text-start font-medium px-3 py-2">מיקום</th>
-                  {canEdit && <th className="px-3 py-2"></th>}
+                <tr className="text-[11px] text-muted border-b border-border">
+                  <th className="text-start font-medium px-2 py-1.5">מק״ט</th>
+                  <th className="text-start font-medium px-2 py-1.5">שם</th>
+                  <th className="text-start font-medium px-2 py-1.5">מלאי / סף</th>
+                  <th className="text-start font-medium px-2 py-1.5">מיקום</th>
                 </tr>
               </thead>
               <tbody>
@@ -245,6 +239,7 @@ function PartRow({ part, canEdit, employeeNumber }: RowProps) {
   const queryClient = useQueryClient()
   const [expanded, setExpanded] = useState(false)
   const low = part.quantity <= part.min_threshold
+  const lines = locationLines(part)
 
   function refresh() {
     queryClient.invalidateQueries({ queryKey: ['parts'] })
@@ -253,40 +248,45 @@ function PartRow({ part, canEdit, employeeNumber }: RowProps) {
   return (
     <>
       <tr className={`border-b border-border last:border-0 ${part.is_sku_blocked ? 'bg-warning/5' : ''}`}>
-        <td className="px-3 py-2 text-muted font-mono text-xs whitespace-nowrap align-middle">
-          {part.sku}
+        <td className="px-2 py-1.5 align-top">
+          {canEdit ? (
+            <span className="contents">
+              <ComponentBadge id={4006} />
+              <button
+                type="button"
+                onClick={() => setExpanded((v) => !v)}
+                className="font-mono text-xs text-primary hover:underline break-all text-start"
+                title={expanded ? 'סגור עריכה' : 'ערוך פריט'}
+              >
+                {part.sku}
+              </button>
+            </span>
+          ) : (
+            <span className="font-mono text-xs text-muted break-all">{part.sku}</span>
+          )}
           {part.is_sku_blocked && (
-            <Badge tone="warning"><span className="me-1">⚠</span>חסום</Badge>
+            <div className="mt-1"><Badge tone="warning">⚠ חסום</Badge></div>
           )}
         </td>
-        <td className="px-3 py-2 text-foreground align-middle">{part.name}</td>
-        <td className="px-3 py-2 align-middle">
-          {canEdit && employeeNumber != null
-            ? <QuantityCell part={part} employeeNumber={employeeNumber} onChange={refresh} low={low} />
-            : (low
-                ? <Badge tone="warning">{part.quantity}</Badge>
-                : <span className="text-foreground">{part.quantity}</span>)}
+        <td className="px-2 py-1.5 text-foreground align-top break-words">{part.name}</td>
+        <td className="px-2 py-1.5 align-top whitespace-nowrap">
+          <span className={low ? 'text-danger font-medium' : 'text-foreground'}>
+            {part.quantity} / {part.min_threshold}
+          </span>
         </td>
-        <td className="px-3 py-2 text-muted align-middle">{part.min_threshold}</td>
-        <td className="px-3 py-2 text-muted align-middle whitespace-nowrap">{formatLocation(part)}</td>
-        {canEdit && (
-          <td className="px-2 py-2 align-middle">
-            <button
-              type="button"
-              onClick={() => setExpanded((v) => !v)}
-              className="relative inline-flex items-center justify-center w-7 h-7 rounded-md text-muted hover:bg-muted-surface hover:text-foreground"
-              title={expanded ? 'סגור עריכה' : 'ערוך פריט'}
-              aria-label="ערוך פריט"
-            >
-              <ComponentBadge id={4006} />
-              {expanded ? '✕' : '✎'}
-            </button>
-          </td>
-        )}
+        <td className="px-2 py-1.5 text-muted align-top">
+          {lines.length === 0 ? (
+            '—'
+          ) : (
+            <div className="flex flex-col gap-0.5">
+              {lines.map((line, i) => <span key={i}>{line}</span>)}
+            </div>
+          )}
+        </td>
       </tr>
       {expanded && employeeNumber != null && (
         <tr className="bg-muted-surface">
-          <td colSpan={canEdit ? 6 : 5} className="px-3 py-3">
+          <td colSpan={4} className="px-3 py-3">
             <PartEditForm
               part={part}
               employeeNumber={employeeNumber}
@@ -300,161 +300,9 @@ function PartRow({ part, canEdit, employeeNumber }: RowProps) {
   )
 }
 
-// ---------- inline quantity editor (optimistic + debounced) ----------
-//
-// UX requirements:
-//   * Each +/- click feels instant.
-//   * Several rapid clicks coalesce into a single server call.
-//   * Typed-absolute commits override any pending delta.
-//   * If the server rejects the change, the optimistic value rolls back.
-//
-// Implementation: pending state lives in a ref so the debounced flush
-// always reads the latest value. A `tick` reducer triggers re-renders
-// when the ref changes.
+// (Inline +/- quantity editor removed per user request — quantity is
+// edited via the PartEditForm reached by clicking the SKU cell.)
 
-const FLUSH_DELAY_MS = 400
-
-interface PendingState {
-  delta: number
-  abs:   number | null
-}
-
-function QuantityCell({
-  part, employeeNumber, onChange, low,
-}: {
-  part: Part
-  employeeNumber: number
-  onChange: () => void
-  low: boolean
-}) {
-  const pending  = useRef<PendingState>({ delta: 0, abs: null })
-  const flushT   = useRef<number | null>(null)
-  const lastErr  = useRef<string | null>(null)
-  const inFlight = useRef<boolean>(false)
-  const [, force] = useReducer((x) => x + 1, 0)
-  const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState('')
-
-  const displayQty = pending.current.abs ?? Math.max(0, part.quantity + pending.current.delta)
-
-  function scheduleFlush() {
-    if (flushT.current) window.clearTimeout(flushT.current)
-    flushT.current = window.setTimeout(flush, FLUSH_DELAY_MS)
-  }
-
-  function bump(d: number) {
-    if (pending.current.abs !== null) {
-      pending.current = { delta: (pending.current.abs + d) - part.quantity, abs: null }
-    } else {
-      pending.current.delta += d
-    }
-    lastErr.current = null
-    force()
-    scheduleFlush()
-  }
-
-  function setAbs(v: number) {
-    pending.current = { delta: 0, abs: v }
-    lastErr.current = null
-    force()
-    scheduleFlush()
-  }
-
-  async function flush() {
-    if (inFlight.current) {
-      // Server still busy — push the next attempt out a bit.
-      scheduleFlush()
-      return
-    }
-    const snap = pending.current
-    if (snap.abs === null && snap.delta === 0) return
-
-    inFlight.current = true
-    pending.current = { delta: 0, abs: null }
-    force()
-
-    const res = snap.abs !== null
-      ? await setPartQuantity(employeeNumber, part.id, snap.abs)
-      : await changePartQuantity(employeeNumber, part.id, snap.delta)
-    inFlight.current = false
-
-    if (!res.ok) {
-      // Re-apply the snapshot on top of any newer pending edits.
-      pending.current = {
-        delta: pending.current.delta + (snap.abs === null ? snap.delta : 0),
-        abs:   pending.current.abs ?? snap.abs,
-      }
-      lastErr.current = 'שגיאה'
-      force()
-      return
-    }
-    onChange()
-  }
-
-  if (editing) {
-    return (
-      <input
-        autoFocus
-        type="number"
-        inputMode="numeric"
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={() => {
-          const n = parseInt(draft, 10)
-          setEditing(false)
-          if (!Number.isNaN(n) && n >= 0 && n !== displayQty) setAbs(n)
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
-          if (e.key === 'Escape') { setEditing(false) }
-        }}
-        className="w-16 px-2 py-1 bg-card border border-primary rounded-md text-foreground"
-      />
-    )
-  }
-
-  const dirty = pending.current.abs !== null || pending.current.delta !== 0
-  const cellTone = lastErr.current
-    ? 'bg-danger/10 text-danger'
-    : low
-      ? 'bg-warning/15 text-warning'
-      : dirty
-        ? 'bg-info/10 text-info'
-        : 'text-foreground hover:bg-muted-surface'
-
-  return (
-    <div className="inline-flex items-center gap-1">
-      <span className="contents">
-        <ComponentBadge id={4004} />
-        <button
-          type="button"
-          onClick={() => bump(-1)}
-          disabled={displayQty <= 0}
-          className="w-6 h-6 inline-flex items-center justify-center rounded-md border border-border text-muted hover:bg-muted-surface disabled:opacity-30"
-          title="הפחת 1"
-        >−</button>
-      </span>
-      <button
-        type="button"
-        onClick={() => { setDraft(String(displayQty)); setEditing(true) }}
-        title="לחץ לעריכה"
-        className={`min-w-[2.5rem] px-2 py-0.5 rounded-md text-center font-medium ${cellTone}`}
-      >
-        {displayQty}
-      </button>
-      <span className="contents">
-        <ComponentBadge id={4005} />
-        <button
-          type="button"
-          onClick={() => bump(+1)}
-          className="w-6 h-6 inline-flex items-center justify-center rounded-md border border-border text-muted hover:bg-muted-surface"
-          title="הוסף 1"
-        >+</button>
-      </span>
-      {lastErr.current && <span className="text-xs text-danger ms-1">{lastErr.current}</span>}
-    </div>
-  )
-}
 
 // ---------- full-row edit form ----------
 

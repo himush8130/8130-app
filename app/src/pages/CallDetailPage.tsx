@@ -191,7 +191,7 @@ export function CallDetailPage() {
 
           <CardBody className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-0.5">
-              <span className="text-xs text-muted">מספר רכב</span>
+              <span className="text-xs text-muted">מספר כלי</span>
               {call.vehicle_number ? (
                 <Link
                   to={`/vehicle/${encodeURIComponent(call.vehicle_number)}`}
@@ -203,7 +203,7 @@ export function CallDetailPage() {
                 <span className="text-sm text-foreground">—</span>
               )}
             </div>
-            <FieldRow label="שם רכב"   value={call.vehicle_name} />
+            <FieldRow label="שם כלי"   value={call.vehicle_name} />
             <FieldRow label="מקצוע"    value={call.profession_name ?? null} />
             <FieldRow label="מדווח"    value={call.reporter_name} />
             <div className="flex flex-col gap-0.5">

@@ -126,7 +126,7 @@ export function VehiclePicker() {
             })}
           </div>
           {filtered.length === 0 && (
-            <p className="text-xs text-muted text-center py-2">אין רכבים תואמים</p>
+            <p className="text-xs text-muted text-center py-2">אין כלים תואמים</p>
           )}
         </CardBody>
       )}

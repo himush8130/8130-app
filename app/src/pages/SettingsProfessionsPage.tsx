@@ -143,7 +143,7 @@ function ProfessionRow({
     setBusy(false)
     if (!res.ok) {
       if (res.error === 'in_use') {
-        setError(`לא ניתן למחוק — בשימוש: ${res.vehicles ?? 0} רכבים, ${res.employees ?? 0} עובדים`)
+        setError(`לא ניתן למחוק — בשימוש: ${res.vehicles ?? 0} כלים, ${res.employees ?? 0} עובדים`)
       } else {
         setError('שגיאה במחיקה')
       }
@@ -162,7 +162,7 @@ function ProfessionRow({
           <div className="flex items-center gap-3 flex-wrap min-w-0">
             <span className="text-sm font-medium text-foreground">{profession.name}</span>
             <span className="text-xs text-muted">
-              {profession.vehicles_count} רכבים · {profession.employees_count} עובדים
+              {profession.vehicles_count} כלים · {profession.employees_count} עובדים
             </span>
           </div>
         ) : (

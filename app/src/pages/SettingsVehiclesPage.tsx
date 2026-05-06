@@ -41,7 +41,7 @@ export function SettingsVehiclesPage() {
 
   return (
     <>
-      <AppHeader subtitle="הגדרות · רכבים" />
+      <AppHeader subtitle="הגדרות · כלים" />
       <main className="max-w-3xl mx-auto p-4 flex flex-col gap-3 pb-24">
         <Link to="/manager" className="text-sm text-primary self-start">→ חזור לפאנל</Link>
 
@@ -49,9 +49,9 @@ export function SettingsVehiclesPage() {
           <CardHeader>
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <h3 className="text-sm font-semibold text-foreground">
-                רכבים{vehicles ? ` · ${vehicles.length}` : ''}
+                כלים{vehicles ? ` · ${vehicles.length}` : ''}
               </h3>
-              {!adding && <Button onClick={() => setAdding(true)}>+ הוסף רכב</Button>}
+              {!adding && <Button onClick={() => setAdding(true)}>+ הוסף כלי</Button>}
             </div>
           </CardHeader>
 
@@ -68,7 +68,7 @@ export function SettingsVehiclesPage() {
 
           <CardBody className="border-b border-border">
             <Input
-              label="חיפוש (מספר רכב / מקצוע / מחלקה / תת מחלקה)"
+              label="חיפוש (מספר כלי / מקצוע / מחלקה / תת מחלקה)"
               name="search"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
@@ -78,7 +78,7 @@ export function SettingsVehiclesPage() {
           <CardBody className="p-0">
             {!vehicles && <p className="text-sm text-muted text-center py-4">טוען...</p>}
             {vehicles && filtered.length === 0 && (
-              <p className="text-sm text-muted text-center py-4">לא נמצאו רכבים</p>
+              <p className="text-sm text-muted text-center py-4">לא נמצאו כלים</p>
             )}
             {filtered.map((v) => (
               <VehicleRow
@@ -116,7 +116,7 @@ function AddRow({
 
   async function save() {
     setError(null)
-    if (!num.trim()) { setError('מספר רכב חובה'); return }
+    if (!num.trim()) { setError('מספר כלי חובה'); return }
     if (!type_name.trim()) { setError('מקצוע חובה'); return }
     setBusy(true)
     const res = await createVehicle(managerNum, {
@@ -128,7 +128,7 @@ function AddRow({
     })
     setBusy(false)
     if (!res.ok) {
-      setError(res.error === 'vehicle_number_taken' ? 'מספר רכב כבר קיים' : 'שגיאה')
+      setError(res.error === 'vehicle_number_taken' ? 'מספר כלי כבר קיים' : 'שגיאה')
       return
     }
     onDone()
@@ -137,7 +137,7 @@ function AddRow({
   return (
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Input label="מספר רכב"  name="num"  value={num}  onChange={(e) => setNum(e.target.value)} autoFocus />
+        <Input label="מספר כלי"  name="num"  value={num}  onChange={(e) => setNum(e.target.value)} autoFocus />
         <ProfSelect label="מקצוע" value={type_name} options={profs} onChange={setType} required />
         <Input label="מחלקה" name="dept"  value={department}     onChange={(e) => setDept(e.target.value)} />
         <Input label="תת מחלקה" name="sub" value={sub_department} onChange={(e) => setSub(e.target.value)} />
@@ -216,7 +216,7 @@ function VehicleRow({
         <div className="flex flex-col gap-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="text-xs text-muted self-end pb-2">
-              מספר רכב: <span className="font-mono">{vehicle.vehicle_number}</span>
+              מספר כלי: <span className="font-mono">{vehicle.vehicle_number}</span>
             </div>
             <ProfSelect label="מקצוע" value={type_name} options={profs} onChange={setType} required />
             <Input label="מחלקה" name={`d-${vehicle.vehicle_number}`} value={department} onChange={(e) => setDept(e.target.value)} />

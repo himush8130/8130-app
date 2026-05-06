@@ -78,7 +78,7 @@ export function VehicleHistoryPage() {
 
   return (
     <>
-      <AppHeader subtitle={vehicleNumber ? `כרטיס רכב ${vehicleNumber}` : 'כרטיס רכב'} />
+      <AppHeader subtitle={vehicleNumber ? `כרטיס כלי ${vehicleNumber}` : 'כרטיס כלי'} />
 
       <main className="max-w-3xl mx-auto p-4 flex flex-col gap-4">
         <ComponentBadge id={7001} />
@@ -91,7 +91,7 @@ export function VehicleHistoryPage() {
         {error && (
           <Card>
             <CardBody>
-              <p className="text-danger text-sm">שגיאה בטעינת הרכב</p>
+              <p className="text-danger text-sm">שגיאה בטעינת הכלי</p>
             </CardBody>
           </Card>
         )}
@@ -121,7 +121,7 @@ export function VehicleHistoryPage() {
                 </div>
               ) : (
                 <p className="text-sm text-warning">
-                  הרכב הזה אינו רשום בקטלוג. הקריאות למטה הוגשו עם מספר רכב זה אך לא נמצא רכב מתאים.
+                  הכלי הזה אינו רשום בקטלוג. הקריאות למטה הוגשו עם מספר כלי זה אך לא נמצא כלי מתאים.
                 </p>
               )}
               <div className="text-xs text-muted mt-2">
@@ -134,7 +134,7 @@ export function VehicleHistoryPage() {
         {data && (
           <div>
             {!showNewCall ? (
-              <Button onClick={() => setShowNewCall(true)}>+ פתח תקלה חדשה לרכב זה</Button>
+              <Button onClick={() => setShowNewCall(true)}>+ פתח תקלה חדשה לכלי זה</Button>
             ) : (
               <NewCallForm
                 initialVehicleNumber={vehicleNumber}
@@ -148,7 +148,7 @@ export function VehicleHistoryPage() {
         {data && data.calls.length === 0 && (
           <Card>
             <CardBody>
-              <p className="text-muted text-center text-sm py-4">אין קריאות לרכב זה</p>
+              <p className="text-muted text-center text-sm py-4">אין קריאות לכלי זה</p>
             </CardBody>
           </Card>
         )}

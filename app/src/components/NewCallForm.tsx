@@ -1,14 +1,28 @@
 import { useState, useMemo } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useVehicles } from '../hooks/useVehicles'
+import { useParts } from '../hooks/useParts'
 import { useAuthStore } from '../store/auth'
 import { createCall } from '../lib/managerActions'
+import { addRequiredPart, createPart } from '../lib/warehouseActions'
 import { Card, CardBody, CardHeader } from './ui/Card'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { SpecialtiesPicker } from './SpecialtiesPicker'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { TankSpecialty } from '../types/db'
+import type { Part } from '../types/parts'
+
+interface DraftPart {
+  /** Stable client-side id for keys/removal. */
+  key:        string
+  /** Catalog part.id when picked from catalog; null for a fresh SKU. */
+  partId:     string | null
+  sku:        string
+  name:       string
+  quantity:   number
+  forceOrder: boolean
+}
 
 interface Props {
   onCreated?:           () => void
@@ -22,13 +36,16 @@ export function NewCallForm({ onCreated, onCancel, initialVehicleNumber }: Props
   const queryClient = useQueryClient()
   const { data: vehicles } = useVehicles()
 
+  const { data: catalog } = useParts()
+
   const [vehicleNumber, setVehicleNumber] = useState(initialVehicleNumber ?? '')
   const [description, setDescription]     = useState('')
   const [phone, setPhone]                 = useState(employee.phone ?? '')
   const [isDisabling, setIsDisabling]     = useState(false)
   const [specialties, setSpecialties]     = useState<TankSpecialty[]>([])
+  const [drafts, setDrafts]               = useState<DraftPart[]>([])
   const [busy, setBusy]                   = useState(false)
-  const [result, setResult]               = useState<{ display_id?: string; anomalies?: Array<{ code: string; detail?: string }> } | null>(null)
+  const [result, setResult]               = useState<{ display_id?: string; anomalies?: Array<{ code: string; detail?: string }>; partsAdded?: number; partsFailed?: number } | null>(null)
   const [error, setError]                 = useState<string | null>(null)
 
   // Detect tank vehicle to surface the specialty picker.
@@ -39,7 +56,7 @@ export function NewCallForm({ onCreated, onCancel, initialVehicleNumber }: Props
 
   async function submit() {
     setError(null); setResult(null)
-    if (!vehicleNumber.trim()) { setError('חובה להזין מספר רכב'); return }
+    if (!vehicleNumber.trim()) { setError('חובה להזין מספר כלי'); return }
     if (!description.trim())   { setError('חובה לתאר את התקלה'); return }
 
     setBusy(true)
@@ -50,19 +67,43 @@ export function NewCallForm({ onCreated, onCancel, initialVehicleNumber }: Props
       is_disabling:   isDisabling,
       specialties,
     })
-    setBusy(false)
 
     if (!res.ok) {
+      setBusy(false)
       setError(res.detail || res.error || 'שגיאה בפתיחת קריאה')
       return
     }
 
+    const callId = res.call?.id
+    let partsAdded  = 0
+    let partsFailed = 0
+
+    if (callId && drafts.length > 0) {
+      for (const d of drafts) {
+        let partId: string | null = d.partId
+        if (!partId) {
+          const c: any = await createPart(employee.employee_number, { sku: d.sku, name: d.name, quantity: 0 })
+          if (c.ok && c.part) partId = c.part.id as string
+          else { partsFailed += 1; continue }
+        }
+        if (!partId) { partsFailed += 1; continue }
+        const r = await addRequiredPart(employee.employee_number, callId, partId, d.quantity, d.forceOrder)
+        if (r.ok) partsAdded += 1
+        else      partsFailed += 1
+      }
+    }
+
+    setBusy(false)
     queryClient.invalidateQueries({ queryKey: ['technician_calls'] })
     queryClient.invalidateQueries({ queryKey: ['service_calls'] })
     queryClient.invalidateQueries({ queryKey: ['vehicle_history'] })
+    queryClient.invalidateQueries({ queryKey: ['parts'] })
+    queryClient.invalidateQueries({ queryKey: ['pending_parts_actions'] })
+    queryClient.invalidateQueries({ queryKey: ['calls_parts_status'] })
 
-    setResult({ display_id: res.call?.display_id, anomalies: res.anomalies })
-    setVehicleNumber(initialVehicleNumber ?? ''); setDescription(''); setIsDisabling(false); setSpecialties([])
+    setResult({ display_id: res.call?.display_id, anomalies: res.anomalies, partsAdded, partsFailed })
+    setVehicleNumber(initialVehicleNumber ?? '')
+    setDescription(''); setIsDisabling(false); setSpecialties([]); setDrafts([])
     onCreated?.()
   }
 
@@ -74,7 +115,7 @@ export function NewCallForm({ onCreated, onCancel, initialVehicleNumber }: Props
       </CardHeader>
       <CardBody className="flex flex-col gap-3">
         <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium text-foreground">מספר רכב</span>
+          <span className="text-sm font-medium text-foreground">מספר כלי</span>
           <input
             value={vehicleNumber}
             onChange={(e) => setVehicleNumber(e.target.value)}
@@ -120,6 +161,12 @@ export function NewCallForm({ onCreated, onCancel, initialVehicleNumber }: Props
           <SpecialtiesPicker value={specialties} onChange={setSpecialties} />
         )}
 
+        <DraftPartsEditor
+          catalog={catalog ?? []}
+          drafts={drafts}
+          onChange={setDrafts}
+        />
+
         <div className="flex gap-2 items-center pt-1">
           <Button onClick={submit} disabled={busy}>{busy ? 'שולח...' : 'פתח תקלה'}</Button>
           {onCancel && (
@@ -131,6 +178,12 @@ export function NewCallForm({ onCreated, onCancel, initialVehicleNumber }: Props
         {result && (
           <div className="text-xs text-success border border-success/40 bg-success/5 rounded-md p-2">
             ✓ נפתחה קריאה {result.display_id ?? ''}
+            {result.partsAdded != null && result.partsAdded > 0 && (
+              <span> · {result.partsAdded} חלקים נוספו</span>
+            )}
+            {result.partsFailed != null && result.partsFailed > 0 && (
+              <span className="text-danger"> · {result.partsFailed} חלקים נכשלו</span>
+            )}
             {result.anomalies && result.anomalies.length > 0 && (
               <span className="text-warning"> · חריגות: {result.anomalies.map((a) => a.code).join(', ')}</span>
             )}
@@ -138,5 +191,143 @@ export function NewCallForm({ onCreated, onCancel, initialVehicleNumber }: Props
         )}
       </CardBody>
     </Card>
+  )
+}
+
+// ---------- Optional draft parts ----------
+
+function DraftPartsEditor({
+  catalog, drafts, onChange,
+}: {
+  catalog: Part[]
+  drafts:  DraftPart[]
+  onChange: (next: DraftPart[]) => void
+}) {
+  const [skuQ, setSkuQ]   = useState('')
+  const [nameQ, setNameQ] = useState('')
+  const [qty, setQty]     = useState('1')
+  const [forceOrder, setForceOrder] = useState(false)
+  const [picked, setPicked] = useState<Part | null>(null)
+
+  const matches = useMemo(() => {
+    const sku  = skuQ.trim().toLowerCase()
+    const name = nameQ.trim().toLowerCase()
+    if (!sku && !name) return []
+    return catalog
+      .filter((p) => (
+        (!sku  || p.sku.toLowerCase().includes(sku)) &&
+        (!name || p.name.toLowerCase().includes(name))
+      ))
+      .slice(0, 6)
+  }, [catalog, skuQ, nameQ])
+
+  const sku  = skuQ.trim()
+  const name = nameQ.trim()
+  const q    = parseInt(qty, 10)
+  const qOk  = !Number.isNaN(q) && q > 0
+
+  function pick(p: Part) {
+    setPicked(p)
+    setSkuQ(p.sku)
+    setNameQ(p.name)
+  }
+
+  function reset() {
+    setSkuQ(''); setNameQ(''); setQty('1'); setForceOrder(false); setPicked(null)
+  }
+
+  function addExisting() {
+    if (!picked || !qOk) return
+    onChange([...drafts, {
+      key: `e-${Date.now()}-${picked.id}`,
+      partId: picked.id,
+      sku:    picked.sku,
+      name:   picked.name,
+      quantity:   q,
+      forceOrder,
+    }])
+    reset()
+  }
+
+  function addNew() {
+    if (!sku || !name || !qOk) return
+    onChange([...drafts, {
+      key: `n-${Date.now()}`,
+      partId: null,
+      sku, name,
+      quantity:   q,
+      forceOrder,
+    }])
+    reset()
+  }
+
+  function remove(key: string) {
+    onChange(drafts.filter((d) => d.key !== key))
+  }
+
+  const noMatch = !!sku && !!name && matches.length === 0 && !picked
+
+  return (
+    <div className="border border-border rounded-md p-3 flex flex-col gap-2 bg-muted-surface/40">
+      <div className="text-sm font-medium text-foreground">חלקים נדרשים (אופציונלי)</div>
+
+      {drafts.length > 0 && (
+        <ul className="flex flex-col gap-1">
+          {drafts.map((d) => (
+            <li key={d.key} className="flex items-center justify-between gap-2 text-xs bg-card border border-border rounded px-2 py-1">
+              <div className="truncate">
+                <span className="text-foreground">{d.name}</span>
+                <span className="font-mono text-muted ms-2">{d.sku}</span>
+                <span className="text-muted ms-2">×{d.quantity}</span>
+                {d.forceOrder && <span className="text-warning ms-2">(הזמנה)</span>}
+                {d.partId == null && <span className="text-info ms-2">(מק״ט חדש)</span>}
+              </div>
+              <button
+                type="button"
+                onClick={() => remove(d.key)}
+                className="text-danger hover:underline"
+              >הסר</button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <Input label="מק״ט" name="draft-sku"  value={skuQ}  onChange={(e) => { setSkuQ(e.target.value);  setPicked(null) }} />
+        <Input label="שם"   name="draft-name" value={nameQ} onChange={(e) => { setNameQ(e.target.value); setPicked(null) }} />
+      </div>
+
+      {matches.length > 0 && !picked && (
+        <ul className="bg-card border border-border rounded-md max-h-32 overflow-y-auto">
+          {matches.map((p) => (
+            <li key={p.id}>
+              <button
+                type="button"
+                onClick={() => pick(p)}
+                className="w-full text-start px-2 py-1.5 text-xs hover:bg-muted-surface flex items-center justify-between"
+              >
+                <span className="text-foreground">{p.name}</span>
+                <span className="font-mono text-muted">{p.sku} · במלאי {p.quantity}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="flex items-end gap-2 flex-wrap">
+        <Input label="כמות" name="draft-qty" type="number" value={qty} onChange={(e) => setQty(e.target.value)} className="max-w-[6rem]" />
+        <label className="flex items-center gap-1 text-xs text-foreground">
+          <input type="checkbox" checked={forceOrder} onChange={(e) => setForceOrder(e.target.checked)} />
+          <span>הזמן גם אם במלאי</span>
+        </label>
+        {picked ? (
+          <Button onClick={addExisting} disabled={!qOk} className="text-xs px-3 py-1">+ הוסף לרשימה</Button>
+        ) : noMatch ? (
+          <Button onClick={addNew} disabled={!qOk} className="text-xs px-3 py-1">+ צור מק״ט חדש והוסף</Button>
+        ) : (
+          <span className="text-[11px] text-muted">בחר חלק מההצעות, או הקלד מק״ט+שם חדשים</span>
+        )}
+      </div>
+    </div>
   )
 }

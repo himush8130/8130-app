@@ -56,7 +56,7 @@ export function EditCallForm({
       </CardHeader>
       <CardBody className="flex flex-col gap-3">
         <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium text-foreground">מספר רכב</span>
+          <span className="text-sm font-medium text-foreground">מספר כלי</span>
           <input
             value={vehicleNumber}
             onChange={(e) => setVehicleNumber(e.target.value)}
