@@ -8,7 +8,7 @@ import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import { useAuthStore } from '../store/auth'
-import { updatePart, type PartUpdates } from '../lib/warehouseActions'
+import { updatePart, setPartQuantity, type PartUpdates } from '../lib/warehouseActions'
 
 interface Filters {
   sku: string
@@ -192,16 +192,18 @@ export function PartsCatalogList({ parts }: { parts: Part[] }) {
             <table className="w-full text-xs table-fixed">
               <colgroup>
                 <col style={{ width: '26%' }} />
-                <col style={{ width: '34%' }} />
+                <col style={{ width: '31%' }} />
                 <col style={{ width: '14%' }} />
-                <col style={{ width: '26%' }} />
+                <col style={{ width: '19%' }} />
+                <col style={{ width: '10%' }} />
               </colgroup>
               <thead>
                 <tr className="text-[11px] text-muted border-b border-border">
                   <th className="text-start font-medium px-2 py-1.5">מק״ט</th>
                   <th className="text-start font-medium px-2 py-1.5">שם</th>
-                  <th className="text-start font-medium px-2 py-1.5">מלאי / סף</th>
+                  <th className="text-start font-medium px-2 py-1.5">מלאי</th>
                   <th className="text-start font-medium px-2 py-1.5">מיקום</th>
+                  <th className="text-start font-medium px-2 py-1.5">סף</th>
                 </tr>
               </thead>
               <tbody>
@@ -270,9 +272,9 @@ function PartRow({ part, canEdit, employeeNumber }: RowProps) {
         </td>
         <td className="px-2 py-1.5 text-foreground align-top break-words">{part.name}</td>
         <td className="px-2 py-1.5 align-top whitespace-nowrap">
-          <span className={low ? 'text-danger font-medium' : 'text-foreground'}>
-            {part.quantity} / {part.min_threshold}
-          </span>
+          {canEdit && employeeNumber != null
+            ? <StockCell part={part} employeeNumber={employeeNumber} low={low} onChange={refresh} />
+            : <span className={low ? 'text-danger font-medium' : 'text-foreground'}>{part.quantity}</span>}
         </td>
         <td className="px-2 py-1.5 text-muted align-top">
           {lines.length === 0 ? (
@@ -283,10 +285,11 @@ function PartRow({ part, canEdit, employeeNumber }: RowProps) {
             </div>
           )}
         </td>
+        <td className="px-2 py-1.5 text-muted align-top whitespace-nowrap">{part.min_threshold}</td>
       </tr>
       {expanded && employeeNumber != null && (
         <tr className="bg-muted-surface">
-          <td colSpan={4} className="px-3 py-3">
+          <td colSpan={5} className="px-3 py-3">
             <PartEditForm
               part={part}
               employeeNumber={employeeNumber}
@@ -297,6 +300,75 @@ function PartRow({ part, canEdit, employeeNumber }: RowProps) {
         </tr>
       )}
     </>
+  )
+}
+
+// ---------- inline stock editor ----------
+//
+// Click the number → opens an input with the current value. Enter or
+// blur commits via setPartQuantity (absolute). Escape cancels.
+function StockCell({
+  part, employeeNumber, low, onChange,
+}: {
+  part: Part
+  employeeNumber: number
+  low: boolean
+  onChange: () => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(String(part.quantity))
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  function start() {
+    setDraft(String(part.quantity))
+    setError(null)
+    setEditing(true)
+  }
+
+  async function commit() {
+    setEditing(false)
+    const n = parseInt(draft, 10)
+    if (Number.isNaN(n) || n < 0 || n === part.quantity) return
+    setBusy(true)
+    setError(null)
+    const res = await setPartQuantity(employeeNumber, part.id, n)
+    setBusy(false)
+    if (!res.ok) { setError('שגיאה'); return }
+    onChange()
+  }
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        type="number"
+        inputMode="numeric"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter')  (e.target as HTMLInputElement).blur()
+          if (e.key === 'Escape') setEditing(false)
+        }}
+        className="w-14 px-1 py-0.5 text-xs bg-card border border-primary rounded"
+      />
+    )
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1">
+      <button
+        type="button"
+        onClick={start}
+        disabled={busy}
+        title="לחץ לעדכון מלאי"
+        className={`hover:underline ${low ? 'text-danger font-medium' : 'text-foreground'}`}
+      >
+        {busy ? '…' : part.quantity}
+      </button>
+      {error && <span className="text-[10px] text-danger">{error}</span>}
+    </span>
   )
 }
 
