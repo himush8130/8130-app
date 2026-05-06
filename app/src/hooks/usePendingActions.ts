@@ -5,6 +5,8 @@ import type { CallRequiredPart } from '../types/parts'
 interface PendingPart extends CallRequiredPart {
   /** display_id of the parent call, embedded via FK */
   service_calls?: { display_id: string } | null
+  /** Embedded — needed for the per-row "שנה סטטוס" menu. */
+  parts?: { name: string; sku: string; quantity: number; is_sku_blocked?: boolean } | null
 }
 
 /**
@@ -18,7 +20,7 @@ export function usePendingActions() {
     queryFn: async (): Promise<PendingPart[]> => {
       const { data, error } = await supabase
         .from('call_required_parts')
-        .select('*, parts(name, quantity, sku), service_calls(display_id)')
+        .select('*, parts(name, quantity, sku, is_sku_blocked), service_calls(display_id)')
         .in('status', [
           'in_stock', 'awaiting_order', 'awaiting_receipt', 'received',
           'rejected', 'pending_special_approval', 'rejected_final',

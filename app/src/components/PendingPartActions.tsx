@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { Card, CardBody, CardHeader } from './ui/Card'
 import { Badge } from './ui/Badge'
 import { Button } from './ui/Button'
+import { StatusChangeMenu } from './StatusChangeMenu'
 import { useAuthStore } from '../store/auth'
 import { usePendingActions } from '../hooks/usePendingActions'
 import {
@@ -135,11 +136,11 @@ export function PendingPartActions() {
           function renderRow(row: typeof active[number], kind: 'active' | 'rejected') {
             const canDeliver = row.status === 'in_stock' || row.status === 'received'
             const advanceMap: Partial<Record<RequiredPartStatus, { next: RequiredPartStatus; label: string }>> = {
-              awaiting_order:   { next: 'awaiting_receipt', label: 'סמן כמוזמן' },
-              awaiting_receipt: { next: 'received',         label: 'סמן כהתקבל' },
+              awaiting_order:   { next: 'awaiting_receipt',         label: 'סמן כמוזמן' },
+              awaiting_receipt: { next: 'received',                 label: 'סמן כהתקבל' },
+              rejected:         { next: 'pending_special_approval', label: 'לאישור מיוחד' },
             }
             const action = advanceMap[row.status]
-            const canReject = row.status === 'awaiting_order' || row.status === 'awaiting_receipt'
 
             return (
               <li
@@ -154,6 +155,7 @@ export function PendingPartActions() {
                     <span className="font-mono text-[11px] text-muted">
                       {row.parts?.sku ?? ''}
                     </span>
+                    {row.parts?.is_sku_blocked && <Badge tone="warning">⚠ חסום</Badge>}
                     <Badge tone={statusTone[row.status]}>{statusLabel[row.status]}</Badge>
                     <span className="text-xs text-muted">×{row.quantity}</span>
                   </div>
@@ -183,42 +185,23 @@ export function PendingPartActions() {
                       onClick={() => advance(row.id, action.next)}
                       disabled={busyId === row.id}
                       className={`text-xs px-3 py-1 min-w-[7rem] ${
-                        row.status === 'awaiting_order'
-                          ? 'bg-danger hover:bg-danger/90 text-white'
-                          : 'bg-warning hover:bg-warning/90 text-white'
+                        row.status === 'awaiting_order' ? 'bg-danger hover:bg-danger/90 text-white'
+                          : row.status === 'awaiting_receipt' ? 'bg-warning hover:bg-warning/90 text-white'
+                          : row.status === 'rejected' ? 'bg-warning hover:bg-warning/90 text-white'
+                          : ''
                       }`}
                     >
                       {busyId === row.id ? '...' : action.label}
                     </Button>
                   )}
-                  {canReject && (
-                    <button
-                      type="button"
-                      onClick={() => advance(row.id, 'rejected')}
-                      disabled={busyId === row.id}
-                      className="text-[11px] text-danger underline disabled:opacity-50 text-center"
-                    >
-                      סמן כנדחה
-                    </button>
-                  )}
-                  {row.status === 'rejected' && (
-                    <>
-                      <Button
-                        onClick={() => advance(row.id, 'pending_special_approval')}
-                        disabled={busyId === row.id}
-                        className="text-xs px-3 py-1 min-w-[7rem] bg-warning hover:bg-warning/90 text-white"
-                      >
-                        לאישור מיוחד
-                      </Button>
-                      <Button
-                        onClick={() => advance(row.id, 'rejected_final')}
-                        disabled={busyId === row.id}
-                        className="text-xs px-3 py-1 min-w-[7rem] bg-muted-surface text-foreground border border-border"
-                      >
-                        נדחה סופית
-                      </Button>
-                    </>
-                  )}
+                  <StatusChangeMenu
+                    rowId={row.id}
+                    partId={row.part_id}
+                    currentStatus={row.status}
+                    isSkuBlocked={!!row.parts?.is_sku_blocked}
+                    employeeNumber={employee.employee_number}
+                    onChanged={refresh}
+                  />
                 </div>
               </li>
             )
