@@ -45,13 +45,14 @@ interface Props {
 export function PendingActionRow({
   row, busyId, employeeNumber, onAdvance, onDeliver, onChanged, highlight,
 }: Props) {
-  const canDeliver = row.status === 'in_stock' || row.status === 'received'
+  const isBlocked = !!row.parts?.is_sku_blocked
+  const canDeliver = !isBlocked && (row.status === 'in_stock' || row.status === 'received')
   const advanceMap: Partial<Record<RequiredPartStatus, { next: RequiredPartStatus; label: string }>> = {
     awaiting_order:   { next: 'awaiting_receipt',         label: 'סמן כמוזמן' },
     awaiting_receipt: { next: 'received',                 label: 'סמן כהתקבל' },
     rejected:         { next: 'pending_special_approval', label: 'לאישור מיוחד' },
   }
-  const action = advanceMap[row.status]
+  const action = isBlocked ? undefined : advanceMap[row.status]
 
   return (
     <li className={`flex items-center justify-between gap-3 px-4 py-2 border-b border-border last:border-0 ${highlight ? 'bg-danger/5' : ''}`}>

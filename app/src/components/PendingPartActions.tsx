@@ -20,7 +20,7 @@ const ANY_REJECTED_SET: ReadonlySet<RequiredPartStatus> = new Set([
   ...PENDING_REJECTED_SET, ...FINAL_REJECTED_SET,
 ])
 
-type Variant = 'active' | 'rejected' | 'rejected_final'
+type Variant = 'active' | 'rejected' | 'rejected_final' | 'blocked'
 
 interface Props {
   /** Which subset to render. Default `active`. */
@@ -81,9 +81,11 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
   }
 
   const rows = (data ?? []).filter((r) => {
-    // A blocked SKU supersedes every other status — those rows live
-    // exclusively in the BlockedSkuTable and don't appear here.
-    if (r.parts?.is_sku_blocked) return false
+    const blocked = !!r.parts?.is_sku_blocked
+    if (effective === 'blocked')        return blocked
+    // For every other variant: a blocked SKU is its OWN status, so
+    // those rows live exclusively in the blocked table.
+    if (blocked) return false
     if (effective === 'active')         return !ANY_REJECTED_SET.has(r.status)
     if (effective === 'rejected_final') return FINAL_REJECTED_SET.has(r.status)
     return PENDING_REJECTED_SET.has(r.status)  // 'rejected' (without _final)
@@ -92,16 +94,19 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
   const title =
     effective === 'rejected_final' ? 'מק״טים שנדחו סופית' :
     effective === 'rejected'       ? 'מק״טים שנדחו' :
+    effective === 'blocked'        ? 'מק״טים חסומים' :
                                      'פעולות פתוחות'
   const badgeId =
     effective === 'rejected_final' ? 4011 :
     effective === 'rejected'       ? 4008 :
+    effective === 'blocked'        ? 4010 :
                                      4003
   const tone =
     effective === 'rejected'       ? 'text-danger' :
-    effective === 'rejected_final' ? 'text-muted' :
+    effective === 'rejected_final' ? 'text-muted'  :
+    effective === 'blocked'        ? 'text-warning' :
                                      undefined
-  const isRejected = effective !== 'active'
+  const highlightRows = effective === 'rejected' || effective === 'rejected_final' || effective === 'blocked'
 
   return (
     <CollapsibleSection
@@ -117,7 +122,8 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
         <p className="text-sm text-muted text-center py-4">
           {effective === 'active'         ? 'אין כרגע חלקים שצריך לטפל בהם'
           : effective === 'rejected'      ? 'אין פריטים שנדחו'
-                                          : 'אין פריטים שנדחו סופית'}
+          : effective === 'rejected_final'? 'אין פריטים שנדחו סופית'
+                                          : 'אין מק״טים חסומים'}
         </p>
       )}
       {rows.length > 0 && (
@@ -131,7 +137,7 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
               onAdvance={advance}
               onDeliver={deliver}
               onChanged={refresh}
-              highlight={isRejected}
+              highlight={highlightRows}
             />
           ))}
         </ul>

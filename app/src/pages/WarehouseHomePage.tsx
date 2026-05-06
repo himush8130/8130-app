@@ -14,10 +14,6 @@ export function WarehouseHomePage() {
     () => (parts ?? []).filter((p) => p.quantity < p.min_threshold),
     [parts],
   )
-  const blockedSku = useMemo(
-    () => (parts ?? []).filter((p) => p.is_sku_blocked),
-    [parts],
-  )
 
   return (
     <>
@@ -30,13 +26,7 @@ export function WarehouseHomePage() {
             default since it's the day-to-day work surface. */}
         <PendingPartActions defaultOpen />
         <PendingPartActions variant="rejected" />
-        <PartsListSection
-          title="מק״טים חסומים"
-          parts={blockedSku}
-          variant="blocked_sku"
-          badgeId={4010}
-          catalogHref="/warehouse?sku_blocked=1"
-        />
+        <PendingPartActions variant="blocked" />
         <PartsListSection
           title="מלאי נמוך"
           parts={lowStock}

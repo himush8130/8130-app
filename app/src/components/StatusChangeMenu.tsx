@@ -45,9 +45,20 @@ export function StatusChangeMenu({
 
   async function setStatus(s: RequiredPartStatus) {
     setBusy(true)
+    // If the part is currently blocked, picking any concrete status
+    // implies "the part is back in flow" — clear the SKU block too.
+    if (isSkuBlocked) {
+      await updatePart(employeeNumber, partId, { is_sku_blocked: false })
+    }
     await updateRequiredPartStatus(employeeNumber, rowId, s)
     setBusy(false)
     setOpen(false)
+    if (isSkuBlocked) {
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['parts'] }),
+        queryClient.refetchQueries({ queryKey: ['pending_parts_actions'] }),
+      ])
+    }
     onChanged()
   }
 
