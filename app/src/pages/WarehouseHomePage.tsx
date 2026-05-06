@@ -26,10 +26,10 @@ export function WarehouseHomePage() {
       <main className="max-w-3xl mx-auto p-4 flex flex-col gap-4">
         <ComponentBadge id={4001} />
 
-        {/* 4 collapsible tables. The active-actions table opens by
+        {/* Collapsible tables. The active-actions table opens by
             default since it's the day-to-day work surface. */}
         <PendingPartActions defaultOpen />
-        <PendingPartActions rejectedOnly />
+        <PendingPartActions variant="rejected" />
         <PartsListSection
           title="מק״טים חסומים"
           parts={blockedSku}
@@ -44,6 +44,7 @@ export function WarehouseHomePage() {
           badgeId={4009}
           catalogHref="/warehouse?low_stock=1"
         />
+        <PendingPartActions variant="rejected_final" />
 
         {isLoading && <p className="text-sm text-muted text-center py-4">טוען קטלוג...</p>}
         {error && (

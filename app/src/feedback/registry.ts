@@ -66,6 +66,7 @@ export const COMPONENTS: Record<number, string> = {
   4008: 'REJECTED_PARTS_TABLE',
   4009: 'LOW_STOCK_TABLE',
   4010: 'BLOCKED_SKU_TABLE',
+  4011: 'REJECTED_FINAL_TABLE',
 
   // 5xxx — call detail
   5001: 'CALL_DETAIL',

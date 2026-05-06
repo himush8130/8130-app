@@ -198,17 +198,24 @@ function VehicleRow({
   return (
     <div className="px-4 py-3 border-b border-border last:border-0">
       {!editing ? (
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-3 flex-wrap min-w-0">
-            <span className="font-mono text-xs text-muted">{vehicle.vehicle_number}</span>
-            <Badge tone="neutral">{vehicle.type_name}</Badge>
-            {vehicle.department && <span className="text-xs text-muted">{vehicle.department}</span>}
-            {vehicle.sub_department && <span className="text-xs text-muted">· {vehicle.sub_department}</span>}
+        <div className="flex items-center gap-3">
+          <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-mono text-xs text-muted">{vehicle.vehicle_number}</span>
+              <Badge tone="neutral">{vehicle.type_name}</Badge>
+            </div>
+            {(vehicle.department || vehicle.sub_department || vehicle.location) && (
+              <div className="text-xs text-muted truncate">
+                {vehicle.department}
+                {vehicle.sub_department && ` · ${vehicle.sub_department}`}
+                {vehicle.location && ` · ${vehicle.location}`}
+              </div>
+            )}
           </div>
           {!confirmDelete && (
-            <div className="flex gap-1">
-              <Button variant="secondary" onClick={() => setEditing(true)}>ערוך</Button>
-              <Button variant="ghost" onClick={() => setConfirmDelete(true)}>מחק</Button>
+            <div className="flex gap-1 shrink-0">
+              <Button variant="secondary" onClick={() => setEditing(true)} className="text-xs px-3 py-1">ערוך</Button>
+              <Button variant="ghost"     onClick={() => setConfirmDelete(true)} className="text-xs px-3 py-1">מחק</Button>
             </div>
           )}
         </div>

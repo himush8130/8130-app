@@ -10,21 +10,32 @@ import { CollapsibleSection } from './CollapsibleSection'
 import { PendingActionRow, type RowData } from './PendingActionRow'
 import type { RequiredPartStatus } from '../types/db'
 
-const REJECTED_SET: ReadonlySet<RequiredPartStatus> = new Set([
-  'rejected', 'pending_special_approval', 'rejected_final',
+const PENDING_REJECTED_SET: ReadonlySet<RequiredPartStatus> = new Set([
+  'rejected', 'pending_special_approval',
+])
+const FINAL_REJECTED_SET: ReadonlySet<RequiredPartStatus> = new Set([
+  'rejected_final',
+])
+const ANY_REJECTED_SET: ReadonlySet<RequiredPartStatus> = new Set([
+  ...PENDING_REJECTED_SET, ...FINAL_REJECTED_SET,
 ])
 
+type Variant = 'active' | 'rejected' | 'rejected_final'
+
 interface Props {
-  /** When true, render only the rejected subset; otherwise only active. */
+  /** Which subset to render. Default `active`. */
+  variant?:     Variant
+  defaultOpen?: boolean
+  /** Legacy prop kept for backward compat — true → variant='rejected'. */
   rejectedOnly?: boolean
-  defaultOpen?:  boolean
 }
 
 /**
  * Renders ONE table — either the active pending-action rows or the
  * rejected ones. Both pull from the same hook so we don't double-fetch.
  */
-export function PendingPartActions({ rejectedOnly = false, defaultOpen = false }: Props) {
+export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false }: Props) {
+  const effective: Variant = variant ?? (rejectedOnly ? 'rejected' : 'active')
   const employee = useAuthStore((s) => s.employee)!
   const { data, isLoading } = usePendingActions()
   const queryClient = useQueryClient()
@@ -69,13 +80,25 @@ export function PendingPartActions({ rejectedOnly = false, defaultOpen = false }
     refresh()
   }
 
-  const rows = (data ?? []).filter((r) =>
-    rejectedOnly ? REJECTED_SET.has(r.status) : !REJECTED_SET.has(r.status),
-  )
+  const rows = (data ?? []).filter((r) => {
+    if (effective === 'active')         return !ANY_REJECTED_SET.has(r.status)
+    if (effective === 'rejected_final') return FINAL_REJECTED_SET.has(r.status)
+    return PENDING_REJECTED_SET.has(r.status)  // 'rejected' (without _final)
+  })
 
-  const title    = rejectedOnly ? 'מק״טים שנדחו' : 'פעולות פתוחות'
-  const badgeId  = rejectedOnly ? 4008 : 4003
-  const tone     = rejectedOnly ? 'text-danger' : undefined
+  const title =
+    effective === 'rejected_final' ? 'מק״טים שנדחו סופית' :
+    effective === 'rejected'       ? 'מק״טים שנדחו' :
+                                     'פעולות פתוחות'
+  const badgeId =
+    effective === 'rejected_final' ? 4011 :
+    effective === 'rejected'       ? 4008 :
+                                     4003
+  const tone =
+    effective === 'rejected'       ? 'text-danger' :
+    effective === 'rejected_final' ? 'text-muted' :
+                                     undefined
+  const isRejected = effective !== 'active'
 
   return (
     <CollapsibleSection
@@ -89,7 +112,9 @@ export function PendingPartActions({ rejectedOnly = false, defaultOpen = false }
       {error && <p className="text-xs text-danger text-center py-2">{error}</p>}
       {!isLoading && rows.length === 0 && (
         <p className="text-sm text-muted text-center py-4">
-          {rejectedOnly ? 'אין פריטים שנדחו' : 'אין כרגע חלקים שצריך לטפל בהם'}
+          {effective === 'active'         ? 'אין כרגע חלקים שצריך לטפל בהם'
+          : effective === 'rejected'      ? 'אין פריטים שנדחו'
+                                          : 'אין פריטים שנדחו סופית'}
         </p>
       )}
       {rows.length > 0 && (
@@ -103,7 +128,7 @@ export function PendingPartActions({ rejectedOnly = false, defaultOpen = false }
               onAdvance={advance}
               onDeliver={deliver}
               onChanged={refresh}
-              highlight={rejectedOnly}
+              highlight={isRejected}
             />
           ))}
         </ul>
