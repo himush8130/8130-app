@@ -54,6 +54,13 @@ export function AppHeader({ subtitle }: { subtitle?: string }) {
               </button>
             </span>
 
+            <Link
+              to="/manager/vehicles"
+              className="text-xs text-muted hover:text-foreground border border-border rounded-md px-2 py-1 inline-flex items-center"
+            >
+              ספר רכב
+            </Link>
+
             <span className="inline-flex items-center">
               <ComponentBadge id={1004} />
               <Link

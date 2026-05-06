@@ -19,7 +19,10 @@ export function usePendingActions() {
       const { data, error } = await supabase
         .from('call_required_parts')
         .select('*, parts(name, quantity, sku), service_calls(display_id)')
-        .in('status', ['in_stock', 'awaiting_order', 'awaiting_receipt', 'received'])
+        .in('status', [
+          'in_stock', 'awaiting_order', 'awaiting_receipt', 'received',
+          'rejected', 'pending_special_approval', 'rejected_final',
+        ])
         .order('requested_at', { ascending: true })
       if (error) throw error
       return (data ?? []) as PendingPart[]

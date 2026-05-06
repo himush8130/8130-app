@@ -23,18 +23,20 @@ interface Filters {
   storage_type: string
   storage_number: string
   cell_number: string
-  low_stock_only: boolean
+  low_stock_only:    boolean
+  sku_blocked_only:  boolean
 }
 
 const EMPTY_FILTERS: Filters = {
   sku: '', name: '', warehouse: '', cabinet: '',
   storage_type: '', storage_number: '', cell_number: '',
   low_stock_only: false,
+  sku_blocked_only: false,
 }
 
 function isActive(f: Filters): boolean {
-  if (f.low_stock_only) return true
-  const { low_stock_only: _, ...textFilters } = f
+  if (f.low_stock_only || f.sku_blocked_only) return true
+  const { low_stock_only: _, sku_blocked_only: __, ...textFilters } = f
   return Object.values(textFilters).some((v) => typeof v === 'string' && v.trim() !== '')
 }
 
@@ -65,20 +67,21 @@ export function PartsCatalogList({ parts }: { parts: Part[] }) {
   const [searchParams, setSearchParams] = useSearchParams()
   const [f, setF] = useState<Filters>(() => ({
     ...EMPTY_FILTERS,
-    low_stock_only: searchParams.get('low_stock') === '1',
+    low_stock_only:   searchParams.get('low_stock') === '1',
+    sku_blocked_only: searchParams.get('sku_blocked') === '1',
   }))
 
-  // Keep the URL in sync with the low_stock filter so deep-links
-  // and the back-button remain meaningful.
+  // Keep the URL in sync with toggle filters so deep-links and the
+  // back-button remain meaningful.
   useEffect(() => {
     const next = new URLSearchParams(searchParams)
-    if (f.low_stock_only) next.set('low_stock', '1')
-    else                  next.delete('low_stock')
+    if (f.low_stock_only)   next.set('low_stock', '1');   else next.delete('low_stock')
+    if (f.sku_blocked_only) next.set('sku_blocked', '1'); else next.delete('sku_blocked')
     if (next.toString() !== searchParams.toString()) {
       setSearchParams(next, { replace: true })
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [f.low_stock_only])
+  }, [f.low_stock_only, f.sku_blocked_only])
 
   const warehouses    = useMemo(() => uniqueValues(parts, (p) => p.warehouse),    [parts])
   const storageTypes  = useMemo(() => uniqueValues(parts, (p) => p.storage_type), [parts])
@@ -98,7 +101,8 @@ export function PartsCatalogList({ parts }: { parts: Part[] }) {
       if (cab   && String(p.cabinet ?? '')        !== cab)   return false
       if (stnum && String(p.storage_number ?? '') !== stnum) return false
       if (cell  && String(p.cell_number ?? '')    !== cell)  return false
-      if (f.low_stock_only && !(p.quantity < p.min_threshold)) return false
+      if (f.low_stock_only   && !(p.quantity < p.min_threshold)) return false
+      if (f.sku_blocked_only && !p.is_sku_blocked)                return false
       return true
     })
   }, [parts, f])
@@ -227,8 +231,13 @@ function PartRow({ part, canEdit, employeeNumber }: RowProps) {
 
   return (
     <>
-      <tr className="border-b border-border last:border-0">
-        <td className="px-3 py-2 text-muted font-mono text-xs whitespace-nowrap align-middle">{part.sku}</td>
+      <tr className={`border-b border-border last:border-0 ${part.is_sku_blocked ? 'bg-warning/5' : ''}`}>
+        <td className="px-3 py-2 text-muted font-mono text-xs whitespace-nowrap align-middle">
+          {part.sku}
+          {part.is_sku_blocked && (
+            <Badge tone="warning"><span className="me-1">⚠</span>חסום</Badge>
+          )}
+        </td>
         <td className="px-3 py-2 text-foreground align-middle">{part.name}</td>
         <td className="px-3 py-2 align-middle">
           {canEdit && employeeNumber != null
@@ -447,6 +456,7 @@ function PartEditForm({
     storage_number: part.storage_number  != null ? String(part.storage_number)  : '',
     cell_number:    part.cell_number     != null ? String(part.cell_number)     : '',
     is_exchange:    part.is_exchange,
+    is_sku_blocked: part.is_sku_blocked,
     supplier:       part.supplier         ?? '',
   })
   const [busy, setBusy] = useState(false)
@@ -482,6 +492,7 @@ function PartEditForm({
       storage_number: nullableInt(draft.storage_number),
       cell_number:    nullableInt(draft.cell_number),
       is_exchange:    draft.is_exchange,
+      is_sku_blocked: draft.is_sku_blocked,
       supplier:       draft.supplier.trim() || null,
     }
 
@@ -512,6 +523,17 @@ function PartEditForm({
           >
             <option value="no">לא</option>
             <option value="yes">כן</option>
+          </select>
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-sm font-medium text-foreground">מק״ט חסום</span>
+          <select
+            value={draft.is_sku_blocked ? 'yes' : 'no'}
+            onChange={(e) => set('is_sku_blocked', e.target.value === 'yes')}
+            className="px-3 py-2 bg-card border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+          >
+            <option value="no">לא</option>
+            <option value="yes">כן (יש לעדכן מק״ט חדש)</option>
           </select>
         </label>
       </div>

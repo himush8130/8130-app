@@ -84,7 +84,7 @@ createRoot(document.getElementById('root')!).render(
           <Route
             path="/manager/vehicles"
             element={
-              <ProtectedRoute allow={['manager']}>
+              <ProtectedRoute>
                 <VehiclesBookPage />
               </ProtectedRoute>
             }

@@ -18,19 +18,25 @@ import type { CallRequiredPart, PartWithdrawal, Part } from '../types/parts'
 import type { RequiredPartStatus } from '../types/db'
 
 const statusLabel: Record<RequiredPartStatus, string> = {
-  in_stock:         'במלאי',
-  awaiting_order:   'ממתין להזמנה',
-  awaiting_receipt: 'ממתין לקבלה',
-  received:         'התקבל',
-  delivered:        'נמסר',
+  in_stock:                 'במלאי',
+  awaiting_order:           'ממתין להזמנה',
+  awaiting_receipt:         'ממתין לקבלה',
+  received:                 'התקבל',
+  delivered:                'נמסר',
+  rejected:                 'נדחה',
+  pending_special_approval: 'לאישור מיוחד',
+  rejected_final:           'נדחה סופית',
 }
 
 const statusTone: Record<RequiredPartStatus, 'info' | 'success' | 'warning' | 'danger' | 'neutral'> = {
-  in_stock:         'success',
-  awaiting_order:   'danger',
-  awaiting_receipt: 'warning',
-  received:         'info',
-  delivered:        'neutral',
+  in_stock:                 'success',
+  awaiting_order:           'danger',
+  awaiting_receipt:         'warning',
+  received:                 'info',
+  delivered:                'neutral',
+  rejected:                 'danger',
+  pending_special_approval: 'warning',
+  rejected_final:           'neutral',
 }
 
 interface Props {

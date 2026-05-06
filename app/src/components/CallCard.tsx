@@ -24,19 +24,25 @@ const statusTone: Record<CallStatus, 'info' | 'success' | 'warning' | 'danger' |
 // reflect the worst required-part state, so the single chip tells the
 // whole story.
 const partsStatusOverride: Record<RequiredPartStatus, 'info' | 'success' | 'warning' | 'danger' | 'neutral'> = {
-  awaiting_order:   'danger',
-  awaiting_receipt: 'warning',
-  received:         'info',
-  in_stock:         'success',
-  delivered:        'neutral',
+  awaiting_order:           'danger',
+  awaiting_receipt:         'warning',
+  received:                 'info',
+  in_stock:                 'success',
+  delivered:                'neutral',
+  rejected:                 'danger',
+  pending_special_approval: 'warning',
+  rejected_final:           'neutral',
 }
 
 const partsStatusBadgeLabel: Record<RequiredPartStatus, string> = {
-  awaiting_order:   'ממתין להזמנת חלקים',
-  awaiting_receipt: 'חלקים בהזמנה',
-  received:         'חלקים התקבלו',
-  in_stock:         'חלקים במלאי',
-  delivered:        'חלקים נמסרו',
+  awaiting_order:           'ממתין להזמנת חלקים',
+  awaiting_receipt:         'חלקים בהזמנה',
+  received:                 'חלקים התקבלו',
+  in_stock:                 'חלקים במלאי',
+  delivered:                'חלקים נמסרו',
+  rejected:                 'חלקים נדחו',
+  pending_special_approval: 'חלקים לאישור מיוחד',
+  rejected_final:           'חלקים נדחו סופית',
 }
 
 interface Props {

@@ -178,7 +178,10 @@ async function addRequiredPart(params: any, requested_by: number): Promise<Respo
 // ---------------------------------------------------------------------
 async function updateRequiredPartStatus(params: any): Promise<Response> {
   const { required_part_id, status } = params ?? {}
-  const allowed = ['in_stock', 'awaiting_order', 'awaiting_receipt', 'received']
+  const allowed = [
+    'in_stock', 'awaiting_order', 'awaiting_receipt', 'received',
+    'rejected', 'pending_special_approval', 'rejected_final',
+  ]
   if (typeof required_part_id !== 'string' || !allowed.includes(status)) {
     return json(400, { ok: false, error: 'invalid_params' })
   }
@@ -295,7 +298,7 @@ async function recordWithdrawal(params: any, released_by: number): Promise<Respo
 const ALLOWED_PART_FIELDS = new Set([
   'name', 'sku', 'quantity', 'min_threshold',
   'warehouse', 'cabinet', 'storage_type', 'storage_number', 'cell_number',
-  'is_exchange', 'supplier', 'location', 'stock_count',
+  'is_exchange', 'supplier', 'location', 'stock_count', 'is_sku_blocked',
 ])
 
 async function createPart(params: any): Promise<Response> {

@@ -11,16 +11,18 @@ import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { TankSpecialty } from '../types/db'
 
 interface Props {
-  onCreated?: () => void
-  onCancel?:  () => void
+  onCreated?:           () => void
+  onCancel?:            () => void
+  /** Pre-fill the vehicle number when opened from a vehicle's page. */
+  initialVehicleNumber?: string
 }
 
-export function NewCallForm({ onCreated, onCancel }: Props) {
+export function NewCallForm({ onCreated, onCancel, initialVehicleNumber }: Props) {
   const employee = useAuthStore((s) => s.employee)!
   const queryClient = useQueryClient()
   const { data: vehicles } = useVehicles()
 
-  const [vehicleNumber, setVehicleNumber] = useState('')
+  const [vehicleNumber, setVehicleNumber] = useState(initialVehicleNumber ?? '')
   const [description, setDescription]     = useState('')
   const [phone, setPhone]                 = useState(employee.phone ?? '')
   const [isDisabling, setIsDisabling]     = useState(false)
@@ -60,7 +62,7 @@ export function NewCallForm({ onCreated, onCancel }: Props) {
     queryClient.invalidateQueries({ queryKey: ['vehicle_history'] })
 
     setResult({ display_id: res.call?.display_id, anomalies: res.anomalies })
-    setVehicleNumber(''); setDescription(''); setIsDisabling(false); setSpecialties([])
+    setVehicleNumber(initialVehicleNumber ?? ''); setDescription(''); setIsDisabling(false); setSpecialties([])
     onCreated?.()
   }
 

@@ -23,6 +23,9 @@ export type RequiredPartStatus =
   | 'awaiting_receipt'
   | 'received'
   | 'delivered'
+  | 'rejected'
+  | 'pending_special_approval'
+  | 'rejected_final'
 
 export interface Profession {
   id: number

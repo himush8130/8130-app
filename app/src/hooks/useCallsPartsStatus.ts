@@ -4,11 +4,14 @@ import type { RequiredPartStatus } from '../types/db'
 
 // Worst-status priority. Higher = blocks the call more.
 const PRIORITY: Record<RequiredPartStatus, number> = {
-  awaiting_order:   5,
-  awaiting_receipt: 4,
-  received:         3,
-  in_stock:         2,
-  delivered:        1,
+  rejected:                 8,  // most blocking — needs human attention
+  pending_special_approval: 7,
+  awaiting_order:           5,
+  awaiting_receipt:         4,
+  received:                 3,
+  in_stock:                 2,
+  rejected_final:           1,  // archived end-state
+  delivered:                1,
 }
 
 /**

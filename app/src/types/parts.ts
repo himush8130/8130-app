@@ -17,6 +17,7 @@ export interface Part {
   cell_number: number | null
   is_exchange: boolean
   stock_count: number               // future: physical re-count
+  is_sku_blocked: boolean
   created_at: string
 }
 

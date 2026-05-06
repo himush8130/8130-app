@@ -6,6 +6,7 @@ import { useCallsPartsStatus } from '../hooks/useCallsPartsStatus'
 import { useAuthStore } from '../store/auth'
 import { AppHeader } from '../components/AppHeader'
 import { CallCard } from '../components/CallCard'
+import { NewCallForm } from '../components/NewCallForm'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
@@ -32,6 +33,7 @@ export function VehicleHistoryPage() {
   const { data, isLoading, error } = useVehicleHistory(vehicleNumber)
   const { data: partsMap } = useCallsPartsStatus()
   const [filter, setFilter] = useState<TankSpecialty | 'all'>('all')
+  const [showNewCall, setShowNewCall] = useState(false)
 
   const isTank = data?.vehicle?.type_name === 'טנק'
   const isManager = employee?.permissions === 'manager'
@@ -127,6 +129,20 @@ export function VehicleHistoryPage() {
               </div>
             </CardBody>
           </Card>
+        )}
+
+        {data && (
+          <div>
+            {!showNewCall ? (
+              <Button onClick={() => setShowNewCall(true)}>+ פתח תקלה חדשה לרכב זה</Button>
+            ) : (
+              <NewCallForm
+                initialVehicleNumber={vehicleNumber}
+                onCancel={() => setShowNewCall(false)}
+                onCreated={() => setShowNewCall(false)}
+              />
+            )}
+          </div>
         )}
 
         {data && data.calls.length === 0 && (
