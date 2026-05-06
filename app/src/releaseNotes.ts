@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'בפעולות פתוחות: כפתור "שנה סטטוס" עם תפריט מלא — כולל מק״ט חסום ותיקון לחיצות בטעות.'
+export const LATEST_NOTE = 'פאנל מחסנאי: 4 טבלאות מתקפלות — פעולות פתוחות, מלאי נמוך, מק״טים חסומים, מק״טים שנדחו.'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build

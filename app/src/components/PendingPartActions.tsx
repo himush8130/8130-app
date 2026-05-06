@@ -1,53 +1,42 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Card, CardBody, CardHeader } from './ui/Card'
-import { Badge } from './ui/Badge'
-import { Button } from './ui/Button'
-import { StatusChangeMenu } from './StatusChangeMenu'
 import { useAuthStore } from '../store/auth'
 import { usePendingActions } from '../hooks/usePendingActions'
 import {
   recordWithdrawal,
   updateRequiredPartStatus,
 } from '../lib/warehouseActions'
-import { ComponentBadge } from '../feedback/ComponentBadge'
+import { CollapsibleSection } from './CollapsibleSection'
+import { PendingActionRow, type RowData } from './PendingActionRow'
 import type { RequiredPartStatus } from '../types/db'
 
-const statusLabel: Record<RequiredPartStatus, string> = {
-  in_stock:                 'במלאי',
-  awaiting_order:           'ממתין להזמנה',
-  awaiting_receipt:         'ממתין לקבלה',
-  received:                 'התקבל',
-  delivered:                'נמסר',
-  rejected:                 'נדחה',
-  pending_special_approval: 'לאישור מיוחד',
-  rejected_final:           'נדחה סופית',
+const REJECTED_SET: ReadonlySet<RequiredPartStatus> = new Set([
+  'rejected', 'pending_special_approval', 'rejected_final',
+])
+
+interface Props {
+  /** When true, render only the rejected subset; otherwise only active. */
+  rejectedOnly?: boolean
+  defaultOpen?:  boolean
 }
 
-const statusTone: Record<RequiredPartStatus, 'info' | 'success' | 'warning' | 'danger' | 'neutral'> = {
-  in_stock:                 'success',
-  awaiting_order:           'danger',
-  awaiting_receipt:         'warning',
-  received:                 'info',
-  delivered:                'neutral',
-  rejected:                 'danger',
-  pending_special_approval: 'warning',
-  rejected_final:           'neutral',
-}
-
-export function PendingPartActions() {
+/**
+ * Renders ONE table — either the active pending-action rows or the
+ * rejected ones. Both pull from the same hook so we don't double-fetch.
+ */
+export function PendingPartActions({ rejectedOnly = false, defaultOpen = false }: Props) {
   const employee = useAuthStore((s) => s.employee)!
   const { data, isLoading } = usePendingActions()
   const queryClient = useQueryClient()
   const [busyId, setBusyId] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [showRejected, setShowRejected] = useState(false)
+  const [error, setError]   = useState<string | null>(null)
 
   function refresh() {
     queryClient.invalidateQueries({ queryKey: ['pending_parts_actions'] })
-    queryClient.invalidateQueries({ queryKey: ['call_detail'] })
     queryClient.invalidateQueries({ queryKey: ['parts'] })
+    queryClient.invalidateQueries({ queryKey: ['call_detail'] })
+    queryClient.invalidateQueries({ queryKey: ['calls_parts_status'] })
+    queryClient.invalidateQueries({ queryKey: ['service_calls'] })
   }
 
   async function advance(id: string, next: RequiredPartStatus) {
@@ -58,7 +47,7 @@ export function PendingPartActions() {
     refresh()
   }
 
-  async function deliver(row: NonNullable<typeof data>[number]) {
+  async function deliver(row: RowData) {
     setBusyId(row.id); setError(null)
     const res = await recordWithdrawal(
       employee.employee_number,
@@ -80,134 +69,45 @@ export function PendingPartActions() {
     refresh()
   }
 
+  const rows = (data ?? []).filter((r) =>
+    rejectedOnly ? REJECTED_SET.has(r.status) : !REJECTED_SET.has(r.status),
+  )
+
+  const title    = rejectedOnly ? 'מק״טים שנדחו' : 'פעולות פתוחות'
+  const badgeId  = rejectedOnly ? 4008 : 4003
+  const tone     = rejectedOnly ? 'text-danger' : undefined
+
   return (
-    <Card>
-      <CardHeader>
-        <ComponentBadge id={4003} />
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-foreground">פעולות פתוחות</h3>
-          <span className="text-xs text-muted">{data?.length ?? 0}</span>
-        </div>
-      </CardHeader>
-      <CardBody className="p-0">
-        {isLoading && <p className="text-sm text-muted text-center py-4">טוען...</p>}
-        {error && <p className="text-xs text-danger text-center pb-2">{error}</p>}
-        {data && data.length === 0 && (
-          <p className="text-sm text-muted text-center py-4">אין כרגע חלקים שצריך לטפל בהם</p>
-        )}
-
-        {data && data.length > 0 && (() => {
-          const REJECTED_STATUSES: RequiredPartStatus[] =
-            ['rejected', 'pending_special_approval', 'rejected_final']
-          const active   = data.filter((r) => !REJECTED_STATUSES.includes(r.status))
-          const rejected = data.filter((r) =>  REJECTED_STATUSES.includes(r.status))
-
-          return (
-            <>
-              {active.length > 0 && (
-                <ul>
-                  {active.map((row) => renderRow(row, 'active'))}
-                </ul>
-              )}
-              {active.length === 0 && (
-                <p className="text-sm text-muted text-center py-3">אין פעולות פעילות</p>
-              )}
-
-              {rejected.length > 0 && (
-                <div className="border-t border-border">
-                  <button
-                    type="button"
-                    onClick={() => setShowRejected((v) => !v)}
-                    className="w-full text-start px-4 py-2 text-sm text-danger hover:bg-muted-surface flex items-center justify-between"
-                  >
-                    <span>{showRejected ? 'הסתר' : 'הצג'} פריטים שנדחו ({rejected.length})</span>
-                    <span>{showRejected ? '▲' : '▼'}</span>
-                  </button>
-                  {showRejected && (
-                    <ul>
-                      {rejected.map((row) => renderRow(row, 'rejected'))}
-                    </ul>
-                  )}
-                </div>
-              )}
-            </>
-          )
-
-          function renderRow(row: typeof active[number], kind: 'active' | 'rejected') {
-            const canDeliver = row.status === 'in_stock' || row.status === 'received'
-            const advanceMap: Partial<Record<RequiredPartStatus, { next: RequiredPartStatus; label: string }>> = {
-              awaiting_order:   { next: 'awaiting_receipt',         label: 'סמן כמוזמן' },
-              awaiting_receipt: { next: 'received',                 label: 'סמן כהתקבל' },
-              rejected:         { next: 'pending_special_approval', label: 'לאישור מיוחד' },
-            }
-            const action = advanceMap[row.status]
-
-            return (
-              <li
-                key={row.id}
-                className={`flex items-center justify-between gap-3 px-4 py-2 border-b border-border last:border-0 ${kind === 'rejected' ? 'bg-danger/5' : ''}`}
-              >
-                <div className="flex flex-col gap-0.5 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm text-foreground truncate">
-                      {row.parts?.name ?? '?'}
-                    </span>
-                    <span className="font-mono text-[11px] text-muted">
-                      {row.parts?.sku ?? ''}
-                    </span>
-                    {row.parts?.is_sku_blocked && <Badge tone="warning">⚠ חסום</Badge>}
-                    <Badge tone={statusTone[row.status]}>{statusLabel[row.status]}</Badge>
-                    <span className="text-xs text-muted">×{row.quantity}</span>
-                  </div>
-                  {row.service_calls?.display_id && (
-                    <Link to={`/call/${row.call_id}`} className="text-xs text-primary">
-                      עבור {row.service_calls.display_id} →
-                    </Link>
-                  )}
-                </div>
-
-                <div className="flex flex-col gap-1 items-stretch">
-                  {canDeliver && (
-                    <Button
-                      onClick={() => deliver(row)}
-                      disabled={busyId === row.id}
-                      className={`text-xs px-3 py-1 min-w-[7rem] ${
-                        row.status === 'in_stock'
-                          ? 'bg-success hover:bg-success/90 text-white'
-                          : 'bg-info hover:bg-info/90 text-white'
-                      }`}
-                    >
-                      {busyId === row.id ? '...' : 'מסור לטכנאי'}
-                    </Button>
-                  )}
-                  {!canDeliver && action && (
-                    <Button
-                      onClick={() => advance(row.id, action.next)}
-                      disabled={busyId === row.id}
-                      className={`text-xs px-3 py-1 min-w-[7rem] ${
-                        row.status === 'awaiting_order' ? 'bg-danger hover:bg-danger/90 text-white'
-                          : row.status === 'awaiting_receipt' ? 'bg-warning hover:bg-warning/90 text-white'
-                          : row.status === 'rejected' ? 'bg-warning hover:bg-warning/90 text-white'
-                          : ''
-                      }`}
-                    >
-                      {busyId === row.id ? '...' : action.label}
-                    </Button>
-                  )}
-                  <StatusChangeMenu
-                    rowId={row.id}
-                    partId={row.part_id}
-                    currentStatus={row.status}
-                    isSkuBlocked={!!row.parts?.is_sku_blocked}
-                    employeeNumber={employee.employee_number}
-                    onChanged={refresh}
-                  />
-                </div>
-              </li>
-            )
-          }
-        })()}
-      </CardBody>
-    </Card>
+    <CollapsibleSection
+      title={title}
+      count={rows.length}
+      defaultOpen={defaultOpen}
+      badgeId={badgeId}
+      countTone={tone}
+    >
+      {isLoading && <p className="text-sm text-muted text-center py-4">טוען...</p>}
+      {error && <p className="text-xs text-danger text-center py-2">{error}</p>}
+      {!isLoading && rows.length === 0 && (
+        <p className="text-sm text-muted text-center py-4">
+          {rejectedOnly ? 'אין פריטים שנדחו' : 'אין כרגע חלקים שצריך לטפל בהם'}
+        </p>
+      )}
+      {rows.length > 0 && (
+        <ul>
+          {rows.map((row) => (
+            <PendingActionRow
+              key={row.id}
+              row={row}
+              busyId={busyId}
+              employeeNumber={employee.employee_number}
+              onAdvance={advance}
+              onDeliver={deliver}
+              onChanged={refresh}
+              highlight={rejectedOnly}
+            />
+          ))}
+        </ul>
+      )}
+    </CollapsibleSection>
   )
 }

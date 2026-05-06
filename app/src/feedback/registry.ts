@@ -63,6 +63,9 @@ export const COMPONENTS: Record<number, string> = {
   4005: 'BTN_INC_QTY',
   4006: 'BTN_EDIT_PART',
   4007: 'PART_EDIT_FORM',
+  4008: 'REJECTED_PARTS_TABLE',
+  4009: 'LOW_STOCK_TABLE',
+  4010: 'BLOCKED_SKU_TABLE',
 
   // 5xxx — call detail
   5001: 'CALL_DETAIL',
