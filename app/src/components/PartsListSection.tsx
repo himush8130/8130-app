@@ -38,9 +38,11 @@ export function PartsListSection({ title, parts, badgeId, variant, defaultOpen, 
     if (!employee) return
     setBusyId(partId)
     await updatePart(employee.employee_number, partId, { is_sku_blocked: false })
+    await Promise.all([
+      queryClient.refetchQueries({ queryKey: ['parts'] }),
+      queryClient.refetchQueries({ queryKey: ['pending_parts_actions'] }),
+    ])
     setBusyId(null)
-    queryClient.invalidateQueries({ queryKey: ['parts'] })
-    queryClient.invalidateQueries({ queryKey: ['pending_parts_actions'] })
   }
 
   return (

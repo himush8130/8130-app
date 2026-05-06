@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { updateRequiredPartStatus, updatePart } from '../lib/warehouseActions'
 import type { RequiredPartStatus } from '../types/db'
 
@@ -38,6 +39,7 @@ interface Props {
 export function StatusChangeMenu({
   rowId, partId, currentStatus, isSkuBlocked, employeeNumber, onChanged,
 }: Props) {
+  const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
 
@@ -54,6 +56,13 @@ export function StatusChangeMenu({
     await updatePart(employeeNumber, partId, { is_sku_blocked: !isSkuBlocked })
     setBusy(false)
     setOpen(false)
+    // Explicit refetch (not just invalidate) so the BlockedSkuTable on
+    // the warehouse home re-renders with the freshly-flagged part
+    // immediately, instead of waiting for the next reactive cycle.
+    await Promise.all([
+      queryClient.refetchQueries({ queryKey: ['parts'] }),
+      queryClient.refetchQueries({ queryKey: ['pending_parts_actions'] }),
+    ])
     onChanged()
   }
 
