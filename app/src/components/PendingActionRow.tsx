@@ -63,8 +63,9 @@ export function PendingActionRow({
           <span className="font-mono text-[11px] text-muted">
             {row.parts?.sku ?? ''}
           </span>
-          {row.parts?.is_sku_blocked && <Badge tone="warning">⚠ חסום</Badge>}
-          <Badge tone={statusTone[row.status]}>{statusLabel[row.status]}</Badge>
+          {row.parts?.is_sku_blocked
+            ? <Badge tone="warning">⚠ מק״ט חסום</Badge>
+            : <Badge tone={statusTone[row.status]}>{statusLabel[row.status]}</Badge>}
           <span className="text-xs text-muted">×{row.quantity}</span>
         </div>
         {row.service_calls?.display_id && (

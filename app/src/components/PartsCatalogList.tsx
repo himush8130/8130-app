@@ -71,8 +71,29 @@ export function PartsCatalogList({ parts }: { parts: Part[] }) {
     sku_blocked_only: searchParams.get('sku_blocked') === '1',
   }))
 
-  // Keep the URL in sync with toggle filters so deep-links and the
-  // back-button remain meaningful.
+  // URL → state. Lets clicks on links like /warehouse?sku_blocked=1
+  // (e.g. from the home-page tables) flip the right toggle even when
+  // the component is already mounted, then scroll the catalog into
+  // view so the user actually sees the filtered list.
+  useEffect(() => {
+    const fromUrlLow     = searchParams.get('low_stock') === '1'
+    const fromUrlBlocked = searchParams.get('sku_blocked') === '1'
+    setF((prev) => {
+      if (prev.low_stock_only === fromUrlLow && prev.sku_blocked_only === fromUrlBlocked) {
+        return prev
+      }
+      return { ...prev, low_stock_only: fromUrlLow, sku_blocked_only: fromUrlBlocked }
+    })
+    if (fromUrlLow || fromUrlBlocked) {
+      // Defer to next tick so the new filtered list is rendered before scrolling.
+      setTimeout(() => {
+        document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 50)
+    }
+  }, [searchParams])
+
+  // State → URL: keep the URL in sync with toggle filters so deep-links
+  // and the back-button remain meaningful.
   useEffect(() => {
     const next = new URLSearchParams(searchParams)
     if (f.low_stock_only)   next.set('low_stock', '1');   else next.delete('low_stock')
@@ -111,7 +132,7 @@ export function PartsCatalogList({ parts }: { parts: Part[] }) {
   const VISIBLE_LIMIT = 100
 
   return (
-    <Card>
+    <Card id="catalog">
       <CardHeader>
         <ComponentBadge id={4002} />
         <div className="flex items-center justify-between flex-wrap gap-2">

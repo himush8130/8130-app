@@ -1,6 +1,10 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { CollapsibleSection } from './CollapsibleSection'
 import { Badge } from './ui/Badge'
+import { useAuthStore } from '../store/auth'
+import { updatePart } from '../lib/warehouseActions'
 import type { Part } from '../types/parts'
 
 function formatLocation(p: Part): string {
@@ -26,6 +30,18 @@ interface Props {
 
 export function PartsListSection({ title, parts, badgeId, variant, defaultOpen, catalogHref }: Props) {
   const tone = variant === 'low_stock' ? 'text-danger' : 'text-warning'
+  const employee = useAuthStore((s) => s.employee)
+  const queryClient = useQueryClient()
+  const [busyId, setBusyId] = useState<string | null>(null)
+
+  async function unblock(partId: string) {
+    if (!employee) return
+    setBusyId(partId)
+    await updatePart(employee.employee_number, partId, { is_sku_blocked: false })
+    setBusyId(null)
+    queryClient.invalidateQueries({ queryKey: ['parts'] })
+    queryClient.invalidateQueries({ queryKey: ['pending_parts_actions'] })
+  }
 
   return (
     <CollapsibleSection
@@ -54,11 +70,21 @@ export function PartsListSection({ title, parts, badgeId, variant, defaultOpen, 
                   </div>
                   <div className="text-xs text-muted truncate">{formatLocation(p)}</div>
                 </div>
-                <div className="shrink-0">
+                <div className="shrink-0 flex flex-col items-end gap-1">
                   {variant === 'low_stock' ? (
                     <Badge tone="danger">{p.quantity} / {p.min_threshold}</Badge>
                   ) : (
-                    <Badge tone="warning">⚠ חסום</Badge>
+                    <>
+                      <Badge tone="warning">⚠ חסום</Badge>
+                      <button
+                        type="button"
+                        onClick={() => unblock(p.id)}
+                        disabled={busyId === p.id}
+                        className="text-[11px] text-primary hover:underline disabled:opacity-50"
+                      >
+                        {busyId === p.id ? '...' : 'בטל חסימה'}
+                      </button>
+                    </>
                   )}
                 </div>
               </li>

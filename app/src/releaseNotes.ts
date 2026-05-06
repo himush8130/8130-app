@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'פאנל מחסנאי: 4 טבלאות מתקפלות — פעולות פתוחות, מלאי נמוך, מק״טים חסומים, מק״טים שנדחו.'
+export const LATEST_NOTE = 'תיקון "נהל בקטלוג", "בטל חסימה" בטבלת חסומים, חסום ונדחה אינם מוצגים יחד, וסדר הטבלאות עודכן.'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build

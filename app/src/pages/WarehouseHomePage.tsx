@@ -29,13 +29,7 @@ export function WarehouseHomePage() {
         {/* 4 collapsible tables. The active-actions table opens by
             default since it's the day-to-day work surface. */}
         <PendingPartActions defaultOpen />
-        <PartsListSection
-          title="מלאי נמוך"
-          parts={lowStock}
-          variant="low_stock"
-          badgeId={4009}
-          catalogHref="/warehouse?low_stock=1"
-        />
+        <PendingPartActions rejectedOnly />
         <PartsListSection
           title="מק״טים חסומים"
           parts={blockedSku}
@@ -43,7 +37,13 @@ export function WarehouseHomePage() {
           badgeId={4010}
           catalogHref="/warehouse?sku_blocked=1"
         />
-        <PendingPartActions rejectedOnly />
+        <PartsListSection
+          title="מלאי נמוך"
+          parts={lowStock}
+          variant="low_stock"
+          badgeId={4009}
+          catalogHref="/warehouse?low_stock=1"
+        />
 
         {isLoading && <p className="text-sm text-muted text-center py-4">טוען קטלוג...</p>}
         {error && (
