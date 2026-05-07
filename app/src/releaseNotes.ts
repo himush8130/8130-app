@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'מק״טים חסומים: כפתור "שנה סטטוס" שמבטל חסימה אוטומטית, וקישור לקריאה הרלוונטית.'
+export const LATEST_NOTE = 'באדק\' חלקים משני על כרטיס קריאה, "כל החלקים נופקו", פיצול תקין/בעיות/מושבת בכשירות.'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build

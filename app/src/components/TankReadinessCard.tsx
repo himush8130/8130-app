@@ -53,6 +53,7 @@ export function TankReadinessCard({
                 <th key={label} className="text-start font-medium px-2 py-1.5">{label}</th>
               ))}
               <th className="text-start font-medium px-2 py-1.5">תקין</th>
+              <th className="text-start font-medium px-2 py-1.5">בעיות</th>
               <th className="text-start font-medium px-2 py-1.5">מושבת</th>
               <th className="text-start font-medium px-2 py-1.5">%</th>
             </tr>
@@ -67,6 +68,9 @@ export function TankReadinessCard({
 }
 
 function CompanyRow({ g }: { g: CompanyReadiness }) {
+  // Operational counts non-disabling-fault vehicles as functional too
+  // — they are NOT "מושבת". The split column "בעיות" surfaces them
+  // alongside fully-healthy ones for a cleaner read.
   const operational = g.healthy + g.with_issues
   const p = pct(operational, g.total)
   return (
@@ -74,7 +78,8 @@ function CompanyRow({ g }: { g: CompanyReadiness }) {
       {g.groupValues.map((v, i) => (
         <td key={i} className="px-2 py-1.5 font-medium text-foreground truncate">{v}</td>
       ))}
-      <td className="px-2 py-1.5 text-success font-medium">{operational}/{g.total}</td>
+      <td className="px-2 py-1.5 text-success font-medium">{g.healthy}/{g.total}</td>
+      <td className="px-2 py-1.5 text-warning font-medium">{g.with_issues}</td>
       <td className="px-2 py-1.5 text-danger font-medium">{g.disabled}</td>
       <td className={`px-2 py-1.5 font-semibold ${tone(p)}`}>{p}%</td>
     </tr>

@@ -43,7 +43,7 @@ export function ManagerHomePage() {
               groupBy={['department', 'sub_department']}
               groupLabels={['מחלקה', 'תת מחלקה']}
               badgeId={3023}
-              colWidths={['22%', '38%', '16%', '12%', '12%']}
+              colWidths={['20%', '32%', '13%', '12%', '12%', '11%']}
             />
 
             <Card>

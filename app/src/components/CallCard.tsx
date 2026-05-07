@@ -28,7 +28,7 @@ const partsStatusOverride: Record<RequiredPartStatus, 'info' | 'success' | 'warn
   awaiting_receipt:         'warning',
   received:                 'info',
   in_stock:                 'success',
-  delivered:                'neutral',
+  delivered:                'success',  // "כל החלקים נופקו" — happy path
   rejected:                 'danger',
   pending_special_approval: 'warning',
   rejected_final:           'neutral',
@@ -39,7 +39,10 @@ const partsStatusBadgeLabel: Record<RequiredPartStatus, string> = {
   awaiting_receipt:         'חלקים בהזמנה',
   received:                 'חלקים התקבלו',
   in_stock:                 'חלקים במלאי',
-  delivered:                'חלקים נמסרו',
+  // 'delivered' is the worst-status only when ALL parts on the call
+  // are delivered (since it has the lowest priority). Surface that
+  // milestone explicitly.
+  delivered:                'כל החלקים נופקו',
   rejected:                 'חלקים נדחו',
   pending_special_approval: 'חלקים לאישור מיוחד',
   rejected_final:           'חלקים נדחו סופית',
@@ -66,6 +69,17 @@ export function CallCard({ call, partsStatus, vehicle }: Props) {
     ? partsStatusBadgeLabel[partsStatus!]
     : statusLabel[call.status]
 
+  // When the call is no longer waiting_for_parts (the recompute moved it
+  // back to in_treatment after the warehouse advanced parts) but parts
+  // are still in flight, surface the parts state alongside the main
+  // status — otherwise marking a part as "received" disappears from the
+  // open-faults view.
+  const showSecondaryParts =
+    !usePartsOverride
+    && partsStatus
+    && call.status !== 'closed'
+    && call.status !== 'cancelled'
+
   return (
     <Link to={`/call/${call.id}`} className="block hover:opacity-95 transition-opacity">
       <Card>
@@ -76,6 +90,11 @@ export function CallCard({ call, partsStatus, vehicle }: Props) {
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-semibold text-foreground">{call.display_id}</span>
                 <Badge tone={effectiveTone}>{effectiveLabel}</Badge>
+                {showSecondaryParts && (
+                  <Badge tone={partsStatusOverride[partsStatus!]}>
+                    {partsStatusBadgeLabel[partsStatus!]}
+                  </Badge>
+                )}
                 {call.profession_name && (
                   <Badge tone="neutral">{call.profession_name}</Badge>
                 )}
