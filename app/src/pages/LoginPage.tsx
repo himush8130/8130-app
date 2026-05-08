@@ -57,9 +57,13 @@ export function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardBody>
           <ComponentBadge id={2001} />
-          <header className="text-center mb-6">
-            <h1 className="text-2xl font-bold text-foreground">8130 APP</h1>
-            <p className="text-sm text-muted mt-1">כניסה למערכת</p>
+          <header className="text-center mb-6 flex flex-col items-center gap-3">
+            <img
+              src="/logo.png"
+              alt="חימוש 8130"
+              className="w-40 h-auto rounded-md bg-black p-2"
+            />
+            <p className="text-sm text-muted">כניסה למערכת</p>
           </header>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">

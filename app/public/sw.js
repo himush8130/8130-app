@@ -22,8 +22,9 @@ const API_CACHE   = '8130-api'
 const SHELL_PRECACHE = [
   '/',
   '/manifest.webmanifest',
-  '/icon.svg',
-  '/icon-maskable.svg',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/apple-touch-icon.png',
 ]
 
 self.addEventListener('install', (event) => {
