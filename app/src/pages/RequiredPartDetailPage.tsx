@@ -12,8 +12,6 @@ import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { Part } from '../types/parts'
 import type { RequiredPartStatus } from '../types/db'
 
-const EXTERNAL = '__external__'
-
 function locationLabel(p: Part): string {
   const out: string[] = []
   if (p.warehouse) out.push(p.warehouse)
@@ -30,7 +28,7 @@ export function RequiredPartDetailPage() {
   const employee = useAuthStore((s) => s.employee)!
   const queryClient = useQueryClient()
   const { data, isLoading, error } = useRequiredPartDetail(id)
-  const [pickedSource, setPickedSource] = useState<string>('')   // part.id or EXTERNAL
+  const [pickedSource, setPickedSource] = useState<string>('')   // parts.id of chosen location
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
 
@@ -47,18 +45,16 @@ export function RequiredPartDetailPage() {
 
   async function dispense() {
     if (!data) return
-    if (!pickedSource) { setActionError('בחר מיקום או "מלאי חיצוני"'); return }
-    const isExternal = pickedSource === EXTERNAL
-    const partId     = isExternal ? data.row.part_id : pickedSource
+    if (!pickedSource) { setActionError('בחר מיקום'); return }
     setBusy(true); setActionError(null)
     const res = await recordWithdrawal(
       employee.employee_number,
       data.row.call_id,
-      partId,
+      pickedSource,
       data.row.quantity,
       employee.employee_number,
       data.row.id,
-      isExternal,
+      false,  // is_external retired — "מלאי חיצוני" is now a regular catalog row.
     )
     setBusy(false)
     if (!res.ok) {
@@ -215,23 +211,6 @@ export function RequiredPartDetailPage() {
               {data.locations.length === 0 && (
                 <li className="text-xs text-muted py-1">אין מיקומים פנימיים לפריט זה — ניתן להנפיק ממלאי חיצוני בלבד.</li>
               )}
-              {canDeliver && canChangeStatus && (
-                <li>
-                  <label className={`flex items-center gap-2 px-3 py-2 rounded-md border cursor-pointer ${
-                    pickedSource === EXTERNAL ? 'border-primary bg-primary/5' : 'border-border'
-                  }`}>
-                    <input
-                      type="radio"
-                      name="source"
-                      value={EXTERNAL}
-                      checked={pickedSource === EXTERNAL}
-                      onChange={() => setPickedSource(EXTERNAL)}
-                    />
-                    <span className="flex-1 text-sm text-foreground">מלאי חיצוני</span>
-                    <span className="text-xs text-muted">המלאי הקיים לא ישתנה</span>
-                  </label>
-                </li>
-              )}
             </ul>
             {canDeliver && canChangeStatus && (
               <div className="flex gap-2 items-center">
@@ -272,7 +251,6 @@ export function RequiredPartDetailPage() {
                 </div>
               )}
               {actionError && <span className="text-xs text-danger">{actionError}</span>}
-              <p className="text-[11px] text-muted">לסטטוסים אחרים — לחץ על הבאדק' למעלה.</p>
             </CardBody>
           </Card>
         )}
@@ -298,9 +276,6 @@ export function RequiredPartDetailPage() {
                     : data.withdrawal?.source ? locationLabel(data.withdrawal.source) : '—'}
                 </span>
               </div>
-              {canChangeStatus && (
-                <p className="text-[11px] text-muted mt-2">לתיקון טעות, לחץ על הבאדק' "נמסר" למעלה כדי להחזיר לסטטוס קודם.</p>
-              )}
             </CardBody>
           </Card>
         )}

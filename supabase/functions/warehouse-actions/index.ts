@@ -175,25 +175,46 @@ async function updateRequiredPartStatus(params: any): Promise<Response> {
   if (error) return json(500, { ok: false, error: 'update_failed', detail: error.message })
 
   // Inventory + withdrawal handling for transitions involving 'received'/'delivered':
-  if (before.status === 'awaiting_receipt' && status === 'received') {
-    // Goods arrived. Caller picks where to put them:
-    //   receive_to='existing' + receive_part_id → bump that catalog row
-    //   receive_to='external'                   → skip inventory change
-    //   receive_to='new'      + receive_new_loc → create a new parts row
-    //   (no receive_to)                         → bump the row's part_id
+  const EXTERNAL_WAREHOUSE = 'מלאי חיצוני'
+
+  /** Pick (or auto-create) a destination part row, then bump its quantity. */
+  async function applyReceiveDestination(qty: number): Promise<string | null> {
     const receiveTo = params?.receive_to as string | undefined
+
     if (receiveTo === 'external') {
-      // no-op; the warehouse holds it externally.
-    } else if (receiveTo === 'new') {
+      // External is now a real catalog row keyed by sku + warehouse='מלאי חיצוני'.
+      // If it exists, bump it. If not, clone from the original and create.
+      const { data: orig } = await admin
+        .from('parts').select('sku, name, supplier').eq('id', before.part_id).maybeSingle()
+      if (!orig?.sku) return 'sku_lookup_failed'
+      const { data: existing } = await admin
+        .from('parts')
+        .select('id, quantity')
+        .eq('sku', orig.sku)
+        .eq('warehouse', EXTERNAL_WAREHOUSE)
+        .limit(1)
+        .maybeSingle()
+      if (existing) {
+        await admin.from('parts').update({ quantity: (existing.quantity ?? 0) + qty }).eq('id', existing.id)
+      } else {
+        const { error: insErr } = await admin.from('parts').insert({
+          sku: orig.sku, name: orig.name ?? '', supplier: orig.supplier ?? null,
+          quantity: qty, warehouse: EXTERNAL_WAREHOUSE,
+        })
+        if (insErr) return insErr.message
+      }
+      return null
+    }
+
+    if (receiveTo === 'new') {
       const loc = params?.receive_new_location ?? {}
-      // Look up the SKU/name of the original part to clone fields.
       const { data: orig } = await admin
         .from('parts').select('sku, name, supplier').eq('id', before.part_id).maybeSingle()
       const newRow: Record<string, unknown> = {
         sku:            orig?.sku ?? '',
         name:           orig?.name ?? '',
         supplier:       orig?.supplier ?? null,
-        quantity:       before.quantity,
+        quantity:       qty,
         warehouse:      typeof loc.warehouse      === 'string' ? loc.warehouse.trim()       || null : null,
         cabinet:        typeof loc.cabinet        === 'number' ? loc.cabinet                : null,
         storage_type:   typeof loc.storage_type   === 'string' ? loc.storage_type.trim()    || null : null,
@@ -201,38 +222,54 @@ async function updateRequiredPartStatus(params: any): Promise<Response> {
         cell_number:    typeof loc.cell_number    === 'number' ? loc.cell_number            : null,
       }
       const { error: insErr } = await admin.from('parts').insert(newRow)
-      if (insErr) return json(500, { ok: false, error: 'new_part_insert_failed', detail: insErr.message })
-    } else {
-      // 'existing' or default — bump the chosen catalog row.
-      const targetId = (receiveTo === 'existing' && typeof params?.receive_part_id === 'string')
-        ? params.receive_part_id
-        : before.part_id
-      const { data: stockRow } = await admin
-        .from('parts').select('quantity').eq('id', targetId).maybeSingle()
-      await admin.from('parts').update({ quantity: (stockRow?.quantity ?? 0) + before.quantity })
-        .eq('id', targetId)
+      if (insErr) return insErr.message
+      return null
     }
+
+    // 'existing' or default — bump the chosen catalog row.
+    const targetId = (receiveTo === 'existing' && typeof params?.receive_part_id === 'string')
+      ? params.receive_part_id
+      : before.part_id
+    const { data: stockRow } = await admin
+      .from('parts').select('quantity').eq('id', targetId).maybeSingle()
+    await admin.from('parts').update({ quantity: (stockRow?.quantity ?? 0) + qty }).eq('id', targetId)
+    return null
+  }
+
+  if (status === 'received' && before.status !== 'received' && before.status !== 'in_stock') {
+    if (before.status === 'delivered') {
+      // Coming back from delivered with a destination: drop the withdrawal
+      // record (don't auto-refund the source — the user already told us
+      // where the goods are now), and apply the destination.
+      const { data: wd } = await admin
+        .from('part_withdrawals')
+        .select('id')
+        .eq('required_part_id', required_part_id)
+        .maybeSingle()
+      if (wd) await admin.from('part_withdrawals').delete().eq('id', wd.id)
+    }
+    const err = await applyReceiveDestination(before.quantity)
+    if (err) return json(500, { ok: false, error: 'receive_failed', detail: err })
   } else if (before.status === 'received' && status === 'awaiting_receipt') {
     // Reverse correction.
     const { data: stockRow } = await admin
       .from('parts').select('quantity').eq('id', before.part_id).maybeSingle()
     await admin.from('parts').update({ quantity: Math.max(0, (stockRow?.quantity ?? 0) - before.quantity) })
       .eq('id', before.part_id)
-  } else if (before.status === 'delivered' && status !== 'delivered') {
-    // Revert from delivered: refund the withdrawal — restore stock and
-    // delete the withdrawal row. Skip refund when the original
-    // withdrawal was external (no inventory was deducted).
+  } else if (before.status === 'delivered' && status !== 'delivered' && status !== 'received') {
+    // Revert from delivered (without specifying a new destination):
+    // refund the withdrawal source, delete the withdrawal row.
     const { data: wd } = await admin
       .from('part_withdrawals')
-      .select('id, quantity, is_external')
+      .select('id, quantity, part_id, is_external')
       .eq('required_part_id', required_part_id)
       .maybeSingle()
     if (wd) {
       if (!wd.is_external) {
         const { data: stockRow } = await admin
-          .from('parts').select('quantity').eq('id', before.part_id).maybeSingle()
+          .from('parts').select('quantity').eq('id', wd.part_id).maybeSingle()
         await admin.from('parts').update({ quantity: (stockRow?.quantity ?? 0) + (wd.quantity ?? 0) })
-          .eq('id', before.part_id)
+          .eq('id', wd.part_id)
       }
       await admin.from('part_withdrawals').delete().eq('id', wd.id)
     }

@@ -92,9 +92,9 @@ export function StatusBadgeMenu({
       if (r === null) return
       reason = r.trim() || null
     }
-    // Going INTO 'received' from awaiting_receipt — surface the
-    // destination dialog so the warehouse picks where to add stock.
-    if (s === 'received' && currentStatus === 'awaiting_receipt' && !receive) {
+    // ANY transition into 'received' (from any other status) opens the
+    // destination dialog so the warehouse picks where the goods land.
+    if (s === 'received' && currentStatus !== 'received' && !receive) {
       setOpen(false)
       setReceiveOpen(true)
       return
