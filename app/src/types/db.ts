@@ -53,6 +53,7 @@ export interface Vehicle {
   department: string | null
   sub_department: string | null
   location: string | null
+  model: string | null
   created_at: string
 }
 

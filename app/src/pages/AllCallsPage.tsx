@@ -5,6 +5,7 @@ import { useCallsPartsStatus } from '../hooks/useCallsPartsStatus'
 import { useVehiclesMap } from '../hooks/useVehicles'
 import { AppHeader } from '../components/AppHeader'
 import { CallCard } from '../components/CallCard'
+import { CollapsibleSection } from '../components/CollapsibleSection'
 import { Card, CardBody } from '../components/ui/Card'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { CallStatus } from '../types/db'
@@ -111,14 +112,46 @@ export function AllCallsPage() {
           </Card>
         )}
 
-        {data && data.calls.map((call) => (
-          <CallCard
-            key={call.id}
-            call={call}
-            partsStatus={partsMap?.get(call.id) ?? null}
-            vehicle={call.vehicle_number ? vehiclesMap.get(call.vehicle_number) ?? null : null}
-          />
-        ))}
+        {(() => {
+          if (!data) return null
+          const closed = data.calls.filter((c) => c.status === 'closed' || c.status === 'cancelled')
+          const active = data.calls.filter((c) => c.status !== 'closed' && c.status !== 'cancelled')
+          // If the user explicitly filtered for closed/cancelled, open the closed
+          // section by default — no point in hiding what they asked for.
+          const closedDefaultOpen = statuses.length > 0 && statuses.every((s) => s === 'closed' || s === 'cancelled')
+          return (
+            <>
+              {active.length > 0 && (
+                <CollapsibleSection title="קריאות פעילות" count={active.length} defaultOpen>
+                  <div className="flex flex-col gap-2 p-2">
+                    {active.map((call) => (
+                      <CallCard
+                        key={call.id}
+                        call={call}
+                        partsStatus={partsMap?.get(call.id) ?? null}
+                        vehicle={call.vehicle_number ? vehiclesMap.get(call.vehicle_number) ?? null : null}
+                      />
+                    ))}
+                  </div>
+                </CollapsibleSection>
+              )}
+              {closed.length > 0 && (
+                <CollapsibleSection title="תקלות סגורות" count={closed.length} defaultOpen={closedDefaultOpen}>
+                  <div className="flex flex-col gap-2 p-2">
+                    {closed.map((call) => (
+                      <CallCard
+                        key={call.id}
+                        call={call}
+                        partsStatus={partsMap?.get(call.id) ?? null}
+                        vehicle={call.vehicle_number ? vehiclesMap.get(call.vehicle_number) ?? null : null}
+                      />
+                    ))}
+                  </div>
+                </CollapsibleSection>
+              )}
+            </>
+          )
+        })()}
       </main>
     </>
   )

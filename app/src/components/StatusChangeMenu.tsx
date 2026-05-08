@@ -44,13 +44,20 @@ export function StatusChangeMenu({
   const [busy, setBusy] = useState(false)
 
   async function setStatus(s: RequiredPartStatus) {
+    let reason: string | null = null
+    if (s === 'rejected') {
+      // Optional free-text reason. If user cancels prompt, abort.
+      const r = window.prompt('סיבת הדחייה (אופציונלי):', '')
+      if (r === null) return  // cancelled
+      reason = r.trim() || null
+    }
     setBusy(true)
     // If the part is currently blocked, picking any concrete status
     // implies "the part is back in flow" — clear the SKU block too.
     if (isSkuBlocked) {
       await updatePart(employeeNumber, partId, { is_sku_blocked: false })
     }
-    await updateRequiredPartStatus(employeeNumber, rowId, s)
+    await updateRequiredPartStatus(employeeNumber, rowId, s, reason)
     setBusy(false)
     setOpen(false)
     if (isSkuBlocked) {

@@ -19,6 +19,7 @@ const SETTINGS_LINKS: SettingsLink[] = [
   { to: '/manager/settings/vehicles',    label: 'ניהול כלים',     desc: 'הכלים והציוד שמטופלים במערכת' },
   { to: '/warehouse',                    label: 'ניהול חלקי חילוף', desc: 'קטלוג, חיפוש, עדכון כמויות וערכי שדה' },
   { to: '/manager/settings/availability',label: 'ניהול זמינות עובדים', desc: 'ימי חופש / מילואים / מחלה לכל עובד' },
+  { to: '/manager/settings/copy-format', label: 'פורמט העתקה',         desc: 'תוויות קבועות + חטיבה/גדוד שמופיעים בהעתקה מהירה' },
 ]
 
 export function ManagerHomePage() {

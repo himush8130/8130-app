@@ -7,6 +7,7 @@ import { useAuthStore } from '../store/auth'
 import { AppHeader } from '../components/AppHeader'
 import { CallCard } from '../components/CallCard'
 import { NewCallForm } from '../components/NewCallForm'
+import { CollapsibleSection } from '../components/CollapsibleSection'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
@@ -158,52 +159,67 @@ export function VehicleHistoryPage() {
         )}
 
         {buckets.disabling.length > 0 && (
-          <section className="flex flex-col gap-2">
-            <h3 className="text-sm font-semibold text-danger">תקלות משביתות ({buckets.disabling.length})</h3>
-            {buckets.disabling.map((call) => (
-              <CallWithSpecialty
-                key={call.id}
-                call={call}
-                partsStatus={partsMap?.get(call.id) ?? null}
-                vehicle={data?.vehicle ?? null}
-                showSpecialty={!!isTank}
-                canEdit={!!isTank && isManager}
-                onToggle={handleToggleSpecialty}
-              />
-            ))}
-          </section>
+          <CollapsibleSection
+            title="תקלות משביתות"
+            count={buckets.disabling.length}
+            defaultOpen
+            countTone="text-danger"
+          >
+            <div className="flex flex-col gap-2 p-2">
+              {buckets.disabling.map((call) => (
+                <CallWithSpecialty
+                  key={call.id}
+                  call={call}
+                  partsStatus={partsMap?.get(call.id) ?? null}
+                  vehicle={data?.vehicle ?? null}
+                  showSpecialty={!!isTank}
+                  canEdit={!!isTank && isManager}
+                  onToggle={handleToggleSpecialty}
+                />
+              ))}
+            </div>
+          </CollapsibleSection>
         )}
 
         {buckets.regular.length > 0 && (
-          <section className="flex flex-col gap-2">
-            <h3 className="text-sm font-semibold text-foreground">תקלות פתוחות ({buckets.regular.length})</h3>
-            {buckets.regular.map((call) => (
-              <CallWithSpecialty
-                key={call.id}
-                call={call}
-                partsStatus={partsMap?.get(call.id) ?? null}
-                vehicle={data?.vehicle ?? null}
-                showSpecialty={!!isTank}
-                canEdit={!!isTank && isManager}
-                onToggle={handleToggleSpecialty}
-              />
-            ))}
-          </section>
+          <CollapsibleSection
+            title="תקלות פתוחות"
+            count={buckets.regular.length}
+            defaultOpen
+          >
+            <div className="flex flex-col gap-2 p-2">
+              {buckets.regular.map((call) => (
+                <CallWithSpecialty
+                  key={call.id}
+                  call={call}
+                  partsStatus={partsMap?.get(call.id) ?? null}
+                  vehicle={data?.vehicle ?? null}
+                  showSpecialty={!!isTank}
+                  canEdit={!!isTank && isManager}
+                  onToggle={handleToggleSpecialty}
+                />
+              ))}
+            </div>
+          </CollapsibleSection>
         )}
 
         {buckets.closed.length > 0 && (
-          <section className="flex flex-col gap-2">
-            <h3 className="text-sm font-semibold text-muted">תקלות סגורות ({buckets.closed.length})</h3>
-            {buckets.closed.map((call) => (
-              <CallWithSpecialty
-                key={call.id}
-                call={call}
-                showSpecialty={!!isTank}
-                canEdit={false}
-                onToggle={handleToggleSpecialty}
-              />
-            ))}
-          </section>
+          <CollapsibleSection
+            title="תקלות סגורות"
+            count={buckets.closed.length}
+          >
+            <div className="flex flex-col gap-2 p-2">
+              {buckets.closed.map((call) => (
+                <CallWithSpecialty
+                  key={call.id}
+                  call={call}
+                  showSpecialty={!!isTank}
+                  canEdit={false}
+                  onToggle={handleToggleSpecialty}
+                />
+              ))}
+            </div>
+          </CollapsibleSection>
         )}
       </main>
     </>

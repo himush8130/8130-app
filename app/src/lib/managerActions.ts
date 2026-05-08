@@ -160,3 +160,26 @@ export async function deleteCall(
     params: { call_id: callId },
   })
 }
+
+export async function editComment(
+  employeeNumber: number,
+  commentId: string,
+  text: string,
+): Promise<CallActionResult> {
+  return invoke({
+    employee_number: employeeNumber,
+    action: 'edit_comment',
+    params: { comment_id: commentId, text },
+  })
+}
+
+export async function deleteComment(
+  employeeNumber: number,
+  commentId: string,
+): Promise<CallActionResult> {
+  return invoke({
+    employee_number: employeeNumber,
+    action: 'delete_comment',
+    params: { comment_id: commentId },
+  })
+}

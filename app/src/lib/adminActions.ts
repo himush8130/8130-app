@@ -82,6 +82,15 @@ export interface VehicleUpdates {
   department?: string | null
   sub_department?: string | null
   location?: string | null
+  model?: string | null
+}
+
+export function setAppSetting(employeeNumber: number, key: string, value: string) {
+  return invoke({
+    employee_number: employeeNumber,
+    action: 'set_app_setting',
+    params: { key, value },
+  })
 }
 
 export function createVehicle(employeeNumber: number, payload: { vehicle_number: string } & VehicleUpdates) {

@@ -27,6 +27,7 @@ const SettingsEmployeesPage   = lazy(() => import('./pages/SettingsEmployeesPage
 const SettingsVehiclesPage    = lazy(() => import('./pages/SettingsVehiclesPage').then(m => ({ default: m.SettingsVehiclesPage })))
 const SettingsAvailabilityPage = lazy(() => import('./pages/SettingsAvailabilityPage').then(m => ({ default: m.SettingsAvailabilityPage })))
 const VehiclesBookPage         = lazy(() => import('./pages/VehiclesBookPage').then(m => ({ default: m.VehiclesBookPage })))
+const SettingsCopyFormatPage   = lazy(() => import('./pages/SettingsCopyFormatPage').then(m => ({ default: m.SettingsCopyFormatPage })))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -134,6 +135,14 @@ createRoot(document.getElementById('root')!).render(
             element={
               <ProtectedRoute allow={['manager']}>
                 <SettingsAvailabilityPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/manager/settings/copy-format"
+            element={
+              <ProtectedRoute allow={['manager']}>
+                <SettingsCopyFormatPage />
               </ProtectedRoute>
             }
           />

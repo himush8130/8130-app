@@ -10,6 +10,7 @@ import { Button } from '../components/ui/Button'
 import { CallPartsSection } from '../components/CallPartsSection'
 import { CallActions } from '../components/CallActions'
 import { AddCommentForm } from '../components/AddCommentForm'
+import { CommentItem } from '../components/CommentItem'
 import { CallContactsPanel } from '../components/CallContactsPanel'
 import { PhoneActions } from '../components/PhoneActions'
 import { CopyCallSummaryButton } from '../components/CopyCallSummaryButton'
@@ -262,13 +263,7 @@ export function CallDetailPage() {
             ) : (
               <ul className="flex flex-col gap-3">
                 {comments.map((c) => (
-                  <li key={c.id} className="border-s-2 border-primary ps-3">
-                    <div className="text-xs text-muted">
-                      {c.author_employee_number ?? 'אנונימי'} ·{' '}
-                      {new Date(c.created_at).toLocaleString('he-IL')}
-                    </div>
-                    <p className="text-sm text-foreground mt-0.5 whitespace-pre-wrap">{c.text}</p>
-                  </li>
+                  <CommentItem key={c.id} comment={c} callId={call.id} />
                 ))}
               </ul>
             )}

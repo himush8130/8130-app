@@ -21,7 +21,6 @@ interface DraftPart {
   sku:        string
   name:       string
   quantity:   number
-  forceOrder: boolean
 }
 
 interface Props {
@@ -87,7 +86,7 @@ export function NewCallForm({ onCreated, onCancel, initialVehicleNumber }: Props
           else { partsFailed += 1; continue }
         }
         if (!partId) { partsFailed += 1; continue }
-        const r = await addRequiredPart(employee.employee_number, callId, partId, d.quantity, d.forceOrder)
+        const r = await addRequiredPart(employee.employee_number, callId, partId, d.quantity)
         if (r.ok) partsAdded += 1
         else      partsFailed += 1
       }
@@ -206,7 +205,6 @@ function DraftPartsEditor({
   const [skuQ, setSkuQ]   = useState('')
   const [nameQ, setNameQ] = useState('')
   const [qty, setQty]     = useState('1')
-  const [forceOrder, setForceOrder] = useState(false)
   const [picked, setPicked] = useState<Part | null>(null)
 
   const matches = useMemo(() => {
@@ -233,7 +231,7 @@ function DraftPartsEditor({
   }
 
   function reset() {
-    setSkuQ(''); setNameQ(''); setQty('1'); setForceOrder(false); setPicked(null)
+    setSkuQ(''); setNameQ(''); setQty('1'); setPicked(null)
   }
 
   function addExisting() {
@@ -243,8 +241,7 @@ function DraftPartsEditor({
       partId: picked.id,
       sku:    picked.sku,
       name:   picked.name,
-      quantity:   q,
-      forceOrder,
+      quantity: q,
     }])
     reset()
   }
@@ -255,8 +252,7 @@ function DraftPartsEditor({
       key: `n-${Date.now()}`,
       partId: null,
       sku, name,
-      quantity:   q,
-      forceOrder,
+      quantity: q,
     }])
     reset()
   }
@@ -279,7 +275,6 @@ function DraftPartsEditor({
                 <span className="text-foreground">{d.name}</span>
                 <span className="font-mono text-muted ms-2">{d.sku}</span>
                 <span className="text-muted ms-2">×{d.quantity}</span>
-                {d.forceOrder && <span className="text-warning ms-2">(הזמנה)</span>}
                 {d.partId == null && <span className="text-info ms-2">(מק״ט חדש)</span>}
               </div>
               <button
@@ -316,10 +311,6 @@ function DraftPartsEditor({
 
       <div className="flex items-end gap-2 flex-wrap">
         <Input label="כמות" name="draft-qty" type="number" value={qty} onChange={(e) => setQty(e.target.value)} className="max-w-[6rem]" />
-        <label className="flex items-center gap-1 text-xs text-foreground">
-          <input type="checkbox" checked={forceOrder} onChange={(e) => setForceOrder(e.target.checked)} />
-          <span>הזמן גם אם במלאי</span>
-        </label>
         {picked ? (
           <Button onClick={addExisting} disabled={!qOk} className="text-xs px-3 py-1">+ הוסף לרשימה</Button>
         ) : noMatch ? (

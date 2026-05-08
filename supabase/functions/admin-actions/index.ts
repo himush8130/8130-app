@@ -69,6 +69,8 @@ Deno.serve(async (req: Request) => {
     case 'delete_vehicle':    return await deleteVehicle(params)
 
     case 'set_availability':  return await setAvailability(params)
+
+    case 'set_app_setting':   return await setAppSetting(params)
     default:
       return json(400, { ok: false, error: 'unknown_action', action })
   }
@@ -263,7 +265,7 @@ async function deleteEmployee(params: any): Promise<Response> {
 // ----- Vehicle actions -----
 
 const ALLOWED_VEH_FIELDS = new Set([
-  'type_name', 'department', 'sub_department', 'location',
+  'type_name', 'department', 'sub_department', 'location', 'model',
 ])
 
 async function createVehicle(params: any): Promise<Response> {
@@ -281,6 +283,7 @@ async function createVehicle(params: any): Promise<Response> {
   if (typeof rest.department === 'string')     row.department     = rest.department.trim()     || null
   if (typeof rest.sub_department === 'string') row.sub_department = rest.sub_department.trim() || null
   if (typeof rest.location === 'string')       row.location       = rest.location.trim()       || null
+  if (typeof rest.model === 'string')          row.model          = rest.model.trim()          || null
 
   const { data, error } = await admin
     .from('vehicles')
@@ -356,6 +359,18 @@ async function setAvailability(params: any): Promise<Response> {
     .upsert({ employee_number, date, reason: reason ?? null }, { onConflict: 'employee_number,date' })
   if (error) return json(500, { ok: false, error: 'upsert_failed', detail: error.message })
   return json(200, { ok: true, available: false })
+}
+
+async function setAppSetting(params: any): Promise<Response> {
+  const { key, value } = params ?? {}
+  if (typeof key !== 'string' || typeof value !== 'string') {
+    return json(400, { ok: false, error: 'invalid_params' })
+  }
+  const { error } = await admin
+    .from('app_settings')
+    .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' })
+  if (error) return json(500, { ok: false, error: 'upsert_failed', detail: error.message })
+  return json(200, { ok: true })
 }
 
 // ----- helpers -----

@@ -85,6 +85,8 @@ Deno.serve(async (req: Request) => {
     case 'reopen_call':                    return await reopenCall(params)
     case 'close_call':                     return await closeCall(params, employee_number)
     case 'add_comment':                    return await addComment(params, employee_number)
+    case 'edit_comment':                   return await editComment(params, employee_number, caller.permissions === 'manager')
+    case 'delete_comment':                 return await deleteComment(params, employee_number, caller.permissions === 'manager')
     case 'set_call_disabling':             return await setCallDisabling(params)
     case 'set_call_specialties':           return managerOnly(() => setCallSpecialties(params))
     case 'create_call':                    return await createCall(params, employee_number, caller.name)
@@ -572,6 +574,39 @@ async function addComment(params: any, employeeNumber: number): Promise<Response
 
   if (error) return json(500, { ok: false, error: 'insert_failed', detail: error.message })
   return json(200, { ok: true, comment: data })
+}
+
+async function editComment(params: any, employeeNumber: number, isManager: boolean): Promise<Response> {
+  const { comment_id, text } = params ?? {}
+  if (typeof comment_id !== 'string' || typeof text !== 'string' || text.trim().length === 0) {
+    return json(400, { ok: false, error: 'invalid_params' })
+  }
+  // Author or manager only.
+  const { data: existing, error: lookErr } = await admin
+    .from('call_comments').select('author_employee_number').eq('id', comment_id).maybeSingle()
+  if (lookErr) return json(500, { ok: false, error: 'lookup_failed', detail: lookErr.message })
+  if (!existing) return json(404, { ok: false, error: 'not_found' })
+  if (!isManager && existing.author_employee_number !== employeeNumber) {
+    return json(403, { ok: false, error: 'forbidden' })
+  }
+  const { error } = await admin.from('call_comments').update({ text: text.trim() }).eq('id', comment_id)
+  if (error) return json(500, { ok: false, error: 'update_failed', detail: error.message })
+  return json(200, { ok: true })
+}
+
+async function deleteComment(params: any, employeeNumber: number, isManager: boolean): Promise<Response> {
+  const { comment_id } = params ?? {}
+  if (typeof comment_id !== 'string') return json(400, { ok: false, error: 'invalid_params' })
+  const { data: existing, error: lookErr } = await admin
+    .from('call_comments').select('author_employee_number').eq('id', comment_id).maybeSingle()
+  if (lookErr) return json(500, { ok: false, error: 'lookup_failed', detail: lookErr.message })
+  if (!existing) return json(404, { ok: false, error: 'not_found' })
+  if (!isManager && existing.author_employee_number !== employeeNumber) {
+    return json(403, { ok: false, error: 'forbidden' })
+  }
+  const { error } = await admin.from('call_comments').delete().eq('id', comment_id)
+  if (error) return json(500, { ok: false, error: 'delete_failed', detail: error.message })
+  return json(200, { ok: true })
 }
 
 // ----- helpers -----

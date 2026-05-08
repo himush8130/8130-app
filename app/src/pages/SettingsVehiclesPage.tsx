@@ -111,6 +111,7 @@ function AddRow({
   const [department, setDept] = useState('')
   const [sub_department, setSub] = useState('')
   const [location, setLocation] = useState('')
+  const [model, setModel] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -125,6 +126,7 @@ function AddRow({
       department: department.trim() || null,
       sub_department: sub_department.trim() || null,
       location: location.trim() || null,
+      model: model.trim() || null,
     })
     setBusy(false)
     if (!res.ok) {
@@ -142,6 +144,7 @@ function AddRow({
         <Input label="מחלקה" name="dept"  value={department}     onChange={(e) => setDept(e.target.value)} />
         <Input label="תת מחלקה" name="sub" value={sub_department} onChange={(e) => setSub(e.target.value)} />
         <Input label="מיקום"   name="loc"  value={location}       onChange={(e) => setLocation(e.target.value)} />
+        <Input label="סוג הכלי (דגם)" name="model" value={model} onChange={(e) => setModel(e.target.value)} />
       </div>
       <div className="flex gap-2 items-center">
         <Button onClick={save} disabled={busy}>{busy ? 'שומר...' : 'הוסף'}</Button>
@@ -167,6 +170,7 @@ function VehicleRow({
   const [department, setDept] = useState(vehicle.department ?? '')
   const [sub_department, setSub] = useState(vehicle.sub_department ?? '')
   const [location, setLocation] = useState(vehicle.location ?? '')
+  const [model, setModel] = useState(vehicle.model ?? '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -180,6 +184,7 @@ function VehicleRow({
       department: department.trim() || null,
       sub_department: sub_department.trim() || null,
       location: location.trim() || null,
+      model: model.trim() || null,
     })
     setBusy(false)
     if (!res.ok) { setError('שגיאה'); return }
@@ -229,6 +234,7 @@ function VehicleRow({
             <Input label="מחלקה" name={`d-${vehicle.vehicle_number}`} value={department} onChange={(e) => setDept(e.target.value)} />
             <Input label="תת מחלקה" name={`s-${vehicle.vehicle_number}`} value={sub_department} onChange={(e) => setSub(e.target.value)} />
             <Input label="מיקום" name={`l-${vehicle.vehicle_number}`} value={location} onChange={(e) => setLocation(e.target.value)} />
+            <Input label="סוג הכלי (דגם)" name={`m-${vehicle.vehicle_number}`} value={model} onChange={(e) => setModel(e.target.value)} />
           </div>
           <div className="flex gap-2 items-center">
             <Button onClick={save} disabled={busy}>{busy ? 'שומר...' : 'שמור'}</Button>

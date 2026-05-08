@@ -1,7 +1,13 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Badge } from './ui/Badge'
 import { Button } from './ui/Button'
 import { StatusChangeMenu } from './StatusChangeMenu'
+import { useAuthStore } from '../store/auth'
+import { useVehiclesMap } from '../hooks/useVehicles'
+import { useAppSettings } from '../hooks/useAppSettings'
+import { useVehicleCallStats } from '../hooks/useVehicleCallStats'
+import { buildCopyText } from '../lib/copyFormat'
 import type { CallRequiredPart } from '../types/parts'
 import type { RequiredPartStatus } from '../types/db'
 
@@ -30,6 +36,7 @@ const statusTone: Record<RequiredPartStatus, 'info' | 'success' | 'warning' | 'd
 export interface RowData extends CallRequiredPart {
   service_calls?: { display_id: string } | null
   parts?: { name: string; sku: string; quantity: number; is_sku_blocked?: boolean } | null
+  rejection_reason: string | null
 }
 
 interface Props {
@@ -45,8 +52,42 @@ interface Props {
 export function PendingActionRow({
   row, busyId, employeeNumber, onAdvance, onDeliver, onChanged, highlight,
 }: Props) {
+  const employee = useAuthStore((s) => s.employee)
+  const canChangeStatus = employee?.permissions === 'warehouse' || employee?.permissions === 'manager'
   const isBlocked = !!row.parts?.is_sku_blocked
-  const canDeliver = !isBlocked && (row.status === 'in_stock' || row.status === 'received')
+  const canDeliver = !isBlocked && canChangeStatus && (row.status === 'in_stock' || row.status === 'received')
+
+  // Quick-copy support: pulls the vehicle, settings and disabling
+  // state to assemble the user-defined multi-line template.
+  const vehiclesMap = useVehiclesMap()
+  const { data: settings } = useAppSettings()
+  const { data: callStats } = useVehicleCallStats()
+  const [copied, setCopied] = useState(false)
+
+  async function copyName() {
+    if (!settings || !row.parts) return
+    const callRow = row as unknown as { vehicle_number?: string }
+    // pending_parts_actions doesn't embed vehicle_number — fall back via service_calls if needed.
+    // For quick-copy we look the vehicle up via call → service_calls, but service_calls only
+    // gives display_id. We resolve vehicle_number via the embedded service_calls when present.
+    const sc = (row as any).service_calls as { display_id?: string; vehicle_number?: string } | undefined
+    const vehicleNumber = sc?.vehicle_number ?? callRow.vehicle_number ?? null
+    const vehicle = vehicleNumber ? vehiclesMap.get(vehicleNumber) ?? null : null
+    const stats   = vehicleNumber ? callStats?.get(vehicleNumber) : undefined
+    const text = buildCopyText({
+      settings,
+      vehicle,
+      vehicleDisabled: !!stats?.disabled,
+      row,
+      partName: row.parts.name,
+      partSku:  row.parts.sku,
+    })
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch { /* clipboard may be denied */ }
+  }
   const advanceMap: Partial<Record<RequiredPartStatus, { next: RequiredPartStatus; label: string }>> = {
     awaiting_order:   { next: 'awaiting_receipt',         label: 'סמן כמוזמן' },
     awaiting_receipt: { next: 'received',                 label: 'סמן כהתקבל' },
@@ -58,9 +99,14 @@ export function PendingActionRow({
     <li className={`flex items-center justify-between gap-3 px-4 py-2 border-b border-border last:border-0 ${highlight ? 'bg-danger/5' : ''}`}>
       <div className="flex flex-col gap-0.5 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm text-foreground truncate">
-            {row.parts?.name ?? '?'}
-          </span>
+          <button
+            type="button"
+            onClick={copyName}
+            title="לחץ להעתקת תקציר"
+            className="text-sm text-foreground truncate text-start hover:underline"
+          >
+            {row.parts?.name ?? '?'}{copied && <span className="text-success ms-1">✓ הועתק</span>}
+          </button>
           <span className="font-mono text-[11px] text-muted">
             {row.parts?.sku ?? ''}
           </span>
@@ -73,6 +119,9 @@ export function PendingActionRow({
           <Link to={`/call/${row.call_id}`} className="text-xs text-primary">
             עבור {row.service_calls.display_id} →
           </Link>
+        )}
+        {row.rejection_reason && (
+          <div className="text-[11px] text-danger truncate">סיבת דחייה: {row.rejection_reason}</div>
         )}
       </div>
 
@@ -90,7 +139,7 @@ export function PendingActionRow({
             {busyId === row.id ? '...' : 'מסור לטכנאי'}
           </Button>
         )}
-        {!canDeliver && action && (
+        {!canDeliver && action && canChangeStatus && (
           <Button
             onClick={() => onAdvance(row.id, action.next)}
             disabled={busyId === row.id}
@@ -104,14 +153,16 @@ export function PendingActionRow({
             {busyId === row.id ? '...' : action.label}
           </Button>
         )}
-        <StatusChangeMenu
-          rowId={row.id}
-          partId={row.part_id}
-          currentStatus={row.status}
-          isSkuBlocked={!!row.parts?.is_sku_blocked}
-          employeeNumber={employeeNumber}
-          onChanged={onChanged}
-        />
+        {canChangeStatus && (
+          <StatusChangeMenu
+            rowId={row.id}
+            partId={row.part_id}
+            currentStatus={row.status}
+            isSkuBlocked={!!row.parts?.is_sku_blocked}
+            employeeNumber={employeeNumber}
+            onChanged={onChanged}
+          />
+        )}
       </div>
     </li>
   )

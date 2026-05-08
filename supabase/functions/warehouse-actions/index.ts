@@ -105,67 +105,25 @@ Deno.serve(async (req: Request) => {
 // ---------------------------------------------------------------------
 async function addRequiredPart(params: any, requested_by: number): Promise<Response> {
   const { call_id, part_id, quantity } = params ?? {}
-  const force_order = !!params?.force_order
   if (typeof call_id !== 'string' || typeof part_id !== 'string' || typeof quantity !== 'number' || quantity <= 0) {
     return json(400, { ok: false, error: 'invalid_params' })
   }
 
-  const { data: part, error: partErr } = await admin
-    .from('parts')
-    .select('id, quantity')
-    .eq('id', part_id)
-    .maybeSingle()
-  if (partErr) return json(500, { ok: false, error: 'part_lookup_failed', detail: partErr.message })
-  if (!part)   return json(400, { ok: false, error: 'unknown_part' })
-
-  let inStockQty = 0
-  let toOrderQty = 0
-
-  if (force_order) {
-    // Caller asked to walk the ordering pipeline regardless of inventory.
-    toOrderQty = quantity
-  } else {
-    const { data: reservedRows, error: resErr } = await admin
-      .from('call_required_parts')
-      .select('quantity')
-      .eq('part_id', part_id)
-      .in('status', ['in_stock', 'received'])
-    if (resErr) return json(500, { ok: false, error: 'reserved_lookup_failed', detail: resErr.message })
-    const reserved  = (reservedRows ?? []).reduce((acc, r) => acc + (r.quantity ?? 0), 0)
-    const available = Math.max(0, part.quantity - reserved)
-
-    if (available >= quantity) {
-      inStockQty = quantity
-    } else if (available > 0) {
-      inStockQty = available
-      toOrderQty = quantity - available
-    } else {
-      toOrderQty = quantity
-    }
-  }
-
-  const inserts: Array<Record<string, unknown>> = []
-  if (inStockQty > 0) {
-    inserts.push({ call_id, part_id, quantity: inStockQty, status: 'in_stock', requested_by })
-  }
-  if (toOrderQty > 0) {
-    inserts.push({ call_id, part_id, quantity: toOrderQty, status: 'awaiting_order', requested_by })
-  }
-
+  // Per user direction: a technician request always lands as
+  // 'awaiting_order'. Stock allocation / force-order logic was
+  // removed — only the warehouse can transition the row from there.
   const { data: inserted, error: insertErr } = await admin
     .from('call_required_parts')
-    .insert(inserts)
+    .insert([{ call_id, part_id, quantity, status: 'awaiting_order', requested_by }])
     .select('id, status, quantity, part_id')
   if (insertErr) return json(500, { ok: false, error: 'insert_failed', detail: insertErr.message })
 
-  // Escalate call status if any row landed in awaiting_order.
-  if (toOrderQty > 0) {
-    await admin
-      .from('service_calls')
-      .update({ status: 'waiting_for_parts' })
-      .eq('id', call_id)
-      .in('status', ['in_treatment'])
-  }
+  // Escalate the call to waiting_for_parts.
+  await admin
+    .from('service_calls')
+    .update({ status: 'waiting_for_parts' })
+    .eq('id', call_id)
+    .in('status', ['in_treatment'])
 
   return json(200, { ok: true, required_parts: inserted })
 }
@@ -178,6 +136,7 @@ async function addRequiredPart(params: any, requested_by: number): Promise<Respo
 // ---------------------------------------------------------------------
 async function updateRequiredPartStatus(params: any): Promise<Response> {
   const { required_part_id, status } = params ?? {}
+  const reason: string | null = typeof params?.reason === 'string' ? params.reason.trim() : null
   const allowed = [
     'in_stock', 'awaiting_order', 'awaiting_receipt', 'received',
     'rejected', 'pending_special_approval', 'rejected_final',
@@ -189,45 +148,63 @@ async function updateRequiredPartStatus(params: any): Promise<Response> {
   // Read the existing row first so we can detect the transition.
   const { data: before, error: beforeErr } = await admin
     .from('call_required_parts')
-    .select('id, call_id, part_id, quantity, status')
+    .select('id, call_id, part_id, quantity, status, rejection_reason')
     .eq('id', required_part_id)
     .maybeSingle()
   if (beforeErr) return json(500, { ok: false, error: 'lookup_failed', detail: beforeErr.message })
   if (!before)   return json(404, { ok: false, error: 'not_found' })
 
+  // Build the update patch.
+  const patch: Record<string, unknown> = { status }
+  // Rejection reason: optional. Carries across rejected→pending_special_approval/rejected_final.
+  // Cleared when leaving the rejected family.
+  const REJECTED = ['rejected', 'pending_special_approval', 'rejected_final']
+  if (REJECTED.includes(status)) {
+    if (reason !== null) patch.rejection_reason = reason || null
+    // else: leave existing reason as-is (preserves on transitions inside the family).
+  } else {
+    patch.rejection_reason = null
+  }
+
   const { data, error } = await admin
     .from('call_required_parts')
-    .update({ status })
+    .update(patch)
     .eq('id', required_part_id)
-    .select('id, call_id, part_id, quantity, status')
+    .select('id, call_id, part_id, quantity, status, rejection_reason')
     .single()
   if (error) return json(500, { ok: false, error: 'update_failed', detail: error.message })
 
-  // Inventory adjustments tied to the transition:
-  // awaiting_receipt -> received  : add quantity to stock (goods arrived)
-  // received -> awaiting_receipt  : reverse (rare correction)
+  // Inventory + withdrawal handling for transitions involving 'received'/'delivered':
   if (before.status === 'awaiting_receipt' && status === 'received') {
+    // Goods arrived — add to stock.
     const { data: stockRow } = await admin
-      .from('parts')
-      .select('quantity')
-      .eq('id', before.part_id)
-      .maybeSingle()
-    const next = (stockRow?.quantity ?? 0) + before.quantity
-    await admin
-      .from('parts')
-      .update({ quantity: next })
+      .from('parts').select('quantity').eq('id', before.part_id).maybeSingle()
+    await admin.from('parts').update({ quantity: (stockRow?.quantity ?? 0) + before.quantity })
       .eq('id', before.part_id)
   } else if (before.status === 'received' && status === 'awaiting_receipt') {
+    // Reverse correction.
     const { data: stockRow } = await admin
-      .from('parts')
-      .select('quantity')
+      .from('parts').select('quantity').eq('id', before.part_id).maybeSingle()
+    await admin.from('parts').update({ quantity: Math.max(0, (stockRow?.quantity ?? 0) - before.quantity) })
       .eq('id', before.part_id)
+  } else if (before.status === 'delivered' && status !== 'delivered') {
+    // Revert from delivered: refund the withdrawal — restore stock and
+    // delete the withdrawal row. Skip refund when the original
+    // withdrawal was external (no inventory was deducted).
+    const { data: wd } = await admin
+      .from('part_withdrawals')
+      .select('id, quantity, is_external')
+      .eq('required_part_id', required_part_id)
       .maybeSingle()
-    const next = Math.max(0, (stockRow?.quantity ?? 0) - before.quantity)
-    await admin
-      .from('parts')
-      .update({ quantity: next })
-      .eq('id', before.part_id)
+    if (wd) {
+      if (!wd.is_external) {
+        const { data: stockRow } = await admin
+          .from('parts').select('quantity').eq('id', before.part_id).maybeSingle()
+        await admin.from('parts').update({ quantity: (stockRow?.quantity ?? 0) + (wd.quantity ?? 0) })
+          .eq('id', before.part_id)
+      }
+      await admin.from('part_withdrawals').delete().eq('id', wd.id)
+    }
   }
 
   // Recompute call status: if no required parts are still awaiting_*, move call back to in_treatment.
@@ -256,6 +233,7 @@ async function updateRequiredPartStatus(params: any): Promise<Response> {
 // ---------------------------------------------------------------------
 async function recordWithdrawal(params: any, released_by: number): Promise<Response> {
   const { call_id, part_id, quantity, withdrawn_by, required_part_id } = params ?? {}
+  const is_external = !!params?.is_external
   if (
     typeof call_id !== 'string' ||
     typeof part_id !== 'string' ||
@@ -265,20 +243,27 @@ async function recordWithdrawal(params: any, released_by: number): Promise<Respo
     return json(400, { ok: false, error: 'invalid_params' })
   }
 
-  const { data: part } = await admin
-    .from('parts')
-    .select('quantity')
-    .eq('id', part_id)
-    .maybeSingle()
-  if (!part) return json(400, { ok: false, error: 'unknown_part' })
-  if (part.quantity < quantity) {
-    return json(400, { ok: false, error: 'insufficient_stock', available: part.quantity })
+  // Internal stock check — skipped for external dispenses.
+  if (!is_external) {
+    const { data: part } = await admin
+      .from('parts')
+      .select('quantity')
+      .eq('id', part_id)
+      .maybeSingle()
+    if (!part) return json(400, { ok: false, error: 'unknown_part' })
+    if (part.quantity < quantity) {
+      return json(400, { ok: false, error: 'insufficient_stock', available: part.quantity })
+    }
   }
 
   const { data, error } = await admin
     .from('part_withdrawals')
-    .insert({ call_id, part_id, quantity, withdrawn_by, released_by })
-    .select('id, withdrawn_at, quantity')
+    .insert({
+      call_id, part_id, quantity, withdrawn_by, released_by,
+      is_external,
+      required_part_id: typeof required_part_id === 'string' ? required_part_id : null,
+    })
+    .select('id, withdrawn_at, quantity, is_external')
     .single()
   if (error) return json(500, { ok: false, error: 'insert_failed', detail: error.message })
 

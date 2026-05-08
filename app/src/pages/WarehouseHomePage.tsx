@@ -35,6 +35,7 @@ export function WarehouseHomePage() {
           catalogHref="/warehouse?low_stock=1"
         />
         <PendingPartActions variant="rejected_final" />
+        <PendingPartActions variant="delivered" />
 
         {isLoading && <p className="text-sm text-muted text-center py-4">טוען קטלוג...</p>}
         {error && (

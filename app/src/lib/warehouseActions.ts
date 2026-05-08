@@ -23,12 +23,11 @@ export function addRequiredPart(
   callId: string,
   partId: string,
   quantity: number,
-  forceOrder: boolean = false,
 ) {
   return invoke({
     employee_number: employeeNumber,
     action: 'add_required_part',
-    params: { call_id: callId, part_id: partId, quantity, force_order: forceOrder },
+    params: { call_id: callId, part_id: partId, quantity },
   })
 }
 
@@ -36,11 +35,12 @@ export function updateRequiredPartStatus(
   employeeNumber: number,
   requiredPartId: string,
   status: RequiredPartStatus,
+  reason?: string | null,
 ) {
   return invoke({
     employee_number: employeeNumber,
     action: 'update_required_part_status',
-    params: { required_part_id: requiredPartId, status },
+    params: { required_part_id: requiredPartId, status, reason: reason ?? null },
   })
 }
 
@@ -51,6 +51,7 @@ export function recordWithdrawal(
   quantity: number,
   withdrawnBy: number,
   requiredPartId?: string,
+  isExternal: boolean = false,
 ) {
   return invoke({
     employee_number: employeeNumber,
@@ -61,6 +62,7 @@ export function recordWithdrawal(
       quantity,
       withdrawn_by: withdrawnBy,
       required_part_id: requiredPartId,
+      is_external: isExternal,
     },
   })
 }
