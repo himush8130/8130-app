@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Badge } from './ui/Badge'
 import type { CallRequiredPart } from '../types/parts'
 import type { RequiredPartStatus } from '../types/db'
@@ -48,7 +48,7 @@ export interface RowData extends CallRequiredPart {
 interface Props {
   row:        RowData
   highlight?: boolean
-  /** True for the 'delivered' variant — shows the dispense location + date instead of a request date. */
+  /** True for the 'delivered' variant — shows the dispense location + date instead of the request date. */
   showWithdrawal?: boolean
   /** Quick-copy on part-name click. */
   onCopyName?:    (row: RowData) => void
@@ -72,6 +72,7 @@ function formatDateShort(s: string): string {
 }
 
 export function PendingActionRow({ row, highlight, showWithdrawal, onCopyName, copied }: Props) {
+  const navigate = useNavigate()
   const isBlocked = !!row.parts?.is_sku_blocked
   const wd = (row.part_withdrawals ?? [])[0]
   const requestedDate = formatDateShort(row.requested_at)
@@ -80,50 +81,68 @@ export function PendingActionRow({ row, highlight, showWithdrawal, onCopyName, c
 
   const detailHref = `/warehouse/required-part/${row.id}`
 
+  function openDetail() {
+    navigate(detailHref)
+  }
+
   return (
-    <li className={`flex items-stretch border-b border-border last:border-0 ${highlight ? 'bg-danger/5' : ''}`}>
-      <Link
-        to={detailHref}
-        className="flex-1 min-w-0 flex flex-col gap-0.5 px-4 py-2 hover:bg-muted-surface"
-      >
-        <div className="flex items-center gap-2 whitespace-nowrap overflow-hidden">
-          {onCopyName ? (
-            <button
-              type="button"
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onCopyName(row) }}
-              title="לחץ להעתקת תקציר"
-              className="text-sm text-foreground hover:underline truncate text-start"
-            >
-              {row.parts?.name ?? '?'}{copied && <span className="text-success ms-1">✓</span>}
-            </button>
-          ) : (
-            <span className="text-sm text-foreground truncate">{row.parts?.name ?? '?'}</span>
-          )}
-          <span className="font-mono text-[11px] text-muted">{row.parts?.sku ?? ''}</span>
-          {isBlocked
-            ? <Badge tone="warning">⚠ מק״ט חסום</Badge>
-            : <Badge tone={statusTone[row.status]}>{statusLabel[row.status]}</Badge>}
-          <span className="text-xs text-muted">×{row.quantity}</span>
-        </div>
-        {row.service_calls?.display_id && (
-          <span className="text-[11px] text-primary truncate">
-            עבור {row.service_calls.display_id} →
+    <li
+      role="button"
+      tabIndex={0}
+      onClick={openDetail}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetail() }
+      }}
+      className={`block px-4 py-3 border-b border-border last:border-0 cursor-pointer hover:bg-muted-surface ${highlight ? 'bg-danger/5 hover:bg-danger/10' : ''}`}
+    >
+      {/* Top row: name (right, generous width) + sku (left) */}
+      <div className="flex items-baseline gap-3">
+        {onCopyName ? (
+          <span
+            role="button"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onCopyName(row) }}
+            title="לחץ להעתקת תקציר"
+            className="text-base text-foreground font-medium truncate flex-1 min-w-0 cursor-pointer hover:underline"
+          >
+            {row.parts?.name ?? '?'}{copied && <span className="text-success ms-1 text-xs">✓ הועתק</span>}
           </span>
-        )}
-        {row.rejection_reason && (
-          <span className="text-[11px] text-danger truncate">סיבת דחייה: {row.rejection_reason}</span>
-        )}
-      </Link>
-      <div className="shrink-0 flex flex-col items-end justify-center gap-0.5 px-4 py-2 text-[11px] text-muted whitespace-nowrap">
-        {showWithdrawal && wd ? (
-          <>
-            <span className="font-mono">{dispensedDate}</span>
-            <span className="truncate max-w-[10rem]" title={dispensedLoc ?? ''}>{dispensedLoc}</span>
-          </>
         ) : (
-          <span className="font-mono" title="תאריך דרישה">{requestedDate}</span>
+          <span className="text-base text-foreground font-medium truncate flex-1 min-w-0">{row.parts?.name ?? '?'}</span>
         )}
+        <span className="font-mono text-xs text-muted shrink-0 whitespace-nowrap">{row.parts?.sku ?? ''}</span>
       </div>
+
+      {/* Bottom row: status + ×qty | date + "קישור לקריאה" */}
+      <div className="flex items-center gap-2 mt-1.5 text-xs whitespace-nowrap">
+        {isBlocked
+          ? <Badge tone="warning">⚠ מק״ט חסום</Badge>
+          : <Badge tone={statusTone[row.status]}>{statusLabel[row.status]}</Badge>}
+        <span className="text-muted">×{row.quantity}</span>
+        <span className="ms-auto flex items-center gap-3">
+          {showWithdrawal && wd ? (
+            <>
+              <span className="font-mono text-muted" title="תאריך הנפקה">{dispensedDate}</span>
+              <span className="truncate max-w-[10rem] text-muted" title={dispensedLoc ?? ''}>{dispensedLoc}</span>
+            </>
+          ) : (
+            <span className="font-mono text-muted" title="תאריך דרישה">{requestedDate}</span>
+          )}
+          {row.service_calls?.display_id && (
+            <Link
+              to={`/call/${row.call_id}`}
+              onClick={(e) => e.stopPropagation()}
+              className="text-primary hover:underline"
+              title={row.service_calls.display_id}
+            >
+              קישור לקריאה →
+            </Link>
+          )}
+        </span>
+      </div>
+
+      {row.rejection_reason && (
+        <div className="text-[11px] text-danger truncate mt-1">סיבת דחייה: {row.rejection_reason}</div>
+      )}
     </li>
   )
 }

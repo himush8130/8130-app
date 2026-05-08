@@ -20,9 +20,10 @@ export function formatVehicleNumber(n: string | null | undefined): string {
   return n
 }
 
-/** "<label>:" wrapped in WhatsApp-style asterisks for bold. */
+/** "<label>:" wrapped in WhatsApp-style asterisks for bold,
+ *  followed by a space before the value. */
 function line(label: string, value: string | number | null | undefined): string {
-  return `*${label}:*${value ?? ''}`
+  return `*${label}:* ${value ?? ''}`
 }
 
 /** Build the multi-line copy template for a required-part row. */

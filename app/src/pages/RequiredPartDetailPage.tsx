@@ -182,22 +182,28 @@ export function RequiredPartDetailPage() {
           </Card>
         )}
 
-        {/* Dispense flow — only when canDeliver */}
-        {canDeliver && canChangeStatus && (
-          <Card>
-            <CardHeader>
-              <h3 className="text-sm font-semibold text-foreground">הנפקה לטכנאי</h3>
+        {/* Locations — always visible. Interactive (radio + dispense
+            button) only when canDeliver; otherwise read-only listing. */}
+        <Card>
+          <CardHeader>
+            <h3 className="text-sm font-semibold text-foreground">מיקומי הפריט במחסן</h3>
+            {canDeliver && canChangeStatus && (
               <p className="text-xs text-muted mt-1">בחר מיקום שממנו מנפיקים, או "מלאי חיצוני".</p>
-            </CardHeader>
-            <CardBody className="flex flex-col gap-2">
-              <ul className="flex flex-col gap-1">
-                {data.locations.map((loc) => {
-                  const enough = loc.quantity >= row.quantity
-                  return (
-                    <li key={loc.id}>
-                      <label className={`flex items-center gap-2 px-3 py-2 rounded-md border cursor-pointer ${
-                        pickedSource === loc.id ? 'border-primary bg-primary/5' : 'border-border'
-                      }`}>
+            )}
+          </CardHeader>
+          <CardBody className="flex flex-col gap-2">
+            <ul className="flex flex-col gap-1">
+              {data.locations.map((loc) => {
+                const enough = loc.quantity >= row.quantity
+                const interactive = canDeliver && canChangeStatus
+                return (
+                  <li key={loc.id}>
+                    <label className={`flex items-center gap-2 px-3 py-2 rounded-md border ${
+                      interactive ? 'cursor-pointer' : ''
+                    } ${
+                      pickedSource === loc.id ? 'border-primary bg-primary/5' : 'border-border'
+                    }`}>
+                      {interactive && (
                         <input
                           type="radio"
                           name="source"
@@ -205,17 +211,19 @@ export function RequiredPartDetailPage() {
                           checked={pickedSource === loc.id}
                           onChange={() => setPickedSource(loc.id)}
                         />
-                        <span className="flex-1 text-sm text-foreground truncate">{locationLabel(loc)}</span>
-                        <span className={`text-xs ${enough ? 'text-success' : 'text-danger'}`}>
-                          זמין: {loc.quantity}
-                        </span>
-                      </label>
-                    </li>
-                  )
-                })}
-                {data.locations.length === 0 && (
-                  <li className="text-xs text-muted">אין מיקומים פנימיים לפריט זה</li>
-                )}
+                      )}
+                      <span className="flex-1 text-sm text-foreground truncate">{locationLabel(loc)}</span>
+                      <span className={`text-xs ${interactive ? (enough ? 'text-success' : 'text-danger') : 'text-muted'}`}>
+                        זמין: {loc.quantity}
+                      </span>
+                    </label>
+                  </li>
+                )
+              })}
+              {data.locations.length === 0 && (
+                <li className="text-xs text-muted py-1">אין מיקומים פנימיים לפריט זה — ניתן להנפיק ממלאי חיצוני בלבד.</li>
+              )}
+              {canDeliver && canChangeStatus && (
                 <li>
                   <label className={`flex items-center gap-2 px-3 py-2 rounded-md border cursor-pointer ${
                     pickedSource === EXTERNAL ? 'border-primary bg-primary/5' : 'border-border'
@@ -231,16 +239,18 @@ export function RequiredPartDetailPage() {
                     <span className="text-xs text-muted">המלאי הקיים לא ישתנה</span>
                   </label>
                 </li>
-              </ul>
+              )}
+            </ul>
+            {canDeliver && canChangeStatus && (
               <div className="flex gap-2 items-center">
                 <Button onClick={dispense} disabled={busy || !pickedSource}>
                   {busy ? '...' : `הנפק ${row.quantity}`}
                 </Button>
                 {actionError && <span className="text-xs text-danger">{actionError}</span>}
               </div>
-            </CardBody>
-          </Card>
-        )}
+            )}
+          </CardBody>
+        </Card>
 
         {/* Non-deliverable status: just status changes */}
         {!canDeliver && !isBlocked && canChangeStatus && (
