@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'הבאדק\' של הסטטוס תמיד לחיץ — לחיצה פותחת תפריט שינוי סטטוס מכל מצב.'
+export const LATEST_NOTE = 'בקבלה — בוחרים יעד: מיקום קיים, מלאי חיצוני, או מיקום חדש (טופס מקוצר).'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build

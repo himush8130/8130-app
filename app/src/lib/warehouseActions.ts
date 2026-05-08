@@ -31,16 +31,37 @@ export function addRequiredPart(
   })
 }
 
+export interface ReceiveDestination {
+  /** Where the received goods land. */
+  receive_to:           'existing' | 'external' | 'new'
+  /** When 'existing': which catalog row id to bump. Defaults to the row's part_id. */
+  receive_part_id?:     string
+  /** When 'new': the location fields for the new catalog row. */
+  receive_new_location?: {
+    warehouse?:      string | null
+    cabinet?:        number | null
+    storage_type?:   string | null
+    storage_number?: number | null
+    cell_number?:    number | null
+  }
+}
+
 export function updateRequiredPartStatus(
   employeeNumber: number,
   requiredPartId: string,
   status: RequiredPartStatus,
   reason?: string | null,
+  receive?: ReceiveDestination,
 ) {
   return invoke({
     employee_number: employeeNumber,
     action: 'update_required_part_status',
-    params: { required_part_id: requiredPartId, status, reason: reason ?? null },
+    params: {
+      required_part_id: requiredPartId,
+      status,
+      reason: reason ?? null,
+      ...(receive ?? {}),
+    },
   })
 }
 

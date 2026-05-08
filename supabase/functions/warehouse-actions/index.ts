@@ -176,11 +176,42 @@ async function updateRequiredPartStatus(params: any): Promise<Response> {
 
   // Inventory + withdrawal handling for transitions involving 'received'/'delivered':
   if (before.status === 'awaiting_receipt' && status === 'received') {
-    // Goods arrived — add to stock.
-    const { data: stockRow } = await admin
-      .from('parts').select('quantity').eq('id', before.part_id).maybeSingle()
-    await admin.from('parts').update({ quantity: (stockRow?.quantity ?? 0) + before.quantity })
-      .eq('id', before.part_id)
+    // Goods arrived. Caller picks where to put them:
+    //   receive_to='existing' + receive_part_id → bump that catalog row
+    //   receive_to='external'                   → skip inventory change
+    //   receive_to='new'      + receive_new_loc → create a new parts row
+    //   (no receive_to)                         → bump the row's part_id
+    const receiveTo = params?.receive_to as string | undefined
+    if (receiveTo === 'external') {
+      // no-op; the warehouse holds it externally.
+    } else if (receiveTo === 'new') {
+      const loc = params?.receive_new_location ?? {}
+      // Look up the SKU/name of the original part to clone fields.
+      const { data: orig } = await admin
+        .from('parts').select('sku, name, supplier').eq('id', before.part_id).maybeSingle()
+      const newRow: Record<string, unknown> = {
+        sku:            orig?.sku ?? '',
+        name:           orig?.name ?? '',
+        supplier:       orig?.supplier ?? null,
+        quantity:       before.quantity,
+        warehouse:      typeof loc.warehouse      === 'string' ? loc.warehouse.trim()       || null : null,
+        cabinet:        typeof loc.cabinet        === 'number' ? loc.cabinet                : null,
+        storage_type:   typeof loc.storage_type   === 'string' ? loc.storage_type.trim()    || null : null,
+        storage_number: typeof loc.storage_number === 'number' ? loc.storage_number         : null,
+        cell_number:    typeof loc.cell_number    === 'number' ? loc.cell_number            : null,
+      }
+      const { error: insErr } = await admin.from('parts').insert(newRow)
+      if (insErr) return json(500, { ok: false, error: 'new_part_insert_failed', detail: insErr.message })
+    } else {
+      // 'existing' or default — bump the chosen catalog row.
+      const targetId = (receiveTo === 'existing' && typeof params?.receive_part_id === 'string')
+        ? params.receive_part_id
+        : before.part_id
+      const { data: stockRow } = await admin
+        .from('parts').select('quantity').eq('id', targetId).maybeSingle()
+      await admin.from('parts').update({ quantity: (stockRow?.quantity ?? 0) + before.quantity })
+        .eq('id', targetId)
+    }
   } else if (before.status === 'received' && status === 'awaiting_receipt') {
     // Reverse correction.
     const { data: stockRow } = await admin
