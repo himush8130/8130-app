@@ -20,20 +20,25 @@ export function formatVehicleNumber(n: string | null | undefined): string {
   return n
 }
 
+/** "<label>:" wrapped in WhatsApp-style asterisks for bold. */
+function line(label: string, value: string | number | null | undefined): string {
+  return `*${label}:*${value ?? ''}`
+}
+
 /** Build the multi-line copy template for a required-part row. */
 export function buildCopyText(args: BuildArgs): string {
   const s = args.settings
   const v = args.vehicle
   const lines = [
-    `${s.copy_brigade_label   ?? 'חטיבה'}:${s.copy_brigade_value   ?? ''}`,
-    `${s.copy_battalion_label ?? 'גדוד'}:${s.copy_battalion_value ?? ''}`,
-    `${s.copy_kli_type_label  ?? 'סוג הכלי'}:${v?.model ?? v?.type_name ?? ''}`,
-    `${s.copy_kli_fit_label   ?? 'האם הכלי כשיר'}:${args.vehicleDisabled ? 'לא' : 'כן'}`,
-    `${s.copy_kli_num_label   ?? 'צ׳'}:${formatVehicleNumber(v?.vehicle_number)}`,
-    `${s.copy_location_label  ?? 'מיקום'}:${v?.location ?? ''}`,
-    `${s.copy_sku_label       ?? 'מק״ט'}:${args.partSku}`,
-    `${s.copy_part_name_label ?? 'שם החלק'}:${args.partName}`,
-    `${s.copy_qty_label       ?? 'כמות'}:${args.row.quantity}`,
+    line(s.copy_brigade_label   ?? 'חטיבה',         s.copy_brigade_value   ?? ''),
+    line(s.copy_battalion_label ?? 'גדוד',          s.copy_battalion_value ?? ''),
+    line(s.copy_kli_type_label  ?? 'סוג הכלי',      v?.model ?? v?.type_name ?? ''),
+    line(s.copy_kli_fit_label   ?? 'האם הכלי כשיר', args.vehicleDisabled ? 'לא' : 'כן'),
+    line(s.copy_kli_num_label   ?? 'צ׳',            formatVehicleNumber(v?.vehicle_number)),
+    line(s.copy_location_label  ?? 'מיקום',         v?.location ?? ''),
+    line(s.copy_sku_label       ?? 'מק״ט',          args.partSku),
+    line(s.copy_part_name_label ?? 'שם החלק',       args.partName),
+    line(s.copy_qty_label       ?? 'כמות',          args.row.quantity),
   ]
   return lines.join('\n')
 }
