@@ -1,29 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { Badge } from './ui/Badge'
+import { StatusBadgeMenu } from './StatusBadgeMenu'
 import type { CallRequiredPart } from '../types/parts'
-import type { RequiredPartStatus } from '../types/db'
-
-const statusLabel: Record<RequiredPartStatus, string> = {
-  in_stock:                 'במלאי',
-  awaiting_order:           'ממתין להזמנה',
-  awaiting_receipt:         'ממתין לקבלה',
-  received:                 'התקבל',
-  delivered:                'נמסר',
-  rejected:                 'נדחה',
-  pending_special_approval: 'לאישור מיוחד',
-  rejected_final:           'נדחה סופית',
-}
-
-const statusTone: Record<RequiredPartStatus, 'info' | 'success' | 'warning' | 'danger' | 'neutral'> = {
-  in_stock:                 'success',
-  awaiting_order:           'danger',
-  awaiting_receipt:         'warning',
-  received:                 'info',
-  delivered:                'neutral',
-  rejected:                 'danger',
-  pending_special_approval: 'warning',
-  rejected_final:           'neutral',
-}
 
 interface Withdrawal {
   id:           string
@@ -114,9 +91,12 @@ export function PendingActionRow({ row, highlight, showWithdrawal, onCopyName, c
 
       {/* Bottom row: status + ×qty | date + "קישור לקריאה" */}
       <div className="flex items-center gap-2 mt-1.5 text-xs whitespace-nowrap">
-        {isBlocked
-          ? <Badge tone="warning">⚠ מק״ט חסום</Badge>
-          : <Badge tone={statusTone[row.status]}>{statusLabel[row.status]}</Badge>}
+        <StatusBadgeMenu
+          rowId={row.id}
+          partId={row.part_id}
+          currentStatus={row.status}
+          isSkuBlocked={isBlocked}
+        />
         <span className="text-muted">×{row.quantity}</span>
         <span className="ms-auto flex items-center gap-3">
           {showWithdrawal && wd ? (

@@ -6,25 +6,13 @@ import { useRequiredPartDetail } from '../hooks/useRequiredPartDetail'
 import { recordWithdrawal, updateRequiredPartStatus, updatePart } from '../lib/warehouseActions'
 import { AppHeader } from '../components/AppHeader'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
-import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
-import { StatusChangeMenu } from '../components/StatusChangeMenu'
+import { StatusBadgeMenu } from '../components/StatusBadgeMenu'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { Part } from '../types/parts'
 import type { RequiredPartStatus } from '../types/db'
 
 const EXTERNAL = '__external__'
-
-const statusLabel: Record<RequiredPartStatus, string> = {
-  in_stock: 'במלאי', awaiting_order: 'ממתין להזמנה', awaiting_receipt: 'ממתין לקבלה',
-  received: 'התקבל', delivered: 'נמסר', rejected: 'נדחה',
-  pending_special_approval: 'לאישור מיוחד', rejected_final: 'נדחה סופית',
-}
-const statusTone: Record<RequiredPartStatus, 'info' | 'success' | 'warning' | 'danger' | 'neutral'> = {
-  in_stock: 'success', awaiting_order: 'danger', awaiting_receipt: 'warning',
-  received: 'info', delivered: 'neutral', rejected: 'danger',
-  pending_special_approval: 'warning', rejected_final: 'neutral',
-}
 
 function locationLabel(p: Part): string {
   const out: string[] = []
@@ -132,10 +120,14 @@ export function RequiredPartDetailPage() {
           </CardHeader>
           <CardBody className="grid grid-cols-2 gap-3 text-sm">
             <div>
-              <div className="text-xs text-muted">סטטוס</div>
-              {isBlocked
-                ? <Badge tone="warning">⚠ מק״ט חסום</Badge>
-                : <Badge tone={statusTone[row.status]}>{statusLabel[row.status]}</Badge>}
+              <div className="text-xs text-muted">סטטוס (לחץ לשינוי)</div>
+              <StatusBadgeMenu
+                rowId={row.id}
+                partId={row.part_id}
+                currentStatus={row.status}
+                isSkuBlocked={isBlocked}
+                onChanged={refresh}
+              />
             </div>
             <div>
               <div className="text-xs text-muted">כמות</div>
@@ -279,15 +271,8 @@ export function RequiredPartDetailPage() {
                   </Button>
                 </div>
               )}
-              <StatusChangeMenu
-                rowId={row.id}
-                partId={row.part_id}
-                currentStatus={row.status}
-                isSkuBlocked={isBlocked}
-                employeeNumber={employee.employee_number}
-                onChanged={refresh}
-              />
               {actionError && <span className="text-xs text-danger">{actionError}</span>}
+              <p className="text-[11px] text-muted">לסטטוסים אחרים — לחץ על הבאדק' למעלה.</p>
             </CardBody>
           </Card>
         )}
@@ -314,17 +299,7 @@ export function RequiredPartDetailPage() {
                 </span>
               </div>
               {canChangeStatus && (
-                <div className="mt-2">
-                  <p className="text-xs text-muted mb-1">לתיקון טעות, ניתן להחזיר את הפריט לסטטוס קודם:</p>
-                  <StatusChangeMenu
-                    rowId={row.id}
-                    partId={row.part_id}
-                    currentStatus={row.status}
-                    isSkuBlocked={isBlocked}
-                    employeeNumber={employee.employee_number}
-                    onChanged={refresh}
-                  />
-                </div>
+                <p className="text-[11px] text-muted mt-2">לתיקון טעות, לחץ על הבאדק' "נמסר" למעלה כדי להחזיר לסטטוס קודם.</p>
               )}
             </CardBody>
           </Card>
