@@ -170,7 +170,7 @@ export function VehicleHistoryPage() {
                 <CallWithSpecialty
                   key={call.id}
                   call={call}
-                  partsStatus={partsMap?.get(call.id) ?? null}
+                  partsSummary={partsMap?.get(call.id) ?? null}
                   vehicle={data?.vehicle ?? null}
                   showSpecialty={!!isTank}
                   canEdit={!!isTank && isManager}
@@ -192,7 +192,7 @@ export function VehicleHistoryPage() {
                 <CallWithSpecialty
                   key={call.id}
                   call={call}
-                  partsStatus={partsMap?.get(call.id) ?? null}
+                  partsSummary={partsMap?.get(call.id) ?? null}
                   vehicle={data?.vehicle ?? null}
                   showSpecialty={!!isTank}
                   canEdit={!!isTank && isManager}
@@ -257,10 +257,10 @@ function SpecialtyFilterBanner({
 }
 
 function CallWithSpecialty({
-  call, partsStatus, vehicle, showSpecialty, canEdit, onToggle,
+  call, partsSummary, vehicle, showSpecialty, canEdit, onToggle,
 }: {
   call: ServiceCall
-  partsStatus?: import('../types/db').RequiredPartStatus | null
+  partsSummary?: import('../hooks/useCallsPartsStatus').CallPartsSummary | null
   vehicle?: import('../types/db').Vehicle | null
   showSpecialty: boolean
   canEdit: boolean
@@ -269,7 +269,7 @@ function CallWithSpecialty({
   const current = call.specialties ?? []
   return (
     <div className="flex flex-col gap-1.5">
-      <CallCard call={call} partsStatus={partsStatus} vehicle={vehicle} />
+      <CallCard call={call} partsSummary={partsSummary} vehicle={vehicle} />
       {showSpecialty && (
         <div className="flex items-center gap-1.5 flex-wrap px-1">
           <span className="text-[11px] text-muted">התמחות:</span>

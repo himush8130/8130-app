@@ -1,13 +1,11 @@
-import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { useAuthStore } from '../store/auth'
+import { useAppSettings } from '../hooks/useAppSettings'
+import { useVehiclesMap } from '../hooks/useVehicles'
+import { useVehicleCallStats } from '../hooks/useVehicleCallStats'
 import { usePendingActions } from '../hooks/usePendingActions'
-import {
-  recordWithdrawal,
-  updateRequiredPartStatus,
-} from '../lib/warehouseActions'
 import { CollapsibleSection } from './CollapsibleSection'
 import { PendingActionRow, type RowData } from './PendingActionRow'
+import { buildCopyText } from '../lib/copyFormat'
 import type { RequiredPartStatus } from '../types/db'
 
 const PENDING_REJECTED_SET: ReadonlySet<RequiredPartStatus> = new Set([
@@ -23,77 +21,56 @@ const ANY_REJECTED_SET: ReadonlySet<RequiredPartStatus> = new Set([
 type Variant = 'active' | 'rejected' | 'rejected_final' | 'blocked' | 'delivered'
 
 interface Props {
-  /** Which subset to render. Default `active`. */
-  variant?:     Variant
-  defaultOpen?: boolean
-  /** Legacy prop kept for backward compat — true → variant='rejected'. */
+  variant?:      Variant
+  defaultOpen?:  boolean
   rejectedOnly?: boolean
 }
 
-/**
- * Renders ONE table — either the active pending-action rows or the
- * rejected ones. Both pull from the same hook so we don't double-fetch.
- */
 export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false }: Props) {
   const effective: Variant = variant ?? (rejectedOnly ? 'rejected' : 'active')
-  const employee = useAuthStore((s) => s.employee)!
   const { data, isLoading } = usePendingActions()
-  const queryClient = useQueryClient()
-  const [busyId, setBusyId] = useState<string | null>(null)
-  const [error, setError]   = useState<string | null>(null)
+  const { data: settings } = useAppSettings()
+  const vehiclesMap = useVehiclesMap()
+  const { data: callStats } = useVehicleCallStats()
+  const [copiedId, setCopiedId] = useState<string | null>(null)
 
-  function refresh() {
-    queryClient.invalidateQueries({ queryKey: ['pending_parts_actions'] })
-    queryClient.invalidateQueries({ queryKey: ['parts'] })
-    queryClient.invalidateQueries({ queryKey: ['call_detail'] })
-    queryClient.invalidateQueries({ queryKey: ['calls_parts_status'] })
-    queryClient.invalidateQueries({ queryKey: ['service_calls'] })
-  }
-
-  async function advance(id: string, next: RequiredPartStatus) {
-    setBusyId(id); setError(null)
-    const res = await updateRequiredPartStatus(employee.employee_number, id, next)
-    setBusyId(null)
-    if (!res.ok) { setError('שגיאה'); return }
-    refresh()
-  }
-
-  async function deliver(row: RowData) {
-    setBusyId(row.id); setError(null)
-    const res = await recordWithdrawal(
-      employee.employee_number,
-      row.call_id,
-      row.part_id,
-      row.quantity,
-      row.requested_by ?? employee.employee_number,
-      row.id,
-    )
-    setBusyId(null)
-    if (!res.ok) {
-      setError(
-        res.error === 'insufficient_stock'
-          ? `במלאי רק ${res.available}`
-          : 'שגיאה',
-      )
-      return
-    }
-    refresh()
+  async function copyName(row: RowData) {
+    if (!settings || !row.parts) return
+    const sc = row.service_calls as { vehicle_number?: string | null } | null | undefined
+    const vehicleNumber = sc?.vehicle_number ?? null
+    const vehicle = vehicleNumber ? vehiclesMap.get(vehicleNumber) ?? null : null
+    const stats   = vehicleNumber ? callStats?.get(vehicleNumber) : undefined
+    const text = buildCopyText({
+      settings,
+      vehicle,
+      vehicleDisabled: !!stats?.disabled,
+      row,
+      partName: row.parts.name,
+      partSku:  row.parts.sku,
+    })
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedId(row.id)
+      setTimeout(() => setCopiedId((v) => (v === row.id ? null : v)), 1500)
+    } catch { /* clipboard may be denied */ }
   }
 
   const rows = (data ?? []).filter((r) => {
     const blocked = !!r.parts?.is_sku_blocked
     if (effective === 'blocked')        return blocked
-    // For every other variant: a blocked SKU is its OWN status, so
-    // those rows live exclusively in the blocked table.
     if (blocked) return false
     if (effective === 'delivered')      return r.status === 'delivered'
     if (effective === 'active')         return !ANY_REJECTED_SET.has(r.status) && r.status !== 'delivered'
     if (effective === 'rejected_final') return FINAL_REJECTED_SET.has(r.status)
-    return PENDING_REJECTED_SET.has(r.status)  // 'rejected' (without _final)
+    return PENDING_REJECTED_SET.has(r.status)
   }).sort((a, b) => {
-    // Delivered table sorts newest first.
-    if (effective !== 'delivered') return 0
-    return (b.requested_at ?? '').localeCompare(a.requested_at ?? '')
+    if (effective === 'delivered') {
+      // Newest dispense first; fall back to requested_at.
+      const aw = a.part_withdrawals?.[0]?.withdrawn_at ?? a.requested_at ?? ''
+      const bw = b.part_withdrawals?.[0]?.withdrawn_at ?? b.requested_at ?? ''
+      return bw.localeCompare(aw)
+    }
+    return 0
   })
 
   const title =
@@ -125,7 +102,6 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
       countTone={tone}
     >
       {isLoading && <p className="text-sm text-muted text-center py-4">טוען...</p>}
-      {error && <p className="text-xs text-danger text-center py-2">{error}</p>}
       {!isLoading && rows.length === 0 && (
         <p className="text-sm text-muted text-center py-4">
           {effective === 'active'         ? 'אין כרגע חלקים שצריך לטפל בהם'
@@ -141,12 +117,10 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
             <PendingActionRow
               key={row.id}
               row={row}
-              busyId={busyId}
-              employeeNumber={employee.employee_number}
-              onAdvance={advance}
-              onDeliver={deliver}
-              onChanged={refresh}
               highlight={highlightRows}
+              showWithdrawal={effective === 'delivered'}
+              onCopyName={copyName}
+              copied={copiedId === row.id}
             />
           ))}
         </ul>

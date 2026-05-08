@@ -3,6 +3,7 @@ import { Card, CardBody } from './ui/Card'
 import { Badge } from './ui/Badge'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { ServiceCall, CallStatus, RequiredPartStatus, Vehicle } from '../types/db'
+import type { CallPartsSummary } from '../hooks/useCallsPartsStatus'
 
 const statusLabel: Record<CallStatus, string> = {
   new:               'חדשה',
@@ -20,15 +21,12 @@ const statusTone: Record<CallStatus, 'info' | 'success' | 'warning' | 'danger' |
   cancelled:         'neutral',
 }
 
-// When the call is "ממתינה לחלקים", both the badge color AND its label
-// reflect the worst required-part state, so the single chip tells the
-// whole story.
 const partsStatusOverride: Record<RequiredPartStatus, 'info' | 'success' | 'warning' | 'danger' | 'neutral'> = {
   awaiting_order:           'danger',
   awaiting_receipt:         'warning',
   received:                 'info',
   in_stock:                 'success',
-  delivered:                'success',  // "כל החלקים נופקו" — happy path
+  delivered:                'success',
   rejected:                 'danger',
   pending_special_approval: 'warning',
   rejected_final:           'neutral',
@@ -39,9 +37,6 @@ const partsStatusBadgeLabel: Record<RequiredPartStatus, string> = {
   awaiting_receipt:         'חלקים בהזמנה',
   received:                 'חלקים התקבלו',
   in_stock:                 'חלקים במלאי',
-  // 'delivered' is the worst-status only when ALL parts on the call
-  // are delivered (since it has the lowest priority). Surface that
-  // milestone explicitly.
   delivered:                'כל החלקים נופקו',
   rejected:                 'חלקים נדחו',
   pending_special_approval: 'חלקים לאישור מיוחד',
@@ -50,35 +45,46 @@ const partsStatusBadgeLabel: Record<RequiredPartStatus, string> = {
 
 interface Props {
   call: ServiceCall
-  partsStatus?: RequiredPartStatus | null
-  vehicle?:     Vehicle | null
+  /** New shape — preferred. */
+  partsSummary?: CallPartsSummary | null
+  vehicle?:      Vehicle | null
 }
 
-export function CallCard({ call, partsStatus, vehicle }: Props) {
+export function CallCard({ call, partsSummary, vehicle }: Props) {
   const date = new Date(call.created_at).toLocaleDateString('he-IL', {
     day:   '2-digit',
     month: '2-digit',
     year:  'numeric',
   })
 
-  const usePartsOverride = call.status === 'waiting_for_parts' && partsStatus
+  // The "parts-aware" badge replaces the main status only when the
+  // call is waiting_for_parts AND every part shares the same status.
+  // Mixed states leave the main badge alone.
+  const usePartsOverride =
+    call.status === 'waiting_for_parts' && !!partsSummary && partsSummary.uniform
+
   const effectiveTone  = usePartsOverride
-    ? partsStatusOverride[partsStatus!]
+    ? partsStatusOverride[partsSummary!.worst]
     : statusTone[call.status]
   const effectiveLabel = usePartsOverride
-    ? partsStatusBadgeLabel[partsStatus!]
+    ? partsStatusBadgeLabel[partsSummary!.worst]
     : statusLabel[call.status]
 
-  // When the call is no longer waiting_for_parts (the recompute moved it
-  // back to in_treatment after the warehouse advanced parts) but parts
-  // are still in flight, surface the parts state alongside the main
-  // status — otherwise marking a part as "received" disappears from the
-  // open-faults view.
-  const showSecondaryParts =
-    !usePartsOverride
-    && partsStatus
-    && call.status !== 'closed'
-    && call.status !== 'cancelled'
+  // Secondary indicator next to the main badge:
+  // - uniform parts state on a non-waiting call → show that status as a chip
+  // - mixed states with at least one warning → small ⚠ icon
+  // - mixed without warning → nothing
+  // - closed/cancelled calls suppress the indicator entirely
+  type Secondary = { kind: 'badge'; status: RequiredPartStatus } | { kind: 'warning' } | null
+  let secondary: Secondary = null
+  const showAtAll = !!partsSummary && call.status !== 'closed' && call.status !== 'cancelled'
+  if (showAtAll) {
+    if (!usePartsOverride && partsSummary!.uniform) {
+      secondary = { kind: 'badge', status: partsSummary!.worst }
+    } else if (!partsSummary!.uniform && partsSummary!.hasWarning) {
+      secondary = { kind: 'warning' }
+    }
+  }
 
   return (
     <Link to={`/call/${call.id}`} className="block hover:opacity-95 transition-opacity">
@@ -90,10 +96,17 @@ export function CallCard({ call, partsStatus, vehicle }: Props) {
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-semibold text-foreground">{call.display_id}</span>
                 <Badge tone={effectiveTone}>{effectiveLabel}</Badge>
-                {showSecondaryParts && (
-                  <Badge tone={partsStatusOverride[partsStatus!]}>
-                    {partsStatusBadgeLabel[partsStatus!]}
+                {secondary?.kind === 'badge' && (
+                  <Badge tone={partsStatusOverride[secondary.status]}>
+                    {partsStatusBadgeLabel[secondary.status]}
                   </Badge>
+                )}
+                {secondary?.kind === 'warning' && (
+                  <span
+                    title="חלקים בסטטוסים שונים, כולל סטטוס בעייתי (נדחה / מק״ט חסום)"
+                    aria-label="warning"
+                    className="text-warning text-sm"
+                  >⚠</span>
                 )}
                 {call.profession_name && (
                   <Badge tone="neutral">{call.profession_name}</Badge>

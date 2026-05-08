@@ -28,6 +28,7 @@ const SettingsVehiclesPage    = lazy(() => import('./pages/SettingsVehiclesPage'
 const SettingsAvailabilityPage = lazy(() => import('./pages/SettingsAvailabilityPage').then(m => ({ default: m.SettingsAvailabilityPage })))
 const VehiclesBookPage         = lazy(() => import('./pages/VehiclesBookPage').then(m => ({ default: m.VehiclesBookPage })))
 const SettingsCopyFormatPage   = lazy(() => import('./pages/SettingsCopyFormatPage').then(m => ({ default: m.SettingsCopyFormatPage })))
+const RequiredPartDetailPage   = lazy(() => import('./pages/RequiredPartDetailPage').then(m => ({ default: m.RequiredPartDetailPage })))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -152,6 +153,14 @@ createRoot(document.getElementById('root')!).render(
             element={
               <ProtectedRoute allow={['warehouse', 'manager']}>
                 <WarehouseHomePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/warehouse/required-part/:id"
+            element={
+              <ProtectedRoute allow={['warehouse', 'manager']}>
+                <RequiredPartDetailPage />
               </ProtectedRoute>
             }
           />

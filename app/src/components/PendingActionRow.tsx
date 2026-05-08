@@ -1,13 +1,5 @@
-import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Badge } from './ui/Badge'
-import { Button } from './ui/Button'
-import { StatusChangeMenu } from './StatusChangeMenu'
-import { useAuthStore } from '../store/auth'
-import { useVehiclesMap } from '../hooks/useVehicles'
-import { useAppSettings } from '../hooks/useAppSettings'
-import { useVehicleCallStats } from '../hooks/useVehicleCallStats'
-import { buildCopyText } from '../lib/copyFormat'
 import type { CallRequiredPart } from '../types/parts'
 import type { RequiredPartStatus } from '../types/db'
 
@@ -33,135 +25,103 @@ const statusTone: Record<RequiredPartStatus, 'info' | 'success' | 'warning' | 'd
   rejected_final:           'neutral',
 }
 
+interface Withdrawal {
+  id:           string
+  withdrawn_at: string
+  is_external:  boolean
+  parts:        {
+    warehouse:      string | null
+    cabinet:        number | null
+    storage_type:   string | null
+    storage_number: number | null
+    cell_number:    number | null
+  } | null
+}
+
 export interface RowData extends CallRequiredPart {
-  service_calls?: { display_id: string } | null
+  service_calls?: { display_id: string; vehicle_number?: string | null } | null
   parts?: { name: string; sku: string; quantity: number; is_sku_blocked?: boolean } | null
   rejection_reason: string | null
+  part_withdrawals?: Withdrawal[] | null
 }
 
 interface Props {
-  row:             RowData
-  busyId:          string | null
-  employeeNumber:  number
-  onAdvance:       (id: string, next: RequiredPartStatus) => void
-  onDeliver:       (row: RowData) => void
-  onChanged:       () => void
-  highlight?:      boolean   // tints the row background (e.g. for rejected lists)
+  row:        RowData
+  highlight?: boolean
+  /** True for the 'delivered' variant — shows the dispense location + date instead of a request date. */
+  showWithdrawal?: boolean
+  /** Quick-copy on part-name click. */
+  onCopyName?:    (row: RowData) => void
+  copied?:        boolean
 }
 
-export function PendingActionRow({
-  row, busyId, employeeNumber, onAdvance, onDeliver, onChanged, highlight,
-}: Props) {
-  const employee = useAuthStore((s) => s.employee)
-  const canChangeStatus = employee?.permissions === 'warehouse' || employee?.permissions === 'manager'
+function formatLoc(p: Withdrawal['parts']): string {
+  if (!p) return '—'
+  const out: string[] = []
+  if (p.warehouse) out.push(p.warehouse)
+  if (p.cabinet)        out.push(`ארון ${p.cabinet}`)
+  if (p.storage_type)   out.push(p.storage_type)
+  if (p.storage_number) out.push(`#${p.storage_number}`)
+  if (p.cell_number)    out.push(`תא ${p.cell_number}`)
+  return out.length === 0 ? '—' : out.join(' · ')
+}
+
+function formatDateShort(s: string): string {
+  const d = new Date(s)
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+export function PendingActionRow({ row, highlight, showWithdrawal, onCopyName, copied }: Props) {
   const isBlocked = !!row.parts?.is_sku_blocked
-  const canDeliver = !isBlocked && canChangeStatus && (row.status === 'in_stock' || row.status === 'received')
+  const wd = (row.part_withdrawals ?? [])[0]
+  const requestedDate = formatDateShort(row.requested_at)
+  const dispensedDate = wd ? formatDateShort(wd.withdrawn_at) : null
+  const dispensedLoc  = wd ? (wd.is_external ? 'מלאי חיצוני' : formatLoc(wd.parts)) : null
 
-  // Quick-copy support: pulls the vehicle, settings and disabling
-  // state to assemble the user-defined multi-line template.
-  const vehiclesMap = useVehiclesMap()
-  const { data: settings } = useAppSettings()
-  const { data: callStats } = useVehicleCallStats()
-  const [copied, setCopied] = useState(false)
-
-  async function copyName() {
-    if (!settings || !row.parts) return
-    const callRow = row as unknown as { vehicle_number?: string }
-    // pending_parts_actions doesn't embed vehicle_number — fall back via service_calls if needed.
-    // For quick-copy we look the vehicle up via call → service_calls, but service_calls only
-    // gives display_id. We resolve vehicle_number via the embedded service_calls when present.
-    const sc = (row as any).service_calls as { display_id?: string; vehicle_number?: string } | undefined
-    const vehicleNumber = sc?.vehicle_number ?? callRow.vehicle_number ?? null
-    const vehicle = vehicleNumber ? vehiclesMap.get(vehicleNumber) ?? null : null
-    const stats   = vehicleNumber ? callStats?.get(vehicleNumber) : undefined
-    const text = buildCopyText({
-      settings,
-      vehicle,
-      vehicleDisabled: !!stats?.disabled,
-      row,
-      partName: row.parts.name,
-      partSku:  row.parts.sku,
-    })
-    try {
-      await navigator.clipboard.writeText(text)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1500)
-    } catch { /* clipboard may be denied */ }
-  }
-  const advanceMap: Partial<Record<RequiredPartStatus, { next: RequiredPartStatus; label: string }>> = {
-    awaiting_order:   { next: 'awaiting_receipt',         label: 'סמן כמוזמן' },
-    awaiting_receipt: { next: 'received',                 label: 'סמן כהתקבל' },
-    rejected:         { next: 'pending_special_approval', label: 'לאישור מיוחד' },
-  }
-  const action = isBlocked ? undefined : advanceMap[row.status]
+  const detailHref = `/warehouse/required-part/${row.id}`
 
   return (
-    <li className={`flex items-center justify-between gap-3 px-4 py-2 border-b border-border last:border-0 ${highlight ? 'bg-danger/5' : ''}`}>
-      <div className="flex flex-col gap-0.5 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            type="button"
-            onClick={copyName}
-            title="לחץ להעתקת תקציר"
-            className="text-sm text-foreground truncate text-start hover:underline"
-          >
-            {row.parts?.name ?? '?'}{copied && <span className="text-success ms-1">✓ הועתק</span>}
-          </button>
-          <span className="font-mono text-[11px] text-muted">
-            {row.parts?.sku ?? ''}
-          </span>
-          {row.parts?.is_sku_blocked
+    <li className={`flex items-stretch border-b border-border last:border-0 ${highlight ? 'bg-danger/5' : ''}`}>
+      <Link
+        to={detailHref}
+        className="flex-1 min-w-0 flex flex-col gap-0.5 px-4 py-2 hover:bg-muted-surface"
+      >
+        <div className="flex items-center gap-2 whitespace-nowrap overflow-hidden">
+          {onCopyName ? (
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onCopyName(row) }}
+              title="לחץ להעתקת תקציר"
+              className="text-sm text-foreground hover:underline truncate text-start"
+            >
+              {row.parts?.name ?? '?'}{copied && <span className="text-success ms-1">✓</span>}
+            </button>
+          ) : (
+            <span className="text-sm text-foreground truncate">{row.parts?.name ?? '?'}</span>
+          )}
+          <span className="font-mono text-[11px] text-muted">{row.parts?.sku ?? ''}</span>
+          {isBlocked
             ? <Badge tone="warning">⚠ מק״ט חסום</Badge>
             : <Badge tone={statusTone[row.status]}>{statusLabel[row.status]}</Badge>}
           <span className="text-xs text-muted">×{row.quantity}</span>
         </div>
         {row.service_calls?.display_id && (
-          <Link to={`/call/${row.call_id}`} className="text-xs text-primary">
+          <span className="text-[11px] text-primary truncate">
             עבור {row.service_calls.display_id} →
-          </Link>
+          </span>
         )}
         {row.rejection_reason && (
-          <div className="text-[11px] text-danger truncate">סיבת דחייה: {row.rejection_reason}</div>
+          <span className="text-[11px] text-danger truncate">סיבת דחייה: {row.rejection_reason}</span>
         )}
-      </div>
-
-      <div className="flex flex-col gap-1 items-stretch">
-        {canDeliver && (
-          <Button
-            onClick={() => onDeliver(row)}
-            disabled={busyId === row.id}
-            className={`text-xs px-3 py-1 min-w-[7rem] ${
-              row.status === 'in_stock'
-                ? 'bg-success hover:bg-success/90 text-white'
-                : 'bg-info hover:bg-info/90 text-white'
-            }`}
-          >
-            {busyId === row.id ? '...' : 'מסור לטכנאי'}
-          </Button>
-        )}
-        {!canDeliver && action && canChangeStatus && (
-          <Button
-            onClick={() => onAdvance(row.id, action.next)}
-            disabled={busyId === row.id}
-            className={`text-xs px-3 py-1 min-w-[7rem] ${
-              row.status === 'awaiting_order' ? 'bg-danger hover:bg-danger/90 text-white'
-                : row.status === 'awaiting_receipt' ? 'bg-warning hover:bg-warning/90 text-white'
-                : row.status === 'rejected' ? 'bg-warning hover:bg-warning/90 text-white'
-                : ''
-            }`}
-          >
-            {busyId === row.id ? '...' : action.label}
-          </Button>
-        )}
-        {canChangeStatus && (
-          <StatusChangeMenu
-            rowId={row.id}
-            partId={row.part_id}
-            currentStatus={row.status}
-            isSkuBlocked={!!row.parts?.is_sku_blocked}
-            employeeNumber={employeeNumber}
-            onChanged={onChanged}
-          />
+      </Link>
+      <div className="shrink-0 flex flex-col items-end justify-center gap-0.5 px-4 py-2 text-[11px] text-muted whitespace-nowrap">
+        {showWithdrawal && wd ? (
+          <>
+            <span className="font-mono">{dispensedDate}</span>
+            <span className="truncate max-w-[10rem]" title={dispensedLoc ?? ''}>{dispensedLoc}</span>
+          </>
+        ) : (
+          <span className="font-mono" title="תאריך דרישה">{requestedDate}</span>
         )}
       </div>
     </li>

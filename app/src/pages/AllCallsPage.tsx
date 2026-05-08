@@ -128,7 +128,7 @@ export function AllCallsPage() {
                       <CallCard
                         key={call.id}
                         call={call}
-                        partsStatus={partsMap?.get(call.id) ?? null}
+                        partsSummary={partsMap?.get(call.id) ?? null}
                         vehicle={call.vehicle_number ? vehiclesMap.get(call.vehicle_number) ?? null : null}
                       />
                     ))}
@@ -142,7 +142,7 @@ export function AllCallsPage() {
                       <CallCard
                         key={call.id}
                         call={call}
-                        partsStatus={partsMap?.get(call.id) ?? null}
+                        partsSummary={partsMap?.get(call.id) ?? null}
                         vehicle={call.vehicle_number ? vehiclesMap.get(call.vehicle_number) ?? null : null}
                       />
                     ))}

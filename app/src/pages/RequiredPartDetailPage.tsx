@@ -1,0 +1,325 @@
+import { useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
+import { useAuthStore } from '../store/auth'
+import { useRequiredPartDetail } from '../hooks/useRequiredPartDetail'
+import { recordWithdrawal, updateRequiredPartStatus, updatePart } from '../lib/warehouseActions'
+import { AppHeader } from '../components/AppHeader'
+import { Card, CardBody, CardHeader } from '../components/ui/Card'
+import { Badge } from '../components/ui/Badge'
+import { Button } from '../components/ui/Button'
+import { StatusChangeMenu } from '../components/StatusChangeMenu'
+import { ComponentBadge } from '../feedback/ComponentBadge'
+import type { Part } from '../types/parts'
+import type { RequiredPartStatus } from '../types/db'
+
+const EXTERNAL = '__external__'
+
+const statusLabel: Record<RequiredPartStatus, string> = {
+  in_stock: 'במלאי', awaiting_order: 'ממתין להזמנה', awaiting_receipt: 'ממתין לקבלה',
+  received: 'התקבל', delivered: 'נמסר', rejected: 'נדחה',
+  pending_special_approval: 'לאישור מיוחד', rejected_final: 'נדחה סופית',
+}
+const statusTone: Record<RequiredPartStatus, 'info' | 'success' | 'warning' | 'danger' | 'neutral'> = {
+  in_stock: 'success', awaiting_order: 'danger', awaiting_receipt: 'warning',
+  received: 'info', delivered: 'neutral', rejected: 'danger',
+  pending_special_approval: 'warning', rejected_final: 'neutral',
+}
+
+function locationLabel(p: Part): string {
+  const out: string[] = []
+  if (p.warehouse) out.push(p.warehouse)
+  if (p.cabinet)        out.push(`ארון ${p.cabinet}`)
+  if (p.storage_type)   out.push(p.storage_type)
+  if (p.storage_number) out.push(`#${p.storage_number}`)
+  if (p.cell_number)    out.push(`תא ${p.cell_number}`)
+  return out.length === 0 ? '—' : out.join(' · ')
+}
+
+export function RequiredPartDetailPage() {
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const employee = useAuthStore((s) => s.employee)!
+  const queryClient = useQueryClient()
+  const { data, isLoading, error } = useRequiredPartDetail(id)
+  const [pickedSource, setPickedSource] = useState<string>('')   // part.id or EXTERNAL
+  const [busy, setBusy] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
+
+  const canChangeStatus = employee.permissions === 'warehouse' || employee.permissions === 'manager'
+
+  function refresh() {
+    queryClient.invalidateQueries({ queryKey: ['required_part_detail', id] })
+    queryClient.invalidateQueries({ queryKey: ['parts'] })
+    queryClient.invalidateQueries({ queryKey: ['pending_parts_actions'] })
+    queryClient.invalidateQueries({ queryKey: ['call_detail'] })
+    queryClient.invalidateQueries({ queryKey: ['calls_parts_status'] })
+    queryClient.invalidateQueries({ queryKey: ['service_calls'] })
+  }
+
+  async function dispense() {
+    if (!data) return
+    if (!pickedSource) { setActionError('בחר מיקום או "מלאי חיצוני"'); return }
+    const isExternal = pickedSource === EXTERNAL
+    const partId     = isExternal ? data.row.part_id : pickedSource
+    setBusy(true); setActionError(null)
+    const res = await recordWithdrawal(
+      employee.employee_number,
+      data.row.call_id,
+      partId,
+      data.row.quantity,
+      employee.employee_number,
+      data.row.id,
+      isExternal,
+    )
+    setBusy(false)
+    if (!res.ok) {
+      setActionError(
+        res.error === 'insufficient_stock'
+          ? `אין מספיק במיקום הזה (נותר ${res.available})`
+          : 'הנפקה נכשלה',
+      )
+      return
+    }
+    refresh()
+  }
+
+  async function unblock() {
+    if (!data?.row.parts) return
+    setBusy(true)
+    await updatePart(employee.employee_number, data.row.part_id, { is_sku_blocked: false })
+    setBusy(false)
+    refresh()
+  }
+
+  async function advance(next: RequiredPartStatus) {
+    setBusy(true); setActionError(null)
+    const res = await updateRequiredPartStatus(employee.employee_number, data!.row.id, next)
+    setBusy(false)
+    if (!res.ok) { setActionError('שגיאה'); return }
+    refresh()
+  }
+
+  if (isLoading) {
+    return <><AppHeader subtitle="פריט נדרש" /><main className="max-w-3xl mx-auto p-4 text-sm text-muted">טוען...</main></>
+  }
+  if (error || !data) {
+    return <><AppHeader subtitle="פריט נדרש" /><main className="max-w-3xl mx-auto p-4"><Card><CardBody><p className="text-danger text-sm">לא ניתן לטעון את הפריט</p></CardBody></Card></main></>
+  }
+
+  const row = data.row
+  const part = (row as any).parts as Part | null
+  const isBlocked = !!part?.is_sku_blocked
+  const canDeliver = !isBlocked && (row.status === 'in_stock' || row.status === 'received')
+
+  return (
+    <>
+      <AppHeader subtitle="ניהול והנפקת פריט" />
+      <main className="max-w-3xl mx-auto p-4 flex flex-col gap-4 pb-24">
+        <ComponentBadge id={4013} />
+        <button
+          type="button"
+          onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/warehouse'))}
+          className="self-start text-sm text-primary"
+        >
+          → חזור
+        </button>
+
+        <Card>
+          <CardHeader>
+            <h2 className="text-lg font-semibold text-foreground">{part?.name ?? '?'}</h2>
+            <span className="font-mono text-xs text-muted">{part?.sku}</span>
+          </CardHeader>
+          <CardBody className="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <div className="text-xs text-muted">סטטוס</div>
+              {isBlocked
+                ? <Badge tone="warning">⚠ מק״ט חסום</Badge>
+                : <Badge tone={statusTone[row.status]}>{statusLabel[row.status]}</Badge>}
+            </div>
+            <div>
+              <div className="text-xs text-muted">כמות</div>
+              <span className="text-foreground font-medium">{row.quantity}</span>
+            </div>
+            {data.call && (
+              <div className="col-span-2">
+                <div className="text-xs text-muted">קריאה</div>
+                <Link to={`/call/${data.call.id}`} className="text-sm text-primary hover:underline">
+                  {data.call.display_id}
+                  {data.call.vehicle_number && ` · כלי ${data.call.vehicle_number}`}
+                </Link>
+              </div>
+            )}
+            {row.rejection_reason && (
+              <div className="col-span-2">
+                <div className="text-xs text-muted">סיבת דחייה</div>
+                <span className="text-sm text-danger">{row.rejection_reason}</span>
+              </div>
+            )}
+            {data.call?.description && (
+              <div className="col-span-2">
+                <div className="text-xs text-muted">תיאור התקלה</div>
+                <p className="text-sm text-foreground whitespace-pre-wrap">{data.call.description}</p>
+              </div>
+            )}
+          </CardBody>
+        </Card>
+
+        {/* Blocked SKU shortcut */}
+        {isBlocked && canChangeStatus && (
+          <Card>
+            <CardBody>
+              <p className="text-sm text-foreground">
+                המק״ט מסומן כחסום. ניתן לבטל חסימה ידנית, או להעביר את הפריט לסטטוס אחר —
+                המעבר יבטל את החסימה אוטומטית.
+              </p>
+              <div className="flex gap-2 mt-2">
+                <Button onClick={unblock} disabled={busy} className="text-xs px-3 py-1">
+                  בטל סימון מק״ט חסום
+                </Button>
+              </div>
+            </CardBody>
+          </Card>
+        )}
+
+        {/* Dispense flow — only when canDeliver */}
+        {canDeliver && canChangeStatus && (
+          <Card>
+            <CardHeader>
+              <h3 className="text-sm font-semibold text-foreground">הנפקה לטכנאי</h3>
+              <p className="text-xs text-muted mt-1">בחר מיקום שממנו מנפיקים, או "מלאי חיצוני".</p>
+            </CardHeader>
+            <CardBody className="flex flex-col gap-2">
+              <ul className="flex flex-col gap-1">
+                {data.locations.map((loc) => {
+                  const enough = loc.quantity >= row.quantity
+                  return (
+                    <li key={loc.id}>
+                      <label className={`flex items-center gap-2 px-3 py-2 rounded-md border cursor-pointer ${
+                        pickedSource === loc.id ? 'border-primary bg-primary/5' : 'border-border'
+                      }`}>
+                        <input
+                          type="radio"
+                          name="source"
+                          value={loc.id}
+                          checked={pickedSource === loc.id}
+                          onChange={() => setPickedSource(loc.id)}
+                        />
+                        <span className="flex-1 text-sm text-foreground truncate">{locationLabel(loc)}</span>
+                        <span className={`text-xs ${enough ? 'text-success' : 'text-danger'}`}>
+                          זמין: {loc.quantity}
+                        </span>
+                      </label>
+                    </li>
+                  )
+                })}
+                {data.locations.length === 0 && (
+                  <li className="text-xs text-muted">אין מיקומים פנימיים לפריט זה</li>
+                )}
+                <li>
+                  <label className={`flex items-center gap-2 px-3 py-2 rounded-md border cursor-pointer ${
+                    pickedSource === EXTERNAL ? 'border-primary bg-primary/5' : 'border-border'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="source"
+                      value={EXTERNAL}
+                      checked={pickedSource === EXTERNAL}
+                      onChange={() => setPickedSource(EXTERNAL)}
+                    />
+                    <span className="flex-1 text-sm text-foreground">מלאי חיצוני</span>
+                    <span className="text-xs text-muted">המלאי הקיים לא ישתנה</span>
+                  </label>
+                </li>
+              </ul>
+              <div className="flex gap-2 items-center">
+                <Button onClick={dispense} disabled={busy || !pickedSource}>
+                  {busy ? '...' : `הנפק ${row.quantity}`}
+                </Button>
+                {actionError && <span className="text-xs text-danger">{actionError}</span>}
+              </div>
+            </CardBody>
+          </Card>
+        )}
+
+        {/* Non-deliverable status: just status changes */}
+        {!canDeliver && !isBlocked && canChangeStatus && (
+          <Card>
+            <CardHeader>
+              <h3 className="text-sm font-semibold text-foreground">פעולות סטטוס</h3>
+            </CardHeader>
+            <CardBody className="flex flex-col gap-2 items-start">
+              {row.status === 'awaiting_order' && (
+                <Button onClick={() => advance('awaiting_receipt')} disabled={busy} className="bg-danger hover:bg-danger/90 text-white">
+                  סמן כמוזמן
+                </Button>
+              )}
+              {row.status === 'awaiting_receipt' && (
+                <Button onClick={() => advance('received')} disabled={busy} className="bg-warning hover:bg-warning/90 text-white">
+                  סמן כהתקבל
+                </Button>
+              )}
+              {row.status === 'rejected' && (
+                <div className="flex gap-2">
+                  <Button onClick={() => advance('pending_special_approval')} disabled={busy} className="bg-warning hover:bg-warning/90 text-white text-xs px-3 py-1">
+                    לאישור מיוחד
+                  </Button>
+                  <Button onClick={() => advance('rejected_final')} disabled={busy} variant="secondary" className="text-xs px-3 py-1">
+                    נדחה סופית
+                  </Button>
+                </div>
+              )}
+              <StatusChangeMenu
+                rowId={row.id}
+                partId={row.part_id}
+                currentStatus={row.status}
+                isSkuBlocked={isBlocked}
+                employeeNumber={employee.employee_number}
+                onChanged={refresh}
+              />
+              {actionError && <span className="text-xs text-danger">{actionError}</span>}
+            </CardBody>
+          </Card>
+        )}
+
+        {/* Delivered: show what was dispensed and allow revert */}
+        {row.status === 'delivered' && (
+          <Card>
+            <CardHeader>
+              <h3 className="text-sm font-semibold text-foreground">פרטי הנפקה</h3>
+            </CardHeader>
+            <CardBody className="text-sm flex flex-col gap-1">
+              <div>
+                <span className="text-muted">תאריך:</span>{' '}
+                <span className="font-mono">
+                  {data.withdrawal ? new Date(data.withdrawal.withdrawn_at).toLocaleString('he-IL') : '—'}
+                </span>
+              </div>
+              <div>
+                <span className="text-muted">מיקום:</span>{' '}
+                <span className="text-foreground">
+                  {data.withdrawal?.is_external
+                    ? 'מלאי חיצוני'
+                    : data.withdrawal?.source ? locationLabel(data.withdrawal.source) : '—'}
+                </span>
+              </div>
+              {canChangeStatus && (
+                <div className="mt-2">
+                  <p className="text-xs text-muted mb-1">לתיקון טעות, ניתן להחזיר את הפריט לסטטוס קודם:</p>
+                  <StatusChangeMenu
+                    rowId={row.id}
+                    partId={row.part_id}
+                    currentStatus={row.status}
+                    isSkuBlocked={isBlocked}
+                    employeeNumber={employee.employee_number}
+                    onChanged={refresh}
+                  />
+                </div>
+              )}
+            </CardBody>
+          </Card>
+        )}
+      </main>
+    </>
+  )
+}

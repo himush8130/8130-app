@@ -2,17 +2,30 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import type { CallRequiredPart } from '../types/parts'
 
-interface PendingPart extends CallRequiredPart {
-  /** display_id + vehicle_number of the parent call. */
+interface PartLocation {
+  warehouse:      string | null
+  cabinet:        number | null
+  storage_type:   string | null
+  storage_number: number | null
+  cell_number:    number | null
+}
+
+export interface PendingPart extends CallRequiredPart {
   service_calls?: { display_id: string; vehicle_number: string | null } | null
-  /** Embedded — needed for the per-row "שנה סטטוס" menu. */
   parts?: { name: string; sku: string; quantity: number; is_sku_blocked?: boolean } | null
+  /** Embedded withdrawal (1:1 via required_part_id). Useful only for
+   *  the 'delivered' variant where the table needs location + date. */
+  part_withdrawals?: Array<{
+    id:           string
+    withdrawn_at: string
+    is_external:  boolean
+    parts:        PartLocation | null
+  }> | null
 }
 
 /**
- * All ACTIVE required parts (anything not yet delivered).
- * The warehouse uses this to know what to hand out, what to order,
- * and what's en route.
+ * All required parts the warehouse cares about: in-flight, rejected,
+ * blocked-via-parent and delivered. The component splits by status.
  */
 export function usePendingActions() {
   return useQuery({
@@ -20,7 +33,15 @@ export function usePendingActions() {
     queryFn: async (): Promise<PendingPart[]> => {
       const { data, error } = await supabase
         .from('call_required_parts')
-        .select('*, parts(name, quantity, sku, is_sku_blocked), service_calls(display_id, vehicle_number)')
+        .select(`
+          *,
+          parts(name, quantity, sku, is_sku_blocked),
+          service_calls(display_id, vehicle_number),
+          part_withdrawals(
+            id, withdrawn_at, is_external,
+            parts(warehouse, cabinet, storage_type, storage_number, cell_number)
+          )
+        `)
         .in('status', [
           'in_stock', 'awaiting_order', 'awaiting_receipt', 'received',
           'rejected', 'pending_special_approval', 'rejected_final',
