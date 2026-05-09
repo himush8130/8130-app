@@ -53,7 +53,15 @@ Deno.serve(async (req: Request) => {
     .maybeSingle()
 
   if (!caller) return json(403, { ok: false, error: 'unknown_employee' })
-  if (caller.permissions !== 'manager') return json(403, { ok: false, error: 'requires_manager' })
+
+  // Most admin actions are manager-only; a small allowlist of
+  // narrowly-scoped fields can be edited by any authenticated employee.
+  const TECH_ALLOWED_ACTIONS = new Set([
+    'update_vehicle_location_dept',
+  ])
+  if (!TECH_ALLOWED_ACTIONS.has(action) && caller.permissions !== 'manager') {
+    return json(403, { ok: false, error: 'requires_manager' })
+  }
 
   switch (action) {
     case 'create_profession': return await createProfession(params)
