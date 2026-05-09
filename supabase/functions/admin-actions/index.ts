@@ -71,6 +71,10 @@ Deno.serve(async (req: Request) => {
     case 'set_availability':  return await setAvailability(params)
 
     case 'set_app_setting':   return await setAppSetting(params)
+
+    // Allowed for any authenticated employee (technicians too) —
+    // narrowly scoped to vehicle.location and vehicle.department.
+    case 'update_vehicle_location_dept': return await updateVehicleLocationDept(params)
     default:
       return json(400, { ok: false, error: 'unknown_action', action })
   }
@@ -359,6 +363,32 @@ async function setAvailability(params: any): Promise<Response> {
     .upsert({ employee_number, date, reason: reason ?? null }, { onConflict: 'employee_number,date' })
   if (error) return json(500, { ok: false, error: 'upsert_failed', detail: error.message })
   return json(200, { ok: true, available: false })
+}
+
+async function updateVehicleLocationDept(params: any): Promise<Response> {
+  const vehicle_number = params?.vehicle_number
+  if (typeof vehicle_number !== 'string' || !vehicle_number.trim()) {
+    return json(400, { ok: false, error: 'invalid_params' })
+  }
+  const patch: Record<string, unknown> = {}
+  if ('location' in (params ?? {})) {
+    const v = params.location
+    patch.location = (v == null) ? null : (String(v).trim() || null)
+  }
+  if ('department' in (params ?? {})) {
+    const v = params.department
+    patch.department = (v == null) ? null : (String(v).trim() || null)
+  }
+  if (Object.keys(patch).length === 0) return json(400, { ok: false, error: 'no_valid_fields' })
+
+  const { data, error } = await admin
+    .from('vehicles')
+    .update(patch)
+    .eq('vehicle_number', vehicle_number)
+    .select('*')
+    .single()
+  if (error) return json(500, { ok: false, error: 'update_failed', detail: error.message })
+  return json(200, { ok: true, vehicle: data })
 }
 
 async function setAppSetting(params: any): Promise<Response> {

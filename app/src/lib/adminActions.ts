@@ -93,6 +93,19 @@ export function setAppSetting(employeeNumber: number, key: string, value: string
   })
 }
 
+/** Tech-accessible: update a vehicle's location and/or department. */
+export function updateVehicleLocationDept(
+  employeeNumber: number,
+  vehicleNumber: string,
+  updates: { location?: string | null; department?: string | null },
+) {
+  return invoke({
+    employee_number: employeeNumber,
+    action: 'update_vehicle_location_dept',
+    params: { vehicle_number: vehicleNumber, ...updates },
+  })
+}
+
 export function createVehicle(employeeNumber: number, payload: { vehicle_number: string } & VehicleUpdates) {
   return invoke({
     employee_number: employeeNumber,

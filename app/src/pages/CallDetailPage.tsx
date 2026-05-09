@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useCallDetail } from '../hooks/useCallDetail'
+import { useVehiclesMap } from '../hooks/useVehicles'
 import { useAuthStore } from '../store/auth'
 import { AppHeader } from '../components/AppHeader'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
@@ -15,6 +16,7 @@ import { CallContactsPanel } from '../components/CallContactsPanel'
 import { PhoneActions } from '../components/PhoneActions'
 import { CopyCallSummaryButton } from '../components/CopyCallSummaryButton'
 import { EditCallForm } from '../components/EditCallForm'
+import { VehicleLocationDeptEditor } from '../components/VehicleLocationDeptEditor'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import { deleteCall } from '../lib/managerActions'
 import type { CallStatus, EmployeePermissions } from '../types/db'
@@ -56,6 +58,7 @@ export function CallDetailPage() {
   const employee = useAuthStore((s) => s.employee)
   const queryClient = useQueryClient()
   const { data, isLoading, error } = useCallDetail(id)
+  const vehiclesMap = useVehiclesMap()
   const [editing, setEditing] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -215,6 +218,12 @@ export function CallDetailPage() {
             </div>
             <FieldRow label="נוצרה ב-" value={created} />
           </CardBody>
+
+          {call.vehicle_number && vehiclesMap.get(call.vehicle_number) && (
+            <CardBody className="border-t border-border">
+              <VehicleLocationDeptEditor vehicle={vehiclesMap.get(call.vehicle_number)!} />
+            </CardBody>
+          )}
 
           {call.description && (
             <CardBody className="border-t border-border">

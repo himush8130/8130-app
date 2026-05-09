@@ -7,6 +7,7 @@ import { useAuthStore } from '../store/auth'
 import { AppHeader } from '../components/AppHeader'
 import { CallCard } from '../components/CallCard'
 import { NewCallForm } from '../components/NewCallForm'
+import { VehicleLocationDeptEditor } from '../components/VehicleLocationDeptEditor'
 import { CollapsibleSection } from '../components/CollapsibleSection'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
@@ -109,16 +110,11 @@ export function VehicleHistoryPage() {
             </CardHeader>
             <CardBody>
               {data.vehicle ? (
-                <div className="text-sm text-muted flex flex-col gap-0.5">
-                  <div>
-                    {data.vehicle.department ?? 'ללא מחלקה'}
-                    {data.vehicle.sub_department && (
-                      <span className="ms-2">· פלוגה: {data.vehicle.sub_department}</span>
-                    )}
-                  </div>
-                  {data.vehicle.location && (
-                    <div>מיקום: <span className="text-foreground">{data.vehicle.location}</span></div>
+                <div className="flex flex-col gap-2">
+                  {data.vehicle.sub_department && (
+                    <div className="text-sm text-muted">פלוגה: {data.vehicle.sub_department}</div>
                   )}
+                  <VehicleLocationDeptEditor vehicle={data.vehicle} />
                 </div>
               ) : (
                 <p className="text-sm text-warning">
