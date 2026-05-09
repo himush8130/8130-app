@@ -114,8 +114,8 @@ export function CallCard({ call, partsSummary, vehicle }: Props) {
                 {call.is_disabling && (
                   <Badge tone="danger">⛔ משביתה</Badge>
                 )}
-                {call.anomaly_flags.length > 0 && (
-                  <Badge tone="warning">{call.anomaly_flags.length} חריגות</Badge>
+                {(call.anomaly_flags?.length ?? 0) > 0 && (
+                  <Badge tone="warning">{call.anomaly_flags!.length} חריגות</Badge>
                 )}
               </div>
 

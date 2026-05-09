@@ -1,15 +1,12 @@
-import { StrictMode, Suspense, lazy } from 'react'
+import { StrictMode, Suspense, lazy, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { QueryClient } from '@tanstack/react-query'
-import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
-import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 import './index.css'
 import { LoginPage } from './pages/LoginPage'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { ErrorBoundary } from './components/ErrorBoundary'
-import { UpdateBanner } from './components/UpdateBanner'
 import { FeedbackBar } from './feedback/FeedbackBar'
 import { registerServiceWorker } from './lib/registerSW'
 
@@ -34,171 +31,123 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 30_000,
-      gcTime: 1000 * 60 * 60 * 24,    // keep cached entries for a day
+      gcTime: 1000 * 60 * 5,
       refetchOnWindowFocus: false,
     },
   },
 })
 
-const persister = createSyncStoragePersister({
-  storage: window.localStorage,
-  key: '8130-query-cache',
-})
-
+// Cleans up any leftover Service Worker + caches from previous app
+// versions. The app is now an online-only website (per user direction
+// — offline isn't a requirement), which eliminates the entire class
+// of "stale shell, missing chunk" bugs that were forcing the
+// "טען מחדש" screen on technicians.
 registerServiceWorker()
+
+/** Wraps a route element so an error in one page can't take the rest
+ *  of the app down. The boundary auto-recovers once per scope per
+ *  session. */
+function Resilient({ scope, children }: { scope: string; children: ReactNode }) {
+  return <ErrorBoundary scope={scope}>{children}</ErrorBoundary>
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <PersistQueryClientProvider
-      client={queryClient}
-      persistOptions={{
-        persister,
-        maxAge: 1000 * 60 * 60 * 24, // 24h: stale cache OK for one day offline
-        // Bust persisted cache on every build so a deploy that changes
-        // a query's result shape can't crash the new code with old data.
-        buster: __BUILD_TIME__,
-      }}
-    >
+    <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <ErrorBoundary>
         <Suspense fallback={<div className="flex items-center justify-center min-h-screen text-muted text-sm">טוען…</div>}>
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="/login" element={<LoginPage />} />
+          <Route path="/login" element={<Resilient scope="login"><LoginPage /></Resilient>} />
 
-          <Route
-            path="/technician"
-            element={
+          <Route path="/technician" element={
+            <Resilient scope="technician">
               <ProtectedRoute allow={['technician', 'manager']}>
                 <TechnicianHomePage />
               </ProtectedRoute>
-            }
-          />
+            </Resilient>
+          } />
 
-          <Route
-            path="/manager"
-            element={
-              <ProtectedRoute allow={['manager']}>
-                <ManagerHomePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/manager/vehicles"
-            element={
-              <ProtectedRoute>
-                <VehiclesBookPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/manager/anomalies"
-            element={
-              <ProtectedRoute allow={['manager']}>
-                <AnomalyQueuePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/manager/calls"
-            element={
-              <ProtectedRoute allow={['manager']}>
-                <AllCallsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/manager/settings/professions"
-            element={
-              <ProtectedRoute allow={['manager']}>
-                <SettingsProfessionsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/manager/settings/employees"
-            element={
-              <ProtectedRoute allow={['manager']}>
-                <SettingsEmployeesPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/manager/settings/vehicles"
-            element={
-              <ProtectedRoute allow={['manager']}>
-                <SettingsVehiclesPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/manager/settings/availability"
-            element={
-              <ProtectedRoute allow={['manager']}>
-                <SettingsAvailabilityPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/manager/settings/copy-format"
-            element={
-              <ProtectedRoute allow={['manager']}>
-                <SettingsCopyFormatPage />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/manager" element={
+            <Resilient scope="manager">
+              <ProtectedRoute allow={['manager']}><ManagerHomePage /></ProtectedRoute>
+            </Resilient>
+          } />
+          <Route path="/manager/vehicles" element={
+            <Resilient scope="manager-vehicles">
+              <ProtectedRoute><VehiclesBookPage /></ProtectedRoute>
+            </Resilient>
+          } />
+          <Route path="/manager/anomalies" element={
+            <Resilient scope="manager-anomalies">
+              <ProtectedRoute allow={['manager']}><AnomalyQueuePage /></ProtectedRoute>
+            </Resilient>
+          } />
+          <Route path="/manager/calls" element={
+            <Resilient scope="manager-calls">
+              <ProtectedRoute allow={['manager']}><AllCallsPage /></ProtectedRoute>
+            </Resilient>
+          } />
+          <Route path="/manager/settings/professions" element={
+            <Resilient scope="settings-professions">
+              <ProtectedRoute allow={['manager']}><SettingsProfessionsPage /></ProtectedRoute>
+            </Resilient>
+          } />
+          <Route path="/manager/settings/employees" element={
+            <Resilient scope="settings-employees">
+              <ProtectedRoute allow={['manager']}><SettingsEmployeesPage /></ProtectedRoute>
+            </Resilient>
+          } />
+          <Route path="/manager/settings/vehicles" element={
+            <Resilient scope="settings-vehicles">
+              <ProtectedRoute allow={['manager']}><SettingsVehiclesPage /></ProtectedRoute>
+            </Resilient>
+          } />
+          <Route path="/manager/settings/availability" element={
+            <Resilient scope="settings-availability">
+              <ProtectedRoute allow={['manager']}><SettingsAvailabilityPage /></ProtectedRoute>
+            </Resilient>
+          } />
+          <Route path="/manager/settings/copy-format" element={
+            <Resilient scope="settings-copy-format">
+              <ProtectedRoute allow={['manager']}><SettingsCopyFormatPage /></ProtectedRoute>
+            </Resilient>
+          } />
 
-          <Route
-            path="/warehouse"
-            element={
-              <ProtectedRoute allow={['warehouse', 'manager']}>
-                <WarehouseHomePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/warehouse/required-part/:id"
-            element={
-              <ProtectedRoute allow={['warehouse', 'manager']}>
-                <RequiredPartDetailPage />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/warehouse" element={
+            <Resilient scope="warehouse">
+              <ProtectedRoute allow={['warehouse', 'manager']}><WarehouseHomePage /></ProtectedRoute>
+            </Resilient>
+          } />
+          <Route path="/warehouse/required-part/:id" element={
+            <Resilient scope="required-part">
+              <ProtectedRoute allow={['warehouse', 'manager']}><RequiredPartDetailPage /></ProtectedRoute>
+            </Resilient>
+          } />
 
-          <Route
-            path="/call/:id"
-            element={
-              <ProtectedRoute>
-                <CallDetailPage />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/call/:id" element={
+            <Resilient scope="call-detail">
+              <ProtectedRoute><CallDetailPage /></ProtectedRoute>
+            </Resilient>
+          } />
 
-          <Route
-            path="/vehicle/:vehicleNumber"
-            element={
-              <ProtectedRoute>
-                <VehicleHistoryPage />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/vehicle/:vehicleNumber" element={
+            <Resilient scope="vehicle-history">
+              <ProtectedRoute><VehicleHistoryPage /></ProtectedRoute>
+            </Resilient>
+          } />
 
-          <Route
-            path="/notes"
-            element={
-              <ProtectedRoute>
-                <NotesPage />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/notes" element={
+            <Resilient scope="notes">
+              <ProtectedRoute><NotesPage /></ProtectedRoute>
+            </Resilient>
+          } />
 
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
         </Suspense>
-        </ErrorBoundary>
         <FeedbackBar />
-        <UpdateBanner />
       </BrowserRouter>
-    </PersistQueryClientProvider>
+    </QueryClientProvider>
   </StrictMode>,
 )

@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'לוגו חימוש 8130 במסך הכניסה ובאייקון ה-PWA במסך הבית.'
+export const LATEST_NOTE = 'יציבות: ה-Service Worker הוסר, מסך טען-מחדש מתאושש שקט, שגיאות מתועדות בענן.'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build

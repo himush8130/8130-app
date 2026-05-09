@@ -183,8 +183,8 @@ export function CallDetailPage() {
                 {(call.specialties ?? []).map((s) => (
                   <Badge key={s} tone="info">{s}</Badge>
                 ))}
-                {call.anomaly_flags.length > 0 && (
-                  <Badge tone="warning">{call.anomaly_flags.length} חריגות</Badge>
+                {(call.anomaly_flags?.length ?? 0) > 0 && (
+                  <Badge tone="warning">{call.anomaly_flags!.length} חריגות</Badge>
                 )}
               </div>
             </div>
@@ -225,11 +225,11 @@ export function CallDetailPage() {
             </CardBody>
           )}
 
-          {call.anomaly_flags.length > 0 && (
+          {(call.anomaly_flags?.length ?? 0) > 0 && (
             <CardBody className="border-t border-border bg-muted-surface">
               <span className="text-xs text-muted">חריגות</span>
               <ul className="text-sm text-foreground mt-1 list-disc me-5">
-                {call.anomaly_flags.map((a, i) => (
+                {(call.anomaly_flags ?? []).map((a, i) => (
                   <li key={i}>
                     {a.code}{a.detail ? ` — ${a.detail}` : ''}
                   </li>

@@ -1,8 +1,11 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { hardReload } from '../lib/hardReload'
+import { logError } from '../lib/errorLog'
 
 interface Props {
   children: ReactNode
+  /** Identifier for sessionStorage so each route gets its own retry budget. */
+  scope?: string
 }
 
 interface State {
@@ -10,31 +13,39 @@ interface State {
 }
 
 /**
- * Catches uncaught render errors from descendants. The most common
- * trigger in production is a chunk-load failure after a deploy, which
- * otherwise yields a blank screen with no recovery path.
+ * Wraps a sub-tree and recovers from render errors automatically.
  *
- * Behavior:
- *   - ChunkLoadError / dynamic-import errors: auto-reload once.
- *   - Anything else: show a minimal recovery UI in Hebrew so the user
- *     can hard-reload manually.
+ * Flow:
+ *   1st error in this scope this session  → log + silent hardReload
+ *   2nd error                              → show recovery UI
+ * The user clicking "טען מחדש" resets the budget.
  */
 export class ErrorBoundary extends Component<Props, State> {
   state: State = { error: null }
+
+  private get key(): string {
+    return `eb-tried-${this.props.scope ?? window.location.pathname}`
+  }
 
   static getDerivedStateFromError(error: Error): State {
     return { error }
   }
 
-  componentDidCatch(error: Error, _info: ErrorInfo) {
-    if (isChunkLoadError(error) && !sessionStorage.getItem('chunkReloadAttempted')) {
-      sessionStorage.setItem('chunkReloadAttempted', '1')
-      hardReload()
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    // Best-effort server log first, regardless of recovery path.
+    logError(error, { componentStack: info.componentStack ?? '' })
+
+    if (!sessionStorage.getItem(this.key)) {
+      sessionStorage.setItem(this.key, '1')
+      // Defer to next tick so the state.error commit lands first; we
+      // briefly show the recovery UI then auto-reload, which is much
+      // less jarring than React's default white screen.
+      setTimeout(() => { hardReload() }, 250)
     }
   }
 
   reset = () => {
-    sessionStorage.removeItem('chunkReloadAttempted')
+    sessionStorage.removeItem(this.key)
     hardReload()
   }
 
@@ -46,7 +57,7 @@ export class ErrorBoundary extends Component<Props, State> {
         <div className="max-w-md w-full bg-card border border-border rounded-md p-5 flex flex-col gap-3 text-center">
           <h2 className="text-lg font-semibold text-foreground">משהו השתבש</h2>
           <p className="text-sm text-muted">
-            ייתכן שהאפליקציה התעדכנה בזמן שהיית כאן. לחץ "טען מחדש" כדי לקבל את הגרסה החדשה.
+            ייתכן שהאפליקציה התעדכנה בזמן שהיית כאן. אנחנו מנסים לטעון מחדש אוטומטית — אם זה לא עזר, לחץ על הכפתור.
           </p>
           <button
             type="button"
@@ -66,12 +77,3 @@ export class ErrorBoundary extends Component<Props, State> {
     )
   }
 }
-
-function isChunkLoadError(error: unknown): boolean {
-  if (!error || typeof error !== 'object') return false
-  const e = error as { name?: string; message?: string }
-  if (e.name === 'ChunkLoadError') return true
-  const msg = e.message ?? ''
-  return /Loading chunk \d+ failed|Failed to fetch dynamically imported module|Importing a module script failed/i.test(msg)
-}
-
