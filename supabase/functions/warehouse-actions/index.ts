@@ -362,10 +362,17 @@ async function createPart(params: any): Promise<Response> {
   const row: Record<string, unknown> = {
     sku,
     name,
-    quantity:      typeof params?.quantity      === 'number' ? params.quantity      : 0,
-    min_threshold: typeof params?.min_threshold === 'number' ? params.min_threshold : 0,
-    location:      typeof params?.location      === 'string' ? params.location      : null,
-    supplier:      typeof params?.supplier      === 'string' ? params.supplier      : null,
+    quantity:       typeof params?.quantity       === 'number' ? params.quantity       : 0,
+    min_threshold:  typeof params?.min_threshold  === 'number' ? params.min_threshold  : 0,
+    location:       typeof params?.location       === 'string' ? params.location       : null,
+    supplier:       typeof params?.supplier       === 'string' ? params.supplier       : null,
+    warehouse:      typeof params?.warehouse      === 'string' ? params.warehouse      : null,
+    cabinet:        typeof params?.cabinet        === 'number' ? params.cabinet        : null,
+    storage_type:   typeof params?.storage_type   === 'string' ? params.storage_type   : null,
+    storage_number: typeof params?.storage_number === 'number' ? params.storage_number : null,
+    cell_number:    typeof params?.cell_number    === 'number' ? params.cell_number    : null,
+    is_exchange:    typeof params?.is_exchange    === 'boolean' ? params.is_exchange    : false,
+    is_sku_blocked: typeof params?.is_sku_blocked === 'boolean' ? params.is_sku_blocked : false,
   }
 
   const { data, error } = await admin

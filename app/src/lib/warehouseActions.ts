@@ -136,6 +136,13 @@ export interface NewPartPayload {
   min_threshold?: number
   location?: string | null
   supplier?: string | null
+  warehouse?: string | null
+  cabinet?: number | null
+  storage_type?: string | null
+  storage_number?: number | null
+  cell_number?: number | null
+  is_exchange?: boolean
+  is_sku_blocked?: boolean
 }
 
 export function createPart(employeeNumber: number, payload: NewPartPayload) {

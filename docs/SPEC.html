@@ -1,0 +1,778 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>8130 APP — מסמך אפיון שלב א'</title>
+<style>
+  :root{
+    --bg:#f6f5f0;
+    --card:#ffffff;
+    --border:#d8d5cc;
+    --border-strong:#bcb8a9;
+    --ink:#171716;
+    --ink-soft:#2c2c2c;
+    --muted:#6b6b6b;
+    --olive:#4f5d2c;
+    --olive-soft:#6b7d3a;
+    --olive-tint:#eef0e3;
+    --rust:#a83a08;
+    --rust-tint:#fbe9df;
+    --gold:#a8801f;
+    --gold-tint:#f7eccd;
+    --gray-tint:#eceae3;
+    --shadow:0 1px 2px rgba(0,0,0,.04), 0 4px 14px rgba(0,0,0,.05);
+    --radius:10px;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Heebo,Arial,sans-serif;line-height:1.55;}
+  *{box-sizing:border-box;}
+  a{color:var(--olive);text-decoration:none;}
+  a:hover{text-decoration:underline;}
+  code{font-family:var(--mono);background:var(--gray-tint);padding:1px 6px;border-radius:4px;font-size:.9em;}
+  h1,h2,h3,h4{color:var(--ink);font-weight:700;letter-spacing:-.01em;}
+  h2{font-size:1.5rem;margin:0 0 .25rem;}
+  h3{font-size:1.05rem;margin:0 0 .5rem;}
+
+  /* ---------- layout ---------- */
+  .page{max-width:1080px;margin:0 auto;padding:32px 24px 80px;}
+  header.hero{
+    background:linear-gradient(135deg,#3b4720 0%, #5a6c30 100%);
+    color:#f4f2e8;
+    padding:34px 30px;
+    border-radius:14px;
+    box-shadow:var(--shadow);
+    position:relative;
+    overflow:hidden;
+  }
+  header.hero::after{
+    content:"";position:absolute;inset:0;
+    background:radial-gradient(circle at 80% 20%, rgba(255,255,255,.15), transparent 50%);
+    pointer-events:none;
+  }
+  header.hero h1{color:#fff;margin:0 0 6px;font-size:2rem;}
+  header.hero .sub{opacity:.85;font-size:.95rem;margin-bottom:18px;}
+  header.hero .meta{display:flex;flex-wrap:wrap;gap:10px;}
+  .chip{
+    display:inline-flex;align-items:center;gap:6px;
+    background:rgba(255,255,255,.13);color:#f4f2e8;
+    padding:5px 11px;border-radius:999px;font-size:.82rem;border:1px solid rgba(255,255,255,.18);
+  }
+
+  nav.toc{
+    position:sticky;top:0;background:var(--bg);
+    padding:10px 0;margin:18px 0 0;
+    border-bottom:1px solid var(--border);
+    z-index:5;
+  }
+  nav.toc ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px;}
+  nav.toc li a{
+    display:inline-block;padding:5px 10px;border-radius:6px;
+    font-size:.82rem;color:var(--ink-soft);
+  }
+  nav.toc li a:hover{background:var(--olive-tint);text-decoration:none;}
+
+  section{margin:32px 0 0;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow);}
+  .card + .card{margin-top:14px;}
+  .card-row{display:grid;grid-template-columns:1fr;gap:14px;}
+  @media (min-width:780px){.card-row.cols-2{grid-template-columns:1fr 1fr;}.card-row.cols-3{grid-template-columns:repeat(3,1fr);}}
+
+  /* ---------- callout ---------- */
+  .callout{
+    border-right:4px solid var(--olive);
+    background:var(--olive-tint);
+    padding:14px 16px;border-radius:8px;
+    margin:14px 0;color:var(--ink-soft);
+  }
+  .callout strong{color:var(--olive);}
+  .callout.warn{border-color:var(--rust);background:var(--rust-tint);}
+  .callout.warn strong{color:var(--rust);}
+
+  /* ---------- tables ---------- */
+  table{width:100%;border-collapse:collapse;font-size:.93rem;}
+  th,td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:start;vertical-align:top;}
+  th{font-weight:600;color:var(--ink);background:#fafaf5;}
+  tr:last-child td{border-bottom:0;}
+  td.mono{font-family:var(--mono);font-size:.86rem;color:var(--olive-soft);}
+
+  /* ---------- badges ---------- */
+  .badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:.78rem;font-weight:600;border:1px solid transparent;}
+  .b-olive{background:var(--olive-tint);color:var(--olive);border-color:rgba(79,93,44,.25);}
+  .b-rust {background:var(--rust-tint); color:var(--rust); border-color:rgba(168,58,8,.25);}
+  .b-gold {background:var(--gold-tint); color:var(--gold); border-color:rgba(168,128,31,.25);}
+  .b-gray {background:var(--gray-tint); color:var(--muted);border-color:var(--border-strong);}
+
+  /* ---------- role cards ---------- */
+  .role{
+    background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+    padding:18px;display:flex;flex-direction:column;gap:10px;
+  }
+  .role .icon{
+    width:42px;height:42px;border-radius:10px;
+    background:var(--olive-tint);color:var(--olive);
+    display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:800;
+  }
+  .role.warehouse .icon{background:var(--gold-tint);color:var(--gold);}
+  .role.manager   .icon{background:var(--rust-tint);color:var(--rust);}
+  .role h3{margin:0;}
+  .role ul{margin:0;padding-inline-start:18px;color:var(--ink-soft);font-size:.92rem;}
+  .role ul li{margin:3px 0;}
+  .role .scope{font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;}
+
+  /* ---------- entity grid ---------- */
+  .entities{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;}
+  .entity{
+    background:#fafaf5;border:1px solid var(--border);
+    border-radius:8px;padding:12px;font-size:.85rem;
+  }
+  .entity h4{margin:0 0 4px;font-size:.95rem;}
+  .entity .tag{font-family:var(--mono);font-size:.75rem;color:var(--muted);}
+  .entity ul{margin:6px 0 0;padding:0;list-style:none;}
+  .entity ul li{padding:2px 0;color:var(--ink-soft);}
+  .entity ul li .k{font-family:var(--mono);font-size:.8rem;color:var(--olive-soft);margin-inline-end:6px;}
+
+  /* ---------- diagram common ---------- */
+  svg{display:block;width:100%;height:auto;}
+  .legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;font-size:.83rem;color:var(--muted);}
+  .legend .dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-inline-end:5px;vertical-align:middle;}
+
+  /* ---------- kanban ---------- */
+  .kanban{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+  @media (min-width:780px){.kanban{grid-template-columns:repeat(4,1fr);}}
+  .col{background:#fafaf5;border:1px solid var(--border);border-radius:8px;padding:12px;}
+  .col h4{margin:0 0 8px;font-size:.85rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);}
+  .col.now h4{color:var(--rust);}
+  .col.next h4{color:var(--olive);}
+  .col.later h4{color:var(--gold);}
+  .col.cut h4{color:var(--muted);text-decoration:line-through;}
+  .ticket{background:#fff;border:1px solid var(--border);border-radius:6px;padding:8px 10px;margin-bottom:6px;font-size:.85rem;color:var(--ink-soft);}
+  .ticket.cut{text-decoration:line-through;color:var(--muted);}
+
+  /* ---------- screens / mockups ---------- */
+  .mock{
+    background:#fafaf5;border:1px solid var(--border);border-radius:8px;
+    padding:10px;font-size:.8rem;color:var(--muted);
+  }
+  .mock .bar{height:22px;background:#3b4720;color:#f4f2e8;border-radius:5px 5px 0 0;padding:4px 8px;font-size:.72rem;}
+  .mock .body{background:#fff;border:1px solid var(--border);border-top:0;border-radius:0 0 5px 5px;padding:8px;}
+  .mock .row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed var(--border);}
+  .mock .row:last-child{border-bottom:0;}
+
+  /* ---------- footer ---------- */
+  footer{margin-top:48px;padding-top:18px;border-top:1px solid var(--border);font-size:.85rem;color:var(--muted);text-align:center;}
+
+  /* ---------- print ---------- */
+  @media print{
+    nav.toc{display:none;}
+    .card,.role,.entity,.col{break-inside:avoid;}
+    body{background:#fff;}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header class="hero">
+  <h1>8130 APP — מסמך אפיון</h1>
+  <div class="sub">מערכת פנימית לניהול מערך טכנאים, חלקי חילוף ורכבים — שלב א'</div>
+  <div class="meta">
+    <span class="chip">📐 ~40 רכבים</span>
+    <span class="chip">🔧 ~6,000 חלקי חילוף</span>
+    <span class="chip">👥 ~40 טכנאים</span>
+    <span class="chip">🇮🇱 עברית · RTL</span>
+    <span class="chip">⚙️ שלב א'</span>
+  </div>
+</header>
+
+<nav class="toc" aria-label="ניווט">
+  <ul>
+    <li><a href="#overview">סקירה</a></li>
+    <li><a href="#roles">תפקידים</a></li>
+    <li><a href="#entities">ישויות</a></li>
+    <li><a href="#lifecycle">מחזור חיים</a></li>
+    <li><a href="#classify">סיווג אוטומטי</a></li>
+    <li><a href="#parts">זרימת חלקים</a></li>
+    <li><a href="#webhook">Base44</a></li>
+    <li><a href="#screens">מסכים</a></li>
+    <li><a href="#decisions">החלטות פתוחות</a></li>
+  </ul>
+</nav>
+
+<!-- ============================================================== -->
+<section id="overview">
+  <div class="card">
+    <h2>1. סקירה כללית</h2>
+    <p>אנשי שטח שולחים טפסי דיווח תקלה דרך פלטפורמת <strong>Base44</strong>; הטופס מגיע ל-Webhook אצלנו, והמערכת אחראית על:
+      קבלת הקריאות וסיווגן האוטומטי, ניהול מחזור החיים שלהן, ניהול קטלוג חלקי חילוף ותנועות מלאי, וממשקי עבודה לשלושה תפקידים.</p>
+
+    <div class="callout">
+      <strong>עיקרון מנחה רוחבי:</strong> אין שדות חוסמים בשום מקום במערכת. כל הקלט מתקבל; חריגות מסומנות ומוצגות כהתראה אך אינן עוצרות זרימה.
+    </div>
+
+    <p style="margin:0;color:var(--muted);font-size:.88rem;">
+      <strong>אימות שלב א':</strong> מספר עובד בלבד. שלב ב' — OTP ב-SMS.
+    </p>
+  </div>
+</section>
+
+<!-- ============================================================== -->
+<section id="roles">
+  <div class="card">
+    <h2>2. תפקידים והרשאות</h2>
+    <p style="color:var(--muted);margin-top:0;">שלוש רמות בתוך אפליקציה אחת. דף בית ייעודי לכל תפקיד.</p>
+
+    <div class="card-row cols-3">
+      <div class="role">
+        <div class="icon">🔧</div>
+        <div class="scope">technician</div>
+        <h3>טכנאי</h3>
+        <ul>
+          <li>רואה את הקריאות שלו לפי <code>profession_id</code></li>
+          <li>מוסיף הערות לקריאה</li>
+          <li>מבקש חלקים</li>
+          <li>סוגר קריאות</li>
+        </ul>
+      </div>
+
+      <div class="role manager">
+        <div class="icon">👤</div>
+        <div class="scope">manager</div>
+        <h3>מנהל</h3>
+        <ul>
+          <li>שליטה מלאה: שינוי <code>profession_id</code> של קריאה, עריכה, ביטול, פתיחה מחדש</li>
+          <li>ניהול רכבים, עובדים, זמינות</li>
+          <li>צפייה בכל הקריאות והדוחות</li>
+          <li>טיפול בתור חריגות</li>
+        </ul>
+      </div>
+
+      <div class="role warehouse">
+        <div class="icon">📦</div>
+        <div class="scope">warehouse</div>
+        <h3>מחסנאי</h3>
+        <ul>
+          <li>ניהול קטלוג החלקים (CRUD)</li>
+          <li>אישור בקשות הוספת חלק</li>
+          <li>תור הזמנות</li>
+          <li>רישום יציאות מהמחסן</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================== -->
+<section id="entities">
+  <div class="card">
+    <h2>3. ישויות נתונים מרכזיות</h2>
+    <p style="color:var(--muted);margin-top:0;">תשעה אובייקטים. סוג רכב = מקצוע טכנאי (אותה טבלת <code>professions</code>).</p>
+
+    <div class="entities">
+      <div class="entity">
+        <h4>professions</h4>
+        <span class="tag">core</span>
+        <ul>
+          <li><span class="k">id</span>PK</li>
+          <li><span class="k">name</span>שם המקצוע</li>
+        </ul>
+      </div>
+
+      <div class="entity">
+        <h4>employees</h4>
+        <span class="tag">core</span>
+        <ul>
+          <li><span class="k">employee_number</span>PK · התחברות</li>
+          <li><span class="k">name</span></li>
+          <li><span class="k">phone</span></li>
+          <li><span class="k">profession_id</span>FK</li>
+          <li><span class="k">role</span>tech / mgr / wh</li>
+        </ul>
+      </div>
+
+      <div class="entity">
+        <h4>employee_availability</h4>
+        <span class="tag">sparse</span>
+        <ul>
+          <li><span class="k">employee_number</span></li>
+          <li><span class="k">date</span></li>
+          <li><span class="k">available</span>ברירת מחדל זמין; רישום = יום אי-זמינות</li>
+        </ul>
+      </div>
+
+      <div class="entity">
+        <h4>vehicles</h4>
+        <span class="tag">core</span>
+        <ul>
+          <li><span class="k">vehicle_number</span>PK</li>
+          <li><span class="k">type_id</span>FK → professions</li>
+          <li><span class="k">model</span></li>
+        </ul>
+      </div>
+
+      <div class="entity">
+        <h4>service_calls</h4>
+        <span class="tag">core</span>
+        <ul>
+          <li><span class="k">id</span>UUID</li>
+          <li><span class="k">display_id</span>SR-YY-NNNN</li>
+          <li><span class="k">vehicle_number</span>כפי שהגיע</li>
+          <li><span class="k">status</span>enum (סעיף 4)</li>
+          <li><span class="k">profession_id</span>FK · סיווג</li>
+          <li><span class="k">closed_by</span>בסגירה</li>
+          <li><span class="k">anomaly_flags</span>חריגות רכות</li>
+        </ul>
+      </div>
+
+      <div class="entity">
+        <h4>parts</h4>
+        <span class="tag">catalog</span>
+        <ul>
+          <li><span class="k">sku</span>PK</li>
+          <li><span class="k">quantity</span></li>
+          <li><span class="k">min_threshold</span></li>
+          <li><span class="k">pending_approval</span></li>
+        </ul>
+      </div>
+
+      <div class="entity">
+        <h4>call_required_parts</h4>
+        <span class="tag">declared</span>
+        <ul>
+          <li><span class="k">call_id</span></li>
+          <li><span class="k">part_sku</span></li>
+          <li><span class="k">status</span>in_stock / awaiting_order / awaiting_receipt / received</li>
+        </ul>
+      </div>
+
+      <div class="entity">
+        <h4>part_withdrawals</h4>
+        <span class="tag">stock-mutating</span>
+        <ul>
+          <li><span class="k">call_id</span></li>
+          <li><span class="k">part_sku</span></li>
+          <li><span class="k">withdrawn_by</span>טכנאי</li>
+          <li><span class="k">released_by</span>מחסנאי</li>
+        </ul>
+      </div>
+
+      <div class="entity">
+        <h4>call_comments</h4>
+        <span class="tag">log</span>
+        <ul>
+          <li><span class="k">call_id</span></li>
+          <li><span class="k">author</span></li>
+          <li><span class="k">text</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>שני סוגי תנועה לחלקים:</strong>
+      <code>call_required_parts</code> = הצהרה (לא משפיע על מלאי).
+      <code>part_withdrawals</code> = יציאה בפועל (מנכה <code>parts.quantity</code>).
+      ייתכנו פערים — זה לגיטימי.
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================== -->
+<section id="lifecycle">
+  <div class="card">
+    <h2>4. מחזור חיים של קריאת שירות</h2>
+    <p style="color:var(--muted);margin-top:0;">חמישה סטטוסים. אין דחיפות, אין תור — כל הקריאות מטופלות במקביל.</p>
+
+    <!-- State machine SVG -->
+    <svg viewBox="0 0 820 240" role="img" aria-label="state machine: new → in_treatment ↔ waiting_for_parts → closed; cancelled side branch">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#7d7d76" />
+        </marker>
+        <marker id="arr-rust" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#a83a08" />
+        </marker>
+      </defs>
+
+      <!-- nodes (RTL flow: right → left) -->
+      <g font-family="-apple-system, Heebo, Arial" font-size="14" font-weight="600">
+        <!-- new -->
+        <g transform="translate(660,40)">
+          <rect width="140" height="56" rx="10" fill="#fbe9df" stroke="#a83a08"/>
+          <text x="70" y="26" text-anchor="middle" fill="#a83a08">חדשה</text>
+          <text x="70" y="44" text-anchor="middle" font-size="11" font-weight="400" fill="#7c2c06">חריגה דחופה</text>
+        </g>
+        <!-- in_treatment -->
+        <g transform="translate(420,40)">
+          <rect width="160" height="56" rx="10" fill="#eef0e3" stroke="#4f5d2c"/>
+          <text x="80" y="26" text-anchor="middle" fill="#4f5d2c">בטיפול</text>
+          <text x="80" y="44" text-anchor="middle" font-size="11" font-weight="400" fill="#3b4720">in_treatment</text>
+        </g>
+        <!-- waiting -->
+        <g transform="translate(420,150)">
+          <rect width="160" height="56" rx="10" fill="#f7eccd" stroke="#a8801f"/>
+          <text x="80" y="26" text-anchor="middle" fill="#a8801f">ממתינה לחלקים</text>
+          <text x="80" y="44" text-anchor="middle" font-size="11" font-weight="400" fill="#7e6017">waiting_for_parts</text>
+        </g>
+        <!-- closed -->
+        <g transform="translate(180,40)">
+          <rect width="140" height="56" rx="10" fill="#eceae3" stroke="#6b6b6b"/>
+          <text x="70" y="26" text-anchor="middle" fill="#2c2c2c">סגורה</text>
+          <text x="70" y="44" text-anchor="middle" font-size="11" font-weight="400" fill="#6b6b6b">closed · closed_by</text>
+        </g>
+        <!-- cancelled -->
+        <g transform="translate(20,150)">
+          <rect width="140" height="56" rx="10" fill="#fbe9df" stroke="#94181c"/>
+          <text x="70" y="26" text-anchor="middle" fill="#94181c">בוטלה</text>
+          <text x="70" y="44" text-anchor="middle" font-size="11" font-weight="400" fill="#7c0c10">cancelled (manager)</text>
+        </g>
+      </g>
+
+      <!-- arrows -->
+      <g stroke="#7d7d76" stroke-width="1.6" fill="none">
+        <!-- new → in_treatment (manager classifies) -->
+        <line x1="660" y1="68" x2="580" y2="68" marker-end="url(#arr)"/>
+        <!-- in_treatment ↔ waiting -->
+        <line x1="500" y1="96" x2="500" y2="150" marker-end="url(#arr)"/>
+        <line x1="480" y1="150" x2="480" y2="96" marker-end="url(#arr)"/>
+        <!-- in_treatment → closed -->
+        <line x1="420" y1="68" x2="320" y2="68" marker-end="url(#arr)"/>
+        <!-- waiting → closed -->
+        <path d="M420,170 C 320,170 280,90 240,96" marker-end="url(#arr)"/>
+        <!-- in_treatment → cancelled (manager) -->
+        <path d="M420,80 C 280,90 200,160 160,170" stroke="#a83a08" marker-end="url(#arr-rust)"/>
+        <!-- closed → in_treatment (manager reopens) -->
+        <path d="M250,40 C 350,10 460,10 460,38" stroke="#a83a08" stroke-dasharray="4,4" marker-end="url(#arr-rust)"/>
+      </g>
+
+      <!-- labels -->
+      <g font-family="-apple-system, Heebo, Arial" font-size="11" fill="#6b6b6b">
+        <text x="620" y="60" text-anchor="middle">סיווג</text>
+        <text x="465" y="125" text-anchor="middle">חלק חסר ↔ הגיע</text>
+        <text x="370" y="60" text-anchor="middle">סגירה</text>
+        <text x="370" y="25" text-anchor="middle" fill="#a83a08">פתיחה מחדש (מנהל)</text>
+        <text x="290" y="135" text-anchor="middle" fill="#a83a08" transform="rotate(-12 290 135)">ביטול</text>
+      </g>
+    </svg>
+
+    <div class="legend">
+      <span><span class="dot" style="background:#a83a08"></span>חריגה</span>
+      <span><span class="dot" style="background:#4f5d2c"></span>טיפול פעיל</span>
+      <span><span class="dot" style="background:#a8801f"></span>חסום על-ידי חלק</span>
+      <span><span class="dot" style="background:#6b6b6b"></span>סגור</span>
+      <span><span class="dot" style="background:#94181c"></span>בוטל (מנהל בלבד)</span>
+    </div>
+
+    <table style="margin-top:16px;">
+      <thead><tr><th>סטטוס</th><th>מי משנה</th><th>הערה</th></tr></thead>
+      <tbody>
+        <tr><td><span class="badge b-rust">חדשה</span></td><td>מנהל</td><td>נוצר רק מסיווג שנכשל. בקריאות תקינות לא יופיע.</td></tr>
+        <tr><td><span class="badge b-olive">בטיפול</span></td><td>אוטומטי</td><td>גלוי לכל הטכנאים מהמקצוע. אין "בעלים".</td></tr>
+        <tr><td><span class="badge b-gold">ממתינה לחלקים</span></td><td>טכנאי / אוטומטי</td><td>נכנס/יוצא בהתאם לסטטוס פריטי <code>call_required_parts</code>.</td></tr>
+        <tr><td><span class="badge b-gray">סגורה</span></td><td>כל טכנאי / מנהל</td><td>אין שדות חובה בסגירה. <code>closed_by</code> נרשם.</td></tr>
+        <tr><td><span class="badge b-rust">בוטלה</span></td><td>מנהל בלבד</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============================================================== -->
+<section id="classify">
+  <div class="card">
+    <h2>5. אלגוריתם הסיווג האוטומטי</h2>
+    <p style="color:var(--muted);margin-top:0;">רץ ברגע קבלת טופס מ-Base44. שלוש החלטות, שלושה סוגי כשל ↑ "חריגה דחופה".</p>
+
+    <svg viewBox="0 0 880 320" role="img" aria-label="auto-classification decision tree">
+      <defs>
+        <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#7d7d76" />
+        </marker>
+      </defs>
+      <g font-family="-apple-system, Heebo, Arial" font-size="13">
+        <!-- start -->
+        <g transform="translate(360,10)">
+          <rect width="160" height="46" rx="23" fill="#3b4720"/>
+          <text x="80" y="29" text-anchor="middle" fill="#fff" font-weight="600">טופס נכנס מ-Base44</text>
+        </g>
+
+        <!-- Q1: vehicle exists? -->
+        <g transform="translate(380,80)">
+          <rect width="120" height="46" rx="6" fill="#fff" stroke="#bcb8a9"/>
+          <text x="60" y="22" text-anchor="middle" font-weight="600">vehicle_number</text>
+          <text x="60" y="38" text-anchor="middle" font-size="11" fill="#6b6b6b">קיים בטבלה?</text>
+        </g>
+
+        <!-- Q2: technician exists? -->
+        <g transform="translate(380,150)">
+          <rect width="120" height="46" rx="6" fill="#fff" stroke="#bcb8a9"/>
+          <text x="60" y="22" text-anchor="middle" font-weight="600">קיים טכנאי</text>
+          <text x="60" y="38" text-anchor="middle" font-size="11" fill="#6b6b6b">למקצוע?</text>
+        </g>
+
+        <!-- Q3: any tech available today? -->
+        <g transform="translate(380,220)">
+          <rect width="120" height="46" rx="6" fill="#fff" stroke="#bcb8a9"/>
+          <text x="60" y="22" text-anchor="middle" font-weight="600">לפחות אחד</text>
+          <text x="60" y="38" text-anchor="middle" font-size="11" fill="#6b6b6b">זמין היום?</text>
+        </g>
+
+        <!-- terminal: in_treatment -->
+        <g transform="translate(160,272)">
+          <rect width="180" height="38" rx="6" fill="#eef0e3" stroke="#4f5d2c"/>
+          <text x="90" y="24" text-anchor="middle" fill="#4f5d2c" font-weight="600">בטיפול</text>
+        </g>
+
+        <!-- anomalies (right) -->
+        <g transform="translate(620,80)">
+          <rect width="240" height="46" rx="6" fill="#fbe9df" stroke="#a83a08"/>
+          <text x="120" y="22" text-anchor="middle" fill="#a83a08" font-weight="600">חריגה: רכב לא קיים</text>
+          <text x="120" y="38" text-anchor="middle" font-size="11" fill="#7c2c06">profession_id = NULL · "חדשה"</text>
+        </g>
+        <g transform="translate(620,150)">
+          <rect width="240" height="46" rx="6" fill="#fbe9df" stroke="#a83a08"/>
+          <text x="120" y="22" text-anchor="middle" fill="#a83a08" font-weight="600">חריגה: אין טכנאי במקצוע</text>
+          <text x="120" y="38" text-anchor="middle" font-size="11" fill="#7c2c06">profession_id סומן · "חדשה"</text>
+        </g>
+        <g transform="translate(620,220)">
+          <rect width="240" height="46" rx="6" fill="#f7eccd" stroke="#a8801f"/>
+          <text x="120" y="22" text-anchor="middle" fill="#a8801f" font-weight="600">אף אחד לא זמין היום</text>
+          <text x="120" y="38" text-anchor="middle" font-size="11" fill="#7e6017">"חדשה" · יוצג כשטכנאי יחזור</text>
+        </g>
+      </g>
+
+      <g stroke="#7d7d76" stroke-width="1.5" fill="none">
+        <!-- start → Q1 -->
+        <line x1="440" y1="56" x2="440" y2="80" marker-end="url(#arr2)"/>
+        <!-- Q1 yes → Q2 -->
+        <line x1="440" y1="126" x2="440" y2="150" marker-end="url(#arr2)"/>
+        <!-- Q2 yes → Q3 -->
+        <line x1="440" y1="196" x2="440" y2="220" marker-end="url(#arr2)"/>
+        <!-- Q3 yes → in_treatment -->
+        <path d="M380,250 C 320,260 280,275 340,290" marker-end="url(#arr2)"/>
+        <!-- Q1 no → anomaly -->
+        <line x1="500" y1="103" x2="620" y2="103" stroke="#a83a08" marker-end="url(#arr2)"/>
+        <!-- Q2 no → anomaly -->
+        <line x1="500" y1="173" x2="620" y2="173" stroke="#a83a08" marker-end="url(#arr2)"/>
+        <!-- Q3 no → anomaly -->
+        <line x1="500" y1="243" x2="620" y2="243" stroke="#a8801f" marker-end="url(#arr2)"/>
+      </g>
+
+      <g font-family="Heebo,Arial" font-size="11" fill="#4f5d2c">
+        <text x="455" y="75" >✓ כן</text>
+        <text x="455" y="145">✓ כן</text>
+        <text x="455" y="215">✓ כן</text>
+      </g>
+      <g font-family="Heebo,Arial" font-size="11" fill="#a83a08">
+        <text x="555" y="98" >✗ לא</text>
+        <text x="555" y="168">✗ לא</text>
+        <text x="555" y="238">✗ לא</text>
+      </g>
+    </svg>
+
+    <div class="callout warn">
+      <strong>תור החריגות אצל המנהל:</strong> הוסף רכב חדש · תקן מספר רכב · סווג ידנית · דחה לתאריך · התעלם / ארכב.
+    </div>
+
+    <p style="margin:6px 0 0;color:var(--muted);font-size:.88rem;"><strong>אין רוטציה. אין "מי לוקח".</strong> הקריאה גלויה לכל הטכנאים מהמקצוע, והם מסתדרים ביניהם.</p>
+  </div>
+</section>
+
+<!-- ============================================================== -->
+<section id="parts">
+  <div class="card">
+    <h2>6. זרימת חלקי חילוף</h2>
+    <p style="color:var(--muted);margin-top:0;">פייפליין: בקשה → המתנה → קבלה → יציאה פיזית. רק <strong>השלב האחרון</strong> מנכה מלאי.</p>
+
+    <svg viewBox="0 0 920 220" role="img" aria-label="parts pipeline">
+      <defs>
+        <linearGradient id="g-decl" x1="0" x2="1"><stop offset="0" stop-color="#eef0e3"/><stop offset="1" stop-color="#dde2c2"/></linearGradient>
+        <linearGradient id="g-stock" x1="0" x2="1"><stop offset="0" stop-color="#f7eccd"/><stop offset="1" stop-color="#f0ddab"/></linearGradient>
+        <marker id="arr3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#7d7d76"/>
+        </marker>
+      </defs>
+
+      <g font-family="-apple-system, Heebo, Arial" font-size="13">
+        <!-- bands -->
+        <rect x="20"  y="14" width="510" height="92" rx="8" fill="url(#g-decl)" stroke="#bcb8a9"/>
+        <text x="40" y="34" font-size="11" fill="#4f5d2c" font-weight="700">קלסיפיקציה: הצהרה (call_required_parts) · אינו משפיע על מלאי</text>
+
+        <rect x="20"  y="120" width="880" height="86" rx="8" fill="url(#g-stock)" stroke="#bcb8a9"/>
+        <text x="40" y="142" font-size="11" fill="#a8801f" font-weight="700">קלסיפיקציה: תנועת מלאי בפועל (part_withdrawals) · מנכה parts.quantity</text>
+
+        <!-- nodes top row (statuses) -->
+        <g transform="translate(40,52)">
+          <rect width="120" height="38" rx="6" fill="#fff" stroke="#4f5d2c"/>
+          <text x="60" y="24" text-anchor="middle" font-weight="600" fill="#4f5d2c">in_stock</text>
+        </g>
+        <g transform="translate(180,52)">
+          <rect width="120" height="38" rx="6" fill="#fff" stroke="#a8801f"/>
+          <text x="60" y="24" text-anchor="middle" font-weight="600" fill="#a8801f">awaiting_order</text>
+        </g>
+        <g transform="translate(320,52)">
+          <rect width="130" height="38" rx="6" fill="#fff" stroke="#a8801f"/>
+          <text x="65" y="24" text-anchor="middle" font-weight="600" fill="#a8801f">awaiting_receipt</text>
+        </g>
+        <!-- received -->
+        <g transform="translate(470,52)">
+          <rect width="60" height="38" rx="6" fill="#fff" stroke="#4f5d2c"/>
+          <text x="30" y="24" text-anchor="middle" font-weight="600" fill="#4f5d2c">received</text>
+        </g>
+
+        <!-- bottom: physical withdrawal -->
+        <g transform="translate(620,148)">
+          <rect width="170" height="42" rx="6" fill="#fff" stroke="#a8801f"/>
+          <text x="85" y="20" text-anchor="middle" font-weight="700" fill="#a8801f">part_withdrawals</text>
+          <text x="85" y="34" text-anchor="middle" font-size="10" fill="#7e6017">withdrawn_by + released_by</text>
+        </g>
+        <g transform="translate(810,148)">
+          <rect width="80" height="42" rx="6" fill="#3b4720"/>
+          <text x="40" y="20" text-anchor="middle" font-weight="700" fill="#fff">parts</text>
+          <text x="40" y="34" text-anchor="middle" font-size="10" fill="#dde2c2">−quantity</text>
+        </g>
+
+        <!-- arrows top -->
+        <g stroke="#7d7d76" stroke-width="1.5" fill="none">
+          <line x1="180" y1="71" x2="160" y2="71" marker-end="url(#arr3)"/>
+          <line x1="320" y1="71" x2="300" y2="71" marker-end="url(#arr3)"/>
+          <line x1="470" y1="71" x2="450" y2="71" marker-end="url(#arr3)"/>
+        </g>
+        <!-- arrows down -->
+        <g stroke="#a8801f" stroke-width="1.5" fill="none" stroke-dasharray="4,4">
+          <path d="M100,90 C 100,130 700,120 705,148" marker-end="url(#arr3)"/>
+          <line x1="790" y1="170" x2="810" y2="170" stroke-dasharray="0" marker-end="url(#arr3)"/>
+        </g>
+      </g>
+    </svg>
+
+    <div class="card-row cols-2" style="margin-top:14px;">
+      <div>
+        <h3>שתי רשימות לכל קריאה</h3>
+        <ul style="margin:0;padding-inline-start:18px;color:var(--ink-soft);font-size:.92rem;">
+          <li><strong>חלקים נדרשים</strong> — מה שהטכנאי ביקש (לא משפיע על מלאי)</li>
+          <li><strong>חלקים שהתקבלו</strong> — מה שיצא בפועל מהמחסן (משפיע)</li>
+        </ul>
+        <p style="font-size:.85rem;color:var(--muted);margin:8px 0 0;">פערים בין השתיים — לגיטימי. ביקש 4 ברגים, לקח 3.</p>
+      </div>
+      <div>
+        <h3>סף מלאי נמוך</h3>
+        <p style="font-size:.92rem;margin:0;">שלב א' — תצוגה ויזואלית בלבד למחסנאי.<br/>שלב ב' — התראה אקטיבית.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================== -->
+<section id="webhook">
+  <div class="card">
+    <h2>7. קבלת טפסים מ-Base44</h2>
+    <p style="color:var(--muted);margin-top:0;">השרת תמיד מקבל. לעולם לא דוחה.</p>
+
+    <table>
+      <thead><tr><th>סוג חריגה</th><th>התנהגות</th><th>סטטוס סופי</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="badge b-gold">רכה</span></td>
+          <td>למשל מספר טלפון חסר, מדווח חסר. הקריאה משויכת ומטופלת רגיל. הערה למנהל "בקריאה X חסר Y".</td>
+          <td><span class="badge b-olive">בטיפול</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge b-rust">דחופה</span></td>
+          <td>סיווג אוטומטי נכשל (3 מקרים). דגל חריגה. מופיעה בתור חריגות אצל המנהל.</td>
+          <td><span class="badge b-rust">חדשה</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout">
+      <strong>אבטחה שלב א':</strong> Bearer Token ב-<code>Authorization</code>. HMAC / IP whitelist — בעתיד אם יידרש.<br/>
+      <strong>Idempotency:</strong> לא בשלב א'. אם תהיה בעיה אמיתית של כפילויות — יטופל אז (כנראה לפי <code>external_id</code>).
+    </div>
+
+    <h3 style="margin-top:14px;">סימולטור Base44</h3>
+    <ul style="margin:0;padding-inline-start:18px;color:var(--ink-soft);font-size:.92rem;">
+      <li><code>simulator/templates/</code> — קבצי JSON מוכנים מראש</li>
+      <li><code>simulator/send.py --template &lt;name&gt;</code> — שולח טופס ספציפי</li>
+      <li><code>simulator/send.py --random</code> — בוחר תבנית רנדומלית</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============================================================== -->
+<section id="screens">
+  <div class="card">
+    <h2>8. ממשקים ומסכים (Highlights)</h2>
+    <div class="card-row cols-3">
+      <div class="mock">
+        <div class="bar">דף בית טכנאי</div>
+        <div class="body">
+          <div class="row"><span>SR-26-0142 · רכב 471</span><span class="badge b-olive">בטיפול</span></div>
+          <div class="row"><span>SR-26-0140 · רכב 388</span><span class="badge b-gold">חלקים</span></div>
+          <div class="row"><span>SR-26-0137 · רכב 312</span><span class="badge b-olive">בטיפול</span></div>
+          <div class="row"><span>SR-26-0129 · רכב 290</span><span class="badge b-gray">סגורה</span></div>
+        </div>
+      </div>
+      <div class="mock">
+        <div class="bar">פאנל מנהל</div>
+        <div class="body">
+          <div class="row"><strong>תור חריגות</strong><span class="badge b-rust">3</span></div>
+          <div class="row"><strong>קריאות פתוחות</strong><span>14</span></div>
+          <div class="row"><strong>עומס לפי מקצוע</strong><span>רכב 6 · חשמל 5 · אופטיקה 3</span></div>
+          <div class="row"><strong>זמינות היום</strong><span>32 / 40</span></div>
+        </div>
+      </div>
+      <div class="mock">
+        <div class="bar">מחסן</div>
+        <div class="body">
+          <div class="row"><strong>מלאי נמוך</strong><span class="badge b-rust">7</span></div>
+          <div class="row"><strong>בהמתנה להזמנה</strong><span class="badge b-gold">4</span></div>
+          <div class="row"><strong>בהמתנה לקבלה</strong><span class="badge b-gold">2</span></div>
+          <div class="row"><strong>בקשות חלק חדש</strong><span>1</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================== -->
+<section id="decisions">
+  <div class="card">
+    <h2>10. החלטות פתוחות</h2>
+    <p style="color:var(--muted);margin-top:0;">כל פריט ממופה לבקט: עכשיו / הבא / שלב ב' / בוטל.</p>
+
+    <div class="kanban">
+      <div class="col now">
+        <h4>עכשיו</h4>
+        <div class="ticket">מחסנית טכנולוגית (FE / BE / Hosting)</div>
+        <div class="ticket">מבנה תיקיות הפרויקט (monorepo?)</div>
+        <div class="ticket">רשימת מקצועות סופית</div>
+      </div>
+      <div class="col next">
+        <h4>הבא</h4>
+        <div class="ticket">ייבוא 6,000 חלקי החילוף האמיתיים</div>
+        <div class="ticket">ייצוא דאטה (CSV / Excel)</div>
+        <div class="ticket">גיבויים וסביבות (dev / staging / prod)</div>
+      </div>
+      <div class="col later">
+        <h4>שלב ב'</h4>
+        <div class="ticket">התראות מלאי נמוך אקטיביות</div>
+        <div class="ticket">Push Notifications</div>
+        <div class="ticket">תמונות בהערות ובסגירה</div>
+        <div class="ticket">OTP בכניסה</div>
+        <div class="ticket">Idempotency ב-Webhook</div>
+      </div>
+      <div class="col cut">
+        <h4>בוטל</h4>
+        <div class="ticket cut">אלגוריתם רוטציה לשיוך טכנאי</div>
+        <div class="ticket cut">שדה role "פעיל/לא פעיל" בעובד</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>8130 APP · מסמך אפיון שלב א' · להשוואה: <a href="SPEC.md">SPEC.md</a></p>
+</footer>
+
+</div>
+</body>
+</html>
