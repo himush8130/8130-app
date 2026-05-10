@@ -5,6 +5,7 @@ import { useVehicleCallStats } from '../hooks/useVehicleCallStats'
 import { usePendingActions } from '../hooks/usePendingActions'
 import { CollapsibleSection } from './CollapsibleSection'
 import { PendingActionRow, type RowData } from './PendingActionRow'
+import { Input } from './ui/Input'
 import { buildCopyText } from '../lib/copyFormat'
 import type { RequiredPartStatus } from '../types/db'
 
@@ -33,6 +34,7 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
   const vehiclesMap = useVehiclesMap()
   const { data: callStats } = useVehicleCallStats()
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [skuFilter, setSkuFilter] = useState('')
 
   async function copyName(row: RowData) {
     if (!settings || !row.parts) return
@@ -55,12 +57,18 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
     } catch { /* clipboard may be denied */ }
   }
 
+  const skuQuery = effective === 'active' ? skuFilter.trim().toLowerCase() : ''
+
   const rows = (data ?? []).filter((r) => {
     const blocked = !!r.parts?.is_sku_blocked
     if (effective === 'blocked')        return blocked
     if (blocked) return false
     if (effective === 'delivered')      return r.status === 'delivered'
-    if (effective === 'active')         return !ANY_REJECTED_SET.has(r.status) && r.status !== 'delivered'
+    if (effective === 'active') {
+      if (ANY_REJECTED_SET.has(r.status) || r.status === 'delivered') return false
+      if (skuQuery && !(r.parts?.sku.toLowerCase().includes(skuQuery))) return false
+      return true
+    }
     if (effective === 'rejected_final') return FINAL_REJECTED_SET.has(r.status)
     return PENDING_REJECTED_SET.has(r.status)
   }).sort((a, b) => {
@@ -101,10 +109,21 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
       badgeId={badgeId}
       countTone={tone}
     >
+      {effective === 'active' && (
+        <div className="px-4 py-2 border-b border-border">
+          <Input
+            label="סינון לפי מק״ט"
+            name="pending-sku-filter"
+            value={skuFilter}
+            onChange={(e) => setSkuFilter(e.target.value)}
+            placeholder="034910308"
+          />
+        </div>
+      )}
       {isLoading && <p className="text-sm text-muted text-center py-4">טוען...</p>}
       {!isLoading && rows.length === 0 && (
         <p className="text-sm text-muted text-center py-4">
-          {effective === 'active'         ? 'אין כרגע חלקים שצריך לטפל בהם'
+          {effective === 'active'         ? (skuQuery ? 'לא נמצא מק״ט תואם' : 'אין כרגע חלקים שצריך לטפל בהם')
           : effective === 'rejected'      ? 'אין פריטים שנדחו'
           : effective === 'rejected_final'? 'אין פריטים שנדחו סופית'
           : effective === 'delivered'     ? 'אין פריטים שנופקו'
