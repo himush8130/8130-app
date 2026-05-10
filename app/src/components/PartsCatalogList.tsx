@@ -517,12 +517,11 @@ function PartEditForm({
 
 // ---------- add new part ----------
 //
-// Uses the catalog's existing filter values as the source for sku, name
-// and the structured location fields — the warehouse worker has just
-// finished typing them while searching the catalog, so duplicating the
-// inputs would be busywork. The form below only collects the fields
-// that aren't filterable: quantity, min_threshold, supplier, exchange
-// flag, sku-blocked flag.
+// Pre-populates every field from the catalog's current filter values
+// so a warehouse worker who already typed sku/name/location while
+// searching doesn't have to retype them. Every field stays editable
+// — the filter values are just defaults the user can adjust or
+// extend before saving.
 
 function AddPartForm({
   employeeNumber, filters, onDone, onCancel,
@@ -533,11 +532,18 @@ function AddPartForm({
   onCancel: () => void
 }) {
   const [draft, setDraft] = useState({
+    sku:            filters.sku.trim(),
+    name:           filters.name.trim(),
     quantity:       '0',
     min_threshold:  '0',
     supplier:       '',
     is_exchange:    false,
     is_sku_blocked: false,
+    warehouse:      filters.warehouse.trim(),
+    cabinet:        filters.cabinet.trim(),
+    storage_type:   filters.storage_type.trim(),
+    storage_number: filters.storage_number.trim(),
+    cell_number:    filters.cell_number.trim(),
   })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -553,37 +559,28 @@ function AddPartForm({
     return Number.isNaN(n) ? null : n
   }
 
-  // Snapshot the filter values for the summary + payload.
-  const sku            = filters.sku.trim()
-  const name           = filters.name.trim()
-  const warehouse      = filters.warehouse.trim()
-  const cabinet        = filters.cabinet.trim()
-  const storage_type   = filters.storage_type.trim()
-  const storage_number = filters.storage_number.trim()
-  const cell_number    = filters.cell_number.trim()
-
   async function save() {
     setError(null)
-    if (!sku)  { setError('מק״ט חסר בסינון'); return }
-    if (!name) { setError('שם חסר בסינון'); return }
+    if (!draft.sku.trim())  { setError('מק״ט חובה'); return }
+    if (!draft.name.trim()) { setError('שם חובה'); return }
     const q = parseInt(draft.quantity, 10)
     if (Number.isNaN(q) || q < 0) { setError('כמות לא תקינה'); return }
     const m = parseInt(draft.min_threshold, 10)
     if (Number.isNaN(m) || m < 0) { setError('סף מינימום לא תקין'); return }
 
     const payload: NewPartPayload = {
-      sku,
-      name,
+      sku:            draft.sku.trim(),
+      name:           draft.name.trim(),
       quantity:       q,
       min_threshold:  m,
       supplier:       draft.supplier.trim() || null,
       is_exchange:    draft.is_exchange,
       is_sku_blocked: draft.is_sku_blocked,
-      warehouse:      warehouse    || null,
-      cabinet:        nullableInt(cabinet),
-      storage_type:   storage_type || null,
-      storage_number: nullableInt(storage_number),
-      cell_number:    nullableInt(cell_number),
+      warehouse:      draft.warehouse.trim()    || null,
+      cabinet:        nullableInt(draft.cabinet),
+      storage_type:   draft.storage_type.trim() || null,
+      storage_number: nullableInt(draft.storage_number),
+      cell_number:    nullableInt(draft.cell_number),
     }
 
     setBusy(true)
@@ -593,38 +590,18 @@ function AddPartForm({
     onDone()
   }
 
-  function row(label: string, value: string) {
-    return (
-      <div className="flex flex-col">
-        <span className="text-[11px] text-muted">{label}</span>
-        <span className={`text-sm ${value ? 'text-foreground' : 'text-muted'}`}>
-          {value || '—'}
-        </span>
-      </div>
-    )
-  }
-
   return (
     <div className="flex flex-col gap-3">
       <ComponentBadge id={4014} />
-
-      <div className="rounded-md border border-border bg-card p-3">
-        <p className="text-xs text-muted mb-2">
-          הפריט ייווצר עם הערכים שמופיעים כעת בשדות הסינון של הקטלוג. כדי לשנות — סגור, עדכן את הסינון, ופתח שוב.
-        </p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {row('מק״ט', sku)}
-          {row('שם פריט', name)}
-          {row('מחסן', warehouse)}
-          {row('ארון', cabinet)}
-          {row('סוג מאחסן', storage_type)}
-          {row('מספר מאחסן', storage_number)}
-          {row('מספר תא', cell_number)}
-        </div>
+      <p className="text-xs text-muted">
+        השדות אוכלסו מראש מערכי הסינון — אפשר לערוך כל שדה ולהשלים שדות שלא מולאו.
+      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <Input label="מק״ט" name="add-sku" value={draft.sku} onChange={(e) => set('sku', e.target.value)} autoFocus />
+        <Input label="שם פריט" name="add-name" value={draft.name} onChange={(e) => set('name', e.target.value)} />
       </div>
-
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <Input label="כמות" name="add-qty" type="number" value={draft.quantity} onChange={(e) => set('quantity', e.target.value)} autoFocus />
+        <Input label="כמות" name="add-qty" type="number" value={draft.quantity} onChange={(e) => set('quantity', e.target.value)} />
         <Input label="סף מינימום" name="add-min" type="number" value={draft.min_threshold} onChange={(e) => set('min_threshold', e.target.value)} />
         <Input label="ספק" name="add-supplier" value={draft.supplier} onChange={(e) => set('supplier', e.target.value)} />
         <label className="flex flex-col gap-1">
@@ -650,7 +627,13 @@ function AddPartForm({
           </select>
         </label>
       </div>
-
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <Input label="מחסן" name="add-wh" value={draft.warehouse} onChange={(e) => set('warehouse', e.target.value)} />
+        <Input label="ארון" name="add-cab" type="number" value={draft.cabinet} onChange={(e) => set('cabinet', e.target.value)} />
+        <Input label="סוג מאחסן" name="add-stype" value={draft.storage_type} onChange={(e) => set('storage_type', e.target.value)} />
+        <Input label="מספר מאחסן" name="add-snum" type="number" value={draft.storage_number} onChange={(e) => set('storage_number', e.target.value)} />
+        <Input label="מספר תא" name="add-cell" type="number" value={draft.cell_number} onChange={(e) => set('cell_number', e.target.value)} />
+      </div>
       <div className="flex gap-2 items-center">
         <Button onClick={save} disabled={busy}>{busy ? 'שומר...' : 'הוסף'}</Button>
         <Button variant="ghost" onClick={onCancel}>ביטול</Button>
