@@ -219,6 +219,14 @@ function VehicleRow({
           </div>
           {!confirmDelete && (
             <div className="flex gap-1 shrink-0">
+              {vehicle.type_name === 'טנק' && (
+                <Link
+                  to={`/manager/settings/vehicles/${encodeURIComponent(vehicle.vehicle_number)}/maintenance`}
+                  className="text-xs px-3 py-1 inline-flex items-center rounded-md border border-border text-primary hover:bg-muted-surface"
+                >
+                  טיפול
+                </Link>
+              )}
               <Button variant="secondary" onClick={() => setEditing(true)} className="text-xs px-3 py-1">ערוך</Button>
               <Button variant="ghost"     onClick={() => setConfirmDelete(true)} className="text-xs px-3 py-1">מחק</Button>
             </div>

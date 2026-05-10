@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'תיקון: טכנאי באמת יכול עכשיו לשמור עדכון מיקום/מחלקה של כלי.'
+export const LATEST_NOTE = 'חדש: דוח נוכחות יומי בלחיצה (פאנל מנהל), והגדרת טיפול שבועי/חודשי לכל טנק עם תצוגה כללית.'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build

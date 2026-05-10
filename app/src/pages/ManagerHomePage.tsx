@@ -4,6 +4,8 @@ import { AppHeader } from '../components/AppHeader'
 import { OpenCallsCard } from '../components/OpenCallsCard'
 import { TankReadinessCard } from '../components/TankReadinessCard'
 import { ReleaseNoteFooter } from '../components/ReleaseNoteFooter'
+import { AttendanceReportButton } from '../components/AttendanceReportButton'
+import { TankMaintenanceOverview } from '../components/TankMaintenanceOverview'
 import { Card, CardBody } from '../components/ui/Card'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 
@@ -37,7 +39,15 @@ export function ManagerHomePage() {
           <>
             <OpenCallsCard total={data.openCalls} breakdown={data.openCallsBreakdown} />
 
+            <Card>
+              <CardBody className="flex items-center justify-between gap-2 flex-wrap">
+                <h3 className="text-sm font-semibold text-foreground">דוח נוכחות יומי</h3>
+                <AttendanceReportButton />
+              </CardBody>
+            </Card>
+
             <TankReadinessCard groupLabels={['פלוגה']} />
+            <TankMaintenanceOverview />
             <TankReadinessCard
               title="כשירות שאר הכלים"
               typeName="רכב"

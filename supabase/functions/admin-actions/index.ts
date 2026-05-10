@@ -80,6 +80,8 @@ Deno.serve(async (req: Request) => {
 
     case 'set_app_setting':   return await setAppSetting(params)
 
+    case 'set_tank_monthly_week': return await setTankMonthlyWeek(params)
+
     // Allowed for any authenticated employee (technicians too) —
     // narrowly scoped to vehicle.location and vehicle.department.
     case 'update_vehicle_location_dept': return await updateVehicleLocationDept(params)
@@ -192,6 +194,7 @@ async function deleteProfession(params: any): Promise<Response> {
 
 const ALLOWED_EMP_FIELDS = new Set([
   'name', 'phone', 'profession_name', 'permissions', 'specialty',
+  'exclude_from_availability_report',
 ])
 
 async function createEmployee(params: any): Promise<Response> {
@@ -205,6 +208,9 @@ async function createEmployee(params: any): Promise<Response> {
   if (typeof rest.permissions === 'string')     row.permissions     = rest.permissions
   if (typeof rest.specialty === 'string')       row.specialty       = rest.specialty.trim() || null
   if (rest.specialty === null)                  row.specialty       = null
+  if (typeof rest.exclude_from_availability_report === 'boolean') {
+    row.exclude_from_availability_report = rest.exclude_from_availability_report
+  }
 
   const { data, error } = await admin
     .from('employees')
@@ -371,6 +377,27 @@ async function setAvailability(params: any): Promise<Response> {
     .upsert({ employee_number, date, reason: reason ?? null }, { onConflict: 'employee_number,date' })
   if (error) return json(500, { ok: false, error: 'upsert_failed', detail: error.message })
   return json(200, { ok: true, available: false })
+}
+
+async function setTankMonthlyWeek(params: any): Promise<Response> {
+  const { vehicle_number, week_start, monthly } = params ?? {}
+  if (typeof vehicle_number !== 'string' || typeof week_start !== 'string' || typeof monthly !== 'boolean') {
+    return json(400, { ok: false, error: 'invalid_params' })
+  }
+  if (monthly) {
+    const { error } = await admin
+      .from('tank_monthly_maintenance')
+      .upsert({ vehicle_number, week_start }, { onConflict: 'vehicle_number,week_start' })
+    if (error) return json(500, { ok: false, error: 'upsert_failed', detail: error.message })
+    return json(200, { ok: true, monthly: true })
+  }
+  const { error } = await admin
+    .from('tank_monthly_maintenance')
+    .delete()
+    .eq('vehicle_number', vehicle_number)
+    .eq('week_start', week_start)
+  if (error) return json(500, { ok: false, error: 'delete_failed', detail: error.message })
+  return json(200, { ok: true, monthly: false })
 }
 
 async function updateVehicleLocationDept(params: any): Promise<Response> {

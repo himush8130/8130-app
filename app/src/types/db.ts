@@ -40,6 +40,7 @@ export interface Employee {
   profession_name: string | null
   permissions: EmployeePermissions
   specialty: TankSpecialty | null
+  exclude_from_availability_report: boolean
   created_at: string
 }
 

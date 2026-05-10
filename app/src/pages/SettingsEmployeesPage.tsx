@@ -121,6 +121,7 @@ function AddRow({
   const [prof, setProf] = useState('')
   const [perms, setPerms] = useState<EmployeePermissions>('technician')
   const [specialty, setSpecialty] = useState<TankSpecialty | ''>('')
+  const [excludeFromReport, setExcludeFromReport] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -137,6 +138,7 @@ function AddRow({
       profession_name: prof.trim() || null,
       permissions: perms,
       specialty: specialty || null,
+      exclude_from_availability_report: excludeFromReport,
     })
     setBusy(false)
     if (!res.ok) {
@@ -156,6 +158,14 @@ function AddRow({
         <PermsSelect value={perms} onChange={setPerms} />
         <SpecialtySelect value={specialty} onChange={setSpecialty} />
       </div>
+      <label className="flex items-center gap-2 text-sm text-foreground">
+        <input
+          type="checkbox"
+          checked={excludeFromReport}
+          onChange={(e) => setExcludeFromReport(e.target.checked)}
+        />
+        החרג מדוח זמינות
+      </label>
       <div className="flex gap-2 items-center">
         <Button onClick={save} disabled={busy}>{busy ? 'שומר...' : 'הוסף'}</Button>
         <Button variant="ghost" onClick={onCancel}>ביטול</Button>
@@ -181,6 +191,7 @@ function EmployeeRow({
   const [prof, setProf] = useState(emp.profession_name ?? '')
   const [perms, setPerms] = useState<EmployeePermissions>(emp.permissions)
   const [specialty, setSpecialty] = useState<TankSpecialty | ''>(emp.specialty ?? '')
+  const [excludeFromReport, setExcludeFromReport] = useState(emp.exclude_from_availability_report ?? false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -193,6 +204,7 @@ function EmployeeRow({
       profession_name: prof.trim() || null,
       permissions: perms,
       specialty: specialty || null,
+      exclude_from_availability_report: excludeFromReport,
     })
     setBusy(false)
     if (!res.ok) { setError('שגיאה'); return }
@@ -234,6 +246,9 @@ function EmployeeRow({
             {emp.phone && (
               <span className="text-xs text-muted font-mono" dir="ltr">· {emp.phone}</span>
             )}
+            {emp.exclude_from_availability_report && (
+              <Badge tone="warning">לא בדוח</Badge>
+            )}
           </div>
           {!confirmDelete && (
             <div className="flex gap-1">
@@ -254,9 +269,17 @@ function EmployeeRow({
             <PermsSelect value={perms} onChange={setPerms} />
             <SpecialtySelect value={specialty} onChange={setSpecialty} />
           </div>
+          <label className="flex items-center gap-2 text-sm text-foreground">
+            <input
+              type="checkbox"
+              checked={excludeFromReport}
+              onChange={(e) => setExcludeFromReport(e.target.checked)}
+            />
+            החרג מדוח זמינות
+          </label>
           <div className="flex gap-2 items-center">
             <Button onClick={save} disabled={busy}>{busy ? 'שומר...' : 'שמור'}</Button>
-            <Button variant="ghost" onClick={() => { setEditing(false); setName(emp.name); setPhone(emp.phone ?? ''); setProf(emp.profession_name ?? ''); setPerms(emp.permissions); setSpecialty(emp.specialty ?? '') }}>ביטול</Button>
+            <Button variant="ghost" onClick={() => { setEditing(false); setName(emp.name); setPhone(emp.phone ?? ''); setProf(emp.profession_name ?? ''); setPerms(emp.permissions); setSpecialty(emp.specialty ?? ''); setExcludeFromReport(emp.exclude_from_availability_report ?? false) }}>ביטול</Button>
             {error && <span className="text-xs text-danger">{error}</span>}
           </div>
         </div>

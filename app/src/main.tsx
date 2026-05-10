@@ -26,6 +26,7 @@ const SettingsAvailabilityPage = lazy(() => import('./pages/SettingsAvailability
 const VehiclesBookPage         = lazy(() => import('./pages/VehiclesBookPage').then(m => ({ default: m.VehiclesBookPage })))
 const SettingsCopyFormatPage   = lazy(() => import('./pages/SettingsCopyFormatPage').then(m => ({ default: m.SettingsCopyFormatPage })))
 const RequiredPartDetailPage   = lazy(() => import('./pages/RequiredPartDetailPage').then(m => ({ default: m.RequiredPartDetailPage })))
+const TankMaintenancePage      = lazy(() => import('./pages/TankMaintenancePage').then(m => ({ default: m.TankMaintenancePage })))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -106,6 +107,11 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/manager/settings/availability" element={
             <Resilient scope="settings-availability">
               <ProtectedRoute allow={['manager']}><SettingsAvailabilityPage /></ProtectedRoute>
+            </Resilient>
+          } />
+          <Route path="/manager/settings/vehicles/:vehicleNumber/maintenance" element={
+            <Resilient scope="tank-maintenance">
+              <ProtectedRoute allow={['manager']}><TankMaintenancePage /></ProtectedRoute>
             </Resilient>
           } />
           <Route path="/manager/settings/copy-format" element={

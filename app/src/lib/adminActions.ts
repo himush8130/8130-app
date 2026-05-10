@@ -49,6 +49,7 @@ export interface EmployeeUpdates {
   profession_name?: string | null
   permissions?: 'technician' | 'manager' | 'warehouse'
   specialty?: string | null
+  exclude_from_availability_report?: boolean
 }
 
 export function createEmployee(employeeNumber: number, payload: { employee_number: number } & EmployeeUpdates) {
@@ -90,6 +91,19 @@ export function setAppSetting(employeeNumber: number, key: string, value: string
     employee_number: employeeNumber,
     action: 'set_app_setting',
     params: { key, value },
+  })
+}
+
+export function setTankMonthlyWeek(
+  employeeNumber: number,
+  vehicleNumber: string,
+  weekStart: string,
+  monthly: boolean,
+) {
+  return invoke({
+    employee_number: employeeNumber,
+    action: 'set_tank_monthly_week',
+    params: { vehicle_number: vehicleNumber, week_start: weekStart, monthly },
   })
 }
 
