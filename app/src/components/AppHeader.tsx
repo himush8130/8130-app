@@ -38,16 +38,19 @@ export function AppHeader({ subtitle }: { subtitle?: string }) {
   return (
     <header className="bg-card border-b border-border">
       <ComponentBadge id={1001} />
-      <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-2">
+
+      {/* Row 1 — title + identity + (feedback toggle | יציאה stacked with ⟳) */}
+      <div className="max-w-3xl mx-auto px-4 py-3 flex items-start justify-between gap-2">
         <div className="min-w-0">
           <h1 className="text-lg font-bold text-foreground">8130 APP</h1>
           {subtitle && <p className="text-xs text-muted truncate">{subtitle}</p>}
         </div>
-        {employee && (
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm text-muted hidden sm:inline">{employee.name}</span>
 
-            <span className="inline-flex items-center">
+        {employee && (
+          <div className="flex items-start gap-2">
+            <span className="text-sm text-muted hidden sm:inline self-center">{employee.name}</span>
+
+            <span className="inline-flex items-center self-center">
               <ComponentBadge id={1003} />
               <button
                 type="button"
@@ -63,31 +66,15 @@ export function AppHeader({ subtitle }: { subtitle?: string }) {
               </button>
             </span>
 
-            <Link
-              to="/manager/vehicles"
-              className="text-xs text-muted hover:text-foreground border border-border rounded-md px-2 py-1 inline-flex items-center"
-            >
-              ספר כלי
-            </Link>
-
-            <span className="inline-flex items-center">
-              <ComponentBadge id={1004} />
-              <Link
-                to="/notes"
-                className="text-xs text-muted hover:text-foreground border border-border rounded-md px-2 py-1 inline-flex items-center"
-              >
-                לוג הערות
-              </Link>
-            </span>
-
-            <span className="inline-flex flex-col items-stretch gap-1">
+            {/* יציאה sits on top, ⟳ directly beneath it in the same column */}
+            <span className="inline-flex flex-col items-end gap-1">
               <span className="inline-flex items-center">
                 <ComponentBadge id={1002} />
                 <Button variant="ghost" onClick={handleLogout}>
                   יציאה
                 </Button>
               </span>
-              <span className="inline-flex items-center justify-center">
+              <span className="inline-flex items-center">
                 <ComponentBadge id={1005} />
                 <button
                   type="button"
@@ -95,7 +82,7 @@ export function AppHeader({ subtitle }: { subtitle?: string }) {
                   disabled={refreshing}
                   aria-label="רענן נתונים ובדוק עדכון לאפליקציה"
                   title="רענן נתונים ובדוק עדכון לאפליקציה"
-                  className="text-base text-muted hover:text-foreground border border-border rounded-md w-7 h-7 inline-flex items-center justify-center disabled:opacity-50 self-center"
+                  className="text-base text-muted hover:text-foreground border border-border rounded-md w-7 h-7 inline-flex items-center justify-center disabled:opacity-50"
                 >
                   ⟳
                 </button>
@@ -105,26 +92,42 @@ export function AppHeader({ subtitle }: { subtitle?: string }) {
         )}
       </div>
 
-      {isManager && (
+      {/* Row 2 — secondary nav: לוג הערות for everyone, view-switcher for manager */}
+      {employee && (
         <div className="max-w-3xl mx-auto px-4 pb-2 flex items-center gap-1 flex-wrap">
-          <ComponentBadge id={3020} />
-          <span className="text-xs text-muted ms-1">תצוגה:</span>
-          {MANAGER_VIEWS.map((v) => {
-            const active = v.matches(location.pathname)
-            return (
-              <Link
-                key={v.to}
-                to={v.to}
-                className={`text-xs px-2.5 py-1 rounded-md border transition-colors ${
-                  active
-                    ? 'bg-primary text-primary-fg border-primary'
-                    : 'bg-card text-muted border-border hover:bg-muted-surface'
-                }`}
-              >
-                {v.label}
-              </Link>
-            )
-          })}
+          {isManager && (
+            <>
+              <ComponentBadge id={3020} />
+              <span className="text-xs text-muted ms-1">תצוגה:</span>
+              {MANAGER_VIEWS.map((v) => {
+                const active = v.matches(location.pathname)
+                return (
+                  <Link
+                    key={v.to}
+                    to={v.to}
+                    className={`text-xs px-2.5 py-1 rounded-md border transition-colors ${
+                      active
+                        ? 'bg-primary text-primary-fg border-primary'
+                        : 'bg-card text-muted border-border hover:bg-muted-surface'
+                    }`}
+                  >
+                    {v.label}
+                  </Link>
+                )
+              })}
+            </>
+          )}
+
+          {/* Pushes "לוג הערות" to the RTL-end (left side) of the row. */}
+          <span className="inline-flex items-center ms-auto">
+            <ComponentBadge id={1004} />
+            <Link
+              to="/notes"
+              className="text-xs text-muted hover:text-foreground border border-border rounded-md px-2 py-1 inline-flex items-center"
+            >
+              לוג הערות
+            </Link>
+          </span>
         </div>
       )}
     </header>
