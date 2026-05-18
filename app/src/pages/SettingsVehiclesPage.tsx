@@ -12,7 +12,17 @@ import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Badge } from '../components/ui/Badge'
-import type { Vehicle } from '../types/db'
+import { VehicleNoteBadge } from '../components/VehicleNoteBadge'
+import type { Vehicle, VehicleNoteColor } from '../types/db'
+import { VEHICLE_NOTE_COLORS } from '../types/db'
+
+const COLOR_LABEL: Record<VehicleNoteColor, string> = {
+  yellow: 'צהוב',
+  red:    'אדום',
+  green:  'ירוק',
+  blue:   'כחול',
+  gray:   'אפור',
+}
 
 export function SettingsVehiclesPage() {
   const { data: vehicles } = useVehicles()
@@ -171,9 +181,21 @@ function VehicleRow({
   const [sub_department, setSub] = useState(vehicle.sub_department ?? '')
   const [location, setLocation] = useState(vehicle.location ?? '')
   const [model, setModel] = useState(vehicle.model ?? '')
+  const [note, setNote] = useState(vehicle.important_note ?? '')
+  const [noteColor, setNoteColor] = useState<VehicleNoteColor>((vehicle.important_note_color ?? 'yellow') as VehicleNoteColor)
+  const [initialHours, setInitialHours] = useState(vehicle.initial_engine_hours != null ? String(vehicle.initial_engine_hours) : '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
+
+  const isTank = vehicle.type_name === 'טנק' || type_name === 'טנק'
+
+  function nullableInt(s: string): number | null {
+    const t = s.trim()
+    if (!t) return null
+    const n = parseInt(t, 10)
+    return Number.isNaN(n) ? null : n
+  }
 
   async function save() {
     setError(null)
@@ -185,6 +207,9 @@ function VehicleRow({
       sub_department: sub_department.trim() || null,
       location: location.trim() || null,
       model: model.trim() || null,
+      important_note: note.trim() || null,
+      important_note_color: note.trim() ? noteColor : null,
+      initial_engine_hours: isTank ? nullableInt(initialHours) : null,
     })
     setBusy(false)
     if (!res.ok) { setError('שגיאה'); return }
@@ -208,6 +233,7 @@ function VehicleRow({
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-mono text-xs text-muted">{vehicle.vehicle_number}</span>
               <Badge tone="neutral">{vehicle.type_name}</Badge>
+              <VehicleNoteBadge note={vehicle.important_note} color={vehicle.important_note_color} compact />
             </div>
             {(vehicle.department || vehicle.sub_department || vehicle.location) && (
               <div className="text-xs text-muted truncate">
@@ -244,9 +270,60 @@ function VehicleRow({
             <Input label="מיקום" name={`l-${vehicle.vehicle_number}`} value={location} onChange={(e) => setLocation(e.target.value)} />
             <Input label="סוג הכלי (דגם)" name={`m-${vehicle.vehicle_number}`} value={model} onChange={(e) => setModel(e.target.value)} />
           </div>
+
+          {/* Important note + color */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="sm:col-span-2">
+              <Input
+                label="הערה חשובה (אופציונלי)"
+                name={`note-${vehicle.vehicle_number}`}
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+              />
+            </div>
+            <label className="flex flex-col gap-1">
+              <span className="text-sm font-medium text-foreground">צבע ההערה</span>
+              <select
+                value={noteColor}
+                onChange={(e) => setNoteColor(e.target.value as VehicleNoteColor)}
+                className="px-3 py-2 bg-card border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                {VEHICLE_NOTE_COLORS.map((c) => (
+                  <option key={c} value={c}>{COLOR_LABEL[c]}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          {/* Tank-only baseline */}
+          {isTank && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <Input
+                label="שעת מנוע התחלתית"
+                name={`ih-${vehicle.vehicle_number}`}
+                type="number"
+                value={initialHours}
+                onChange={(e) => setInitialHours(e.target.value)}
+              />
+              <p className="sm:col-span-2 text-[11px] text-muted self-end pb-2">
+                סף ההתראה לשעות המנוע יוגדר אוטומטית ל-(התחלתית + 200).
+              </p>
+            </div>
+          )}
+
           <div className="flex gap-2 items-center">
             <Button onClick={save} disabled={busy}>{busy ? 'שומר...' : 'שמור'}</Button>
-            <Button variant="ghost" onClick={() => { setEditing(false); setType(vehicle.type_name); setDept(vehicle.department ?? ''); setSub(vehicle.sub_department ?? '') }}>ביטול</Button>
+            <Button variant="ghost" onClick={() => {
+              setEditing(false)
+              setType(vehicle.type_name)
+              setDept(vehicle.department ?? '')
+              setSub(vehicle.sub_department ?? '')
+              setLocation(vehicle.location ?? '')
+              setModel(vehicle.model ?? '')
+              setNote(vehicle.important_note ?? '')
+              setNoteColor((vehicle.important_note_color ?? 'yellow') as VehicleNoteColor)
+              setInitialHours(vehicle.initial_engine_hours != null ? String(vehicle.initial_engine_hours) : '')
+            }}>ביטול</Button>
             {error && <span className="text-xs text-danger">{error}</span>}
           </div>
         </div>

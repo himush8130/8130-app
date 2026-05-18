@@ -15,8 +15,10 @@ export function OpenCallsCard({ total, breakdown }: Props) {
       <Card className="hover:bg-muted-surface transition-colors">
         <CardBody>
           <ComponentBadge id={3002} />
-          <div className="text-xs text-muted">קריאות פתוחות</div>
-          <div className="text-3xl font-bold mt-1 text-foreground">{total}</div>
+          <div className="text-2xl font-bold text-foreground">
+            <span>{total}</span>
+            <span className="ms-2">קריאות פתוחות</span>
+          </div>
 
           {buckets.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-sm">

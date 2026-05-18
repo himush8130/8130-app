@@ -48,6 +48,9 @@ export type TankSpecialty = 'מכונאות' | 'חשמל' | 'צריח' | 'בק״
 
 export const TANK_SPECIALTIES: TankSpecialty[] = ['מכונאות', 'חשמל', 'צריח', 'בק״ש']
 
+export type VehicleNoteColor = 'yellow' | 'red' | 'green' | 'blue' | 'gray'
+export const VEHICLE_NOTE_COLORS: VehicleNoteColor[] = ['yellow', 'red', 'green', 'blue', 'gray']
+
 export interface Vehicle {
   vehicle_number: string
   type_name: string
@@ -55,6 +58,11 @@ export interface Vehicle {
   sub_department: string | null
   location: string | null
   model: string | null
+  important_note: string | null
+  important_note_color: VehicleNoteColor | null
+  initial_engine_hours: number | null
+  current_engine_hours: number | null
+  current_kilometers: number | null
   created_at: string
 }
 

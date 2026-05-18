@@ -4,6 +4,7 @@ import { useVehicles } from '../hooks/useVehicles'
 import { useVehicleCallStats } from '../hooks/useVehicleCallStats'
 import { Card, CardBody, CardHeader } from './ui/Card'
 import { Input } from './ui/Input'
+import { VehicleNoteBadge } from './VehicleNoteBadge'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 
 const CATEGORIES: Array<{ key: string; label: string; types: string[] }> = [
@@ -133,6 +134,11 @@ export function VehiclePicker() {
                   </div>
                   {disabled && (
                     <div className="text-[10px] font-bold text-danger mt-0.5">⛔ מושבת</div>
+                  )}
+                  {v.important_note && (
+                    <div className="mt-1">
+                      <VehicleNoteBadge note={v.important_note} color={v.important_note_color} compact />
+                    </div>
                   )}
                 </Link>
               )

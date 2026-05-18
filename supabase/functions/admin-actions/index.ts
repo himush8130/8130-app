@@ -60,6 +60,7 @@ Deno.serve(async (req: Request) => {
     'update_vehicle_location_dept',
     'upsert_class_order',
     'delete_class_order',
+    'set_tank_reading',
   ])
   if (!TECH_ALLOWED_ACTIONS.has(action) && caller.permissions !== 'manager') {
     return json(403, { ok: false, error: 'requires_manager' })
@@ -87,6 +88,11 @@ Deno.serve(async (req: Request) => {
     // Allowed for any authenticated employee (technicians too) —
     // narrowly scoped to vehicle.location and vehicle.department.
     case 'update_vehicle_location_dept': return await updateVehicleLocationDept(params)
+
+    // Tech-allowed: report the latest engine-hours / km reading for
+    // a tank from the vehicle book. Manager still sets the baseline
+    // (initial_engine_hours) via the regular update_vehicle action.
+    case 'set_tank_reading':             return await setTankReading(params)
 
     // Class orders ("דרישת כיתת אחזקה"): tech fills + saves, manager
     // dispatches via the table on the manager home.
@@ -291,7 +297,12 @@ async function deleteEmployee(params: any): Promise<Response> {
 
 const ALLOWED_VEH_FIELDS = new Set([
   'type_name', 'department', 'sub_department', 'location', 'model',
+  'important_note', 'important_note_color',
+  'initial_engine_hours', 'current_engine_hours', 'current_kilometers',
 ])
+
+const ALLOWED_NOTE_COLORS = new Set(['yellow', 'red', 'green', 'blue', 'gray'])
+const INT_VEH_FIELDS = new Set(['initial_engine_hours', 'current_engine_hours', 'current_kilometers'])
 
 async function createVehicle(params: any): Promise<Response> {
   const { vehicle_number, ...rest } = params ?? {}
@@ -331,6 +342,18 @@ async function updateVehicle(params: any): Promise<Response> {
   const patch: Record<string, unknown> = {}
   for (const [k, v] of Object.entries(updates)) {
     if (!ALLOWED_VEH_FIELDS.has(k)) continue
+    if (INT_VEH_FIELDS.has(k)) {
+      if (v == null || v === '') { patch[k] = null; continue }
+      const n = typeof v === 'number' ? v : parseInt(String(v), 10)
+      patch[k] = Number.isFinite(n) ? n : null
+      continue
+    }
+    if (k === 'important_note_color') {
+      if (v == null || v === '') { patch[k] = null; continue }
+      const c = String(v).trim()
+      patch[k] = ALLOWED_NOTE_COLORS.has(c) ? c : null
+      continue
+    }
     const s = (v == null) ? null : String(v).trim()
     patch[k] = s || null
   }
@@ -443,6 +466,47 @@ async function setAppSetting(params: any): Promise<Response> {
     .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' })
   if (error) return json(500, { ok: false, error: 'upsert_failed', detail: error.message })
   return json(200, { ok: true })
+}
+
+// ----- tank readings -----
+async function setTankReading(params: any): Promise<Response> {
+  const vehicle_number = params?.vehicle_number
+  if (typeof vehicle_number !== 'string' || !vehicle_number.trim()) {
+    return json(400, { ok: false, error: 'invalid_vehicle_number' })
+  }
+  const patch: Record<string, unknown> = {}
+  const hasHours = params?.current_engine_hours !== undefined
+  const hasKm    = params?.current_kilometers !== undefined
+  if (hasHours) {
+    const v = params.current_engine_hours
+    if (v === null || v === '') patch.current_engine_hours = null
+    else {
+      const n = typeof v === 'number' ? v : parseInt(String(v), 10)
+      if (!Number.isFinite(n)) return json(400, { ok: false, error: 'invalid_engine_hours' })
+      patch.current_engine_hours = n
+    }
+  }
+  if (hasKm) {
+    const v = params.current_kilometers
+    if (v === null || v === '') patch.current_kilometers = null
+    else {
+      const n = typeof v === 'number' ? v : parseInt(String(v), 10)
+      if (!Number.isFinite(n)) return json(400, { ok: false, error: 'invalid_kilometers' })
+      patch.current_kilometers = n
+    }
+  }
+  if (Object.keys(patch).length === 0) {
+    return json(400, { ok: false, error: 'no_fields' })
+  }
+
+  const { data, error } = await admin
+    .from('vehicles')
+    .update(patch)
+    .eq('vehicle_number', vehicle_number)
+    .select('vehicle_number, current_engine_hours, current_kilometers')
+    .single()
+  if (error) return json(500, { ok: false, error: 'update_failed', detail: error.message })
+  return json(200, { ok: true, vehicle: data })
 }
 
 // ----- class_orders -----

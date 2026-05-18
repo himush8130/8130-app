@@ -8,6 +8,8 @@ import { AppHeader } from '../components/AppHeader'
 import { CallCard } from '../components/CallCard'
 import { NewCallForm } from '../components/NewCallForm'
 import { VehicleLocationDeptEditor } from '../components/VehicleLocationDeptEditor'
+import { VehicleNoteBadge } from '../components/VehicleNoteBadge'
+import { TankReadingEditor } from '../components/TankReadingEditor'
 import { CollapsibleSection } from '../components/CollapsibleSection'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
@@ -103,9 +105,14 @@ export function VehicleHistoryPage() {
             <CardHeader>
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <h2 className="text-lg font-semibold text-foreground">{vehicleNumber}</h2>
-                {data.vehicle?.type_name && (
-                  <Badge tone="neutral">{data.vehicle.type_name}</Badge>
-                )}
+                <div className="flex items-center gap-2 flex-wrap">
+                  {data.vehicle?.type_name && (
+                    <Badge tone="neutral">{data.vehicle.type_name}</Badge>
+                  )}
+                  {data.vehicle && (
+                    <VehicleNoteBadge note={data.vehicle.important_note} color={data.vehicle.important_note_color} />
+                  )}
+                </div>
               </div>
             </CardHeader>
             <CardBody>
@@ -115,6 +122,7 @@ export function VehicleHistoryPage() {
                     <div className="text-sm text-muted">פלוגה: {data.vehicle.sub_department}</div>
                   )}
                   <VehicleLocationDeptEditor vehicle={data.vehicle} />
+                  <TankReadingEditor vehicle={data.vehicle} />
                 </div>
               ) : (
                 <p className="text-sm text-warning">

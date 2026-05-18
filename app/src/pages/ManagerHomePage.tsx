@@ -7,6 +7,7 @@ import { ReleaseNoteFooter } from '../components/ReleaseNoteFooter'
 import { AttendanceReportButton } from '../components/AttendanceReportButton'
 import { TankMaintenanceOverview } from '../components/TankMaintenanceOverview'
 import { ClassOrdersTable } from '../components/ClassOrdersTable'
+import { TankReadingsTable } from '../components/TankReadingsTable'
 import { Card, CardBody } from '../components/ui/Card'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 
@@ -38,7 +39,25 @@ export function ManagerHomePage() {
           <p className="text-sm text-muted text-center py-8">טוען...</p>
         ) : (
           <>
+            {/* Order per spec: 1, 3, 6, 7, 5, 4, 2, 8, 9 */}
             <OpenCallsCard total={data.openCalls} breakdown={data.openCallsBreakdown} />
+
+            <TankReadinessCard groupLabels={['פלוגה']} />
+
+            <TankReadinessCard
+              title="כשירות גלגלי"
+              typeName="רכב"
+              groupBy={['department', 'sub_department']}
+              groupLabels={['מחלקה', 'תת מחלקה']}
+              badgeId={3023}
+              colWidths={['20%', '32%', '13%', '12%', '12%', '11%']}
+            />
+
+            <TankReadingsTable />
+
+            <ClassOrdersTable />
+
+            <TankMaintenanceOverview />
 
             <Card>
               <CardBody className="flex items-center justify-between gap-2 flex-wrap">
@@ -46,18 +65,6 @@ export function ManagerHomePage() {
                 <AttendanceReportButton />
               </CardBody>
             </Card>
-
-            <TankReadinessCard groupLabels={['פלוגה']} />
-            <TankMaintenanceOverview />
-            <ClassOrdersTable />
-            <TankReadinessCard
-              title="כשירות שאר הכלים"
-              typeName="רכב"
-              groupBy={['department', 'sub_department']}
-              groupLabels={['מחלקה', 'תת מחלקה']}
-              badgeId={3023}
-              colWidths={['20%', '32%', '13%', '12%', '12%', '11%']}
-            />
 
             <Card>
               <CardBody>

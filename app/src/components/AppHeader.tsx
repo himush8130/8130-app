@@ -5,12 +5,20 @@ import { useFeedbackMode } from '../store/feedbackMode'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import { hardReload } from '../lib/hardReload'
 
-const MANAGER_VIEWS: Array<{ to: string; label: string; matches: (p: string) => boolean }> = [
-  { to: '/manager',          label: 'מנהל',          matches: (p) => p.startsWith('/manager') && !p.startsWith('/manager/vehicles') },
-  { to: '/manager/vehicles', label: 'ספר רק״ם/כלי',  matches: (p) => p.startsWith('/manager/vehicles') },
-  { to: '/warehouse',        label: 'מחסנאי',        matches: (p) => p.startsWith('/warehouse') },
-  { to: '/technician',       label: 'טכנאי',         matches: (p) => p.startsWith('/technician') },
+type ViewKey = 'manager' | 'vehicles' | 'warehouse' | 'technician'
+
+const ALL_VIEWS: Array<{ key: ViewKey; to: string; label: string; matches: (p: string) => boolean }> = [
+  { key: 'manager',    to: '/manager',          label: 'מנהל',          matches: (p) => p.startsWith('/manager') && !p.startsWith('/manager/vehicles') },
+  { key: 'vehicles',   to: '/manager/vehicles', label: 'ספר רק״ם/כלי',  matches: (p) => p.startsWith('/manager/vehicles') },
+  { key: 'warehouse',  to: '/warehouse',        label: 'מחסנאי',        matches: (p) => p.startsWith('/warehouse') },
+  { key: 'technician', to: '/technician',       label: 'טכנאי',         matches: (p) => p.startsWith('/technician') },
 ]
+
+const VIEWS_BY_ROLE: Record<'manager' | 'warehouse' | 'technician', ViewKey[]> = {
+  manager:    ['manager', 'vehicles', 'warehouse', 'technician'],
+  warehouse:  ['warehouse', 'vehicles'],
+  technician: ['vehicles', 'technician'],
+}
 
 // Shared button styling so every chip in the header row (יציאה,
 // refresh, notes, feedback toggle) is the same height and has the
@@ -39,7 +47,11 @@ export function AppHeader({ subtitle }: { subtitle?: string }) {
     await hardReload()
   }
 
-  const isManager = employee?.permissions === 'manager'
+  const roleViews = employee
+    ? VIEWS_BY_ROLE[employee.permissions]
+        .map((k) => ALL_VIEWS.find((v) => v.key === k)!)
+        .filter(Boolean)
+    : []
 
   return (
     <header className="bg-card border-b border-border">
@@ -115,12 +127,12 @@ export function AppHeader({ subtitle }: { subtitle?: string }) {
         )}
       </div>
 
-      {/* Row 2: manager view switcher only (לוג הערות moved up as icon). */}
-      {isManager && (
+      {/* Row 2: per-role view switcher. */}
+      {roleViews.length > 0 && (
         <div className="max-w-3xl mx-auto px-4 pb-2 flex items-center gap-1 flex-wrap">
           <ComponentBadge id={3020} />
           <span className="text-xs text-muted ms-1">תצוגה:</span>
-          {MANAGER_VIEWS.map((v) => {
+          {roleViews.map((v) => {
             const active = v.matches(location.pathname)
             return (
               <Link

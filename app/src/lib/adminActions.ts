@@ -84,6 +84,23 @@ export interface VehicleUpdates {
   sub_department?: string | null
   location?: string | null
   model?: string | null
+  important_note?: string | null
+  important_note_color?: string | null
+  initial_engine_hours?: number | null
+  current_engine_hours?: number | null
+  current_kilometers?: number | null
+}
+
+export function setTankReading(
+  employeeNumber: number,
+  vehicleNumber: string,
+  fields: { current_engine_hours?: number | null; current_kilometers?: number | null },
+) {
+  return invoke({
+    employee_number: employeeNumber,
+    action: 'set_tank_reading',
+    params: { vehicle_number: vehicleNumber, ...fields },
+  })
 }
 
 export function setAppSetting(employeeNumber: number, key: string, value: string) {
