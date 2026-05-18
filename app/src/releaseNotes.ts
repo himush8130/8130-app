@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'שיפור: כפתור הריענון (⟳) הוא כעת סמליל בלבד, מופיע גם במסך הכניסה עם תאריך העדכון האחרון לידו.'
+export const LATEST_NOTE = 'שיפור ויזואלי: כפתור הריענון (⟳) מתחת ל"יציאה" באותה עמודה, ולא בשורה נפרדת.'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build
