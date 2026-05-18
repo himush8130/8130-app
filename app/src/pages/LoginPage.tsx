@@ -6,7 +6,17 @@ import { Card, CardBody } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
 import { Button } from '../components/ui/Button'
 import { ComponentBadge } from '../feedback/ComponentBadge'
+import { hardReload } from '../lib/hardReload'
+import { BUILD_TIME } from '../releaseNotes'
 import type { Employee, EmployeePermissions } from '../types/db'
+
+const BUILD_TIME_LABEL = new Date(BUILD_TIME).toLocaleString('he-IL', {
+  year:   'numeric',
+  month:  '2-digit',
+  day:    '2-digit',
+  hour:   '2-digit',
+  minute: '2-digit',
+})
 
 const homeRouteByPermissions: Record<EmployeePermissions, string> = {
   technician: '/technician',
@@ -20,6 +30,13 @@ export function LoginPage() {
   const [employeeNumber, setEmployeeNumber] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
+
+  async function handleRefresh() {
+    if (refreshing) return
+    setRefreshing(true)
+    await hardReload()
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -82,6 +99,20 @@ export function LoginPage() {
               {loading ? 'מתחבר...' : 'כניסה'}
             </Button>
           </form>
+
+          <div className="mt-4 flex items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              aria-label="רענן נתונים ובדוק עדכון לאפליקציה"
+              title="רענן נתונים ובדוק עדכון לאפליקציה"
+              className="text-base text-muted hover:text-foreground border border-border rounded-md w-7 h-7 inline-flex items-center justify-center disabled:opacity-50"
+            >
+              ⟳
+            </button>
+            <span className="text-xs text-muted font-mono" dir="ltr">{BUILD_TIME_LABEL}</span>
+          </div>
         </CardBody>
       </Card>
     </main>

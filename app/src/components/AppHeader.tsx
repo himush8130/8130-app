@@ -71,19 +71,6 @@ export function AppHeader({ subtitle }: { subtitle?: string }) {
             </Link>
 
             <span className="inline-flex items-center">
-              <ComponentBadge id={1005} />
-              <button
-                type="button"
-                onClick={handleRefresh}
-                disabled={refreshing}
-                title="רענן נתונים ובדוק עדכון לאפליקציה"
-                className="text-xs text-muted hover:text-foreground border border-border rounded-md px-2 py-1 inline-flex items-center disabled:opacity-50"
-              >
-                {refreshing ? '...' : '⟳ רענן'}
-              </button>
-            </span>
-
-            <span className="inline-flex items-center">
               <ComponentBadge id={1004} />
               <Link
                 to="/notes"
@@ -102,6 +89,24 @@ export function AppHeader({ subtitle }: { subtitle?: string }) {
           </div>
         )}
       </div>
+
+      {employee && (
+        <div className="max-w-3xl mx-auto px-4 pb-2 flex justify-end">
+          <span className="inline-flex items-center">
+            <ComponentBadge id={1005} />
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              aria-label="רענן נתונים ובדוק עדכון לאפליקציה"
+              title="רענן נתונים ובדוק עדכון לאפליקציה"
+              className="text-base text-muted hover:text-foreground border border-border rounded-md w-7 h-7 inline-flex items-center justify-center disabled:opacity-50"
+            >
+              ⟳
+            </button>
+          </span>
+        </div>
+      )}
 
       {isManager && (
         <div className="max-w-3xl mx-auto px-4 pb-2 flex items-center gap-1 flex-wrap">
