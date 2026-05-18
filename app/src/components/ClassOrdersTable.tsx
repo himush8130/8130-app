@@ -14,6 +14,13 @@ function formatDateForOutput(iso: string | null): string {
   return `${d}/${m}/${y}`
 }
 
+/** Compact DD/MM rendering for the in-card date chip. */
+function formatDateShort(iso: string | null): string {
+  if (!iso) return ''
+  const [, m, d] = iso.split('-')
+  return `${d}/${m}`
+}
+
 function buildText(o: ClassOrderWithCall): string {
   return [
     '*פורמט דרישת כיתות אחזקה*',
@@ -90,7 +97,7 @@ function Row({ order }: { order: ClassOrderWithCall }) {
 
   return (
     <li className="border-t border-border first:border-t-0 p-3 flex flex-col gap-2">
-      {/* Header row: call link + meta on the right, crossing-gvul chip on the left */}
+      {/* Header row: call link + vehicle on the right, crossing-gvul chip on the left */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-xs min-w-0 flex-wrap">
           <Link
@@ -102,7 +109,6 @@ function Row({ order }: { order: ClassOrderWithCall }) {
           {order.vehicle_number && (
             <span className="font-mono text-muted whitespace-nowrap">· {order.vehicle_number}</span>
           )}
-          <span className="font-mono text-muted whitespace-nowrap">· {formatDateForOutput(order.target_date)}</span>
         </div>
         <span className="shrink-0">
           <Badge tone={order.crossing_gvul === 'yes' ? 'warning' : 'neutral'}>
@@ -113,28 +119,28 @@ function Row({ order }: { order: ClassOrderWithCall }) {
         </span>
       </div>
 
-      {/* Main payload: the requested class. Bigger weight so it's the row's anchor. */}
-      <div className="text-sm text-foreground break-words">
-        <span className="text-muted">כיתה: </span>
-        <span className="font-semibold">{order.class_required}</span>
-      </div>
-
-      {/* Actions row, separated by a subtle rule */}
-      <div className="flex gap-2 items-center flex-wrap pt-2 border-t border-border">
-        <Button onClick={copy} className="text-xs px-3 py-1">
-          {copied ? '✓ הועתק' : 'העתק טקסט'}
-        </Button>
-        {!confirmDelete ? (
-          <Button variant="ghost" onClick={() => setConfirmDelete(true)} className="text-xs px-3 py-1">מחק</Button>
-        ) : (
-          <>
-            <Button onClick={remove} disabled={busy} className="text-xs px-3 py-1">
-              {busy ? '...' : 'אשר מחיקה'}
-            </Button>
-            <Button variant="ghost" onClick={() => setConfirmDelete(false)} className="text-xs px-3 py-1">בטל</Button>
-          </>
-        )}
-        {error && <span className="text-xs text-danger">{error}</span>}
+      {/* Content + actions: כיתה · DD/MM on the right, action buttons on the left */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="text-sm text-foreground min-w-0 break-words">
+          <span className="font-semibold">{order.class_required}</span>
+          <span className="font-mono text-muted whitespace-nowrap"> · {formatDateShort(order.target_date)}</span>
+        </div>
+        <div className="flex gap-2 items-center flex-wrap shrink-0">
+          <Button onClick={copy} className="text-xs px-3 py-1">
+            {copied ? '✓ הועתק' : 'העתק טקסט'}
+          </Button>
+          {!confirmDelete ? (
+            <Button variant="ghost" onClick={() => setConfirmDelete(true)} className="text-xs px-3 py-1">מחק</Button>
+          ) : (
+            <>
+              <Button onClick={remove} disabled={busy} className="text-xs px-3 py-1">
+                {busy ? '...' : 'אשר מחיקה'}
+              </Button>
+              <Button variant="ghost" onClick={() => setConfirmDelete(false)} className="text-xs px-3 py-1">בטל</Button>
+            </>
+          )}
+          {error && <span className="text-xs text-danger">{error}</span>}
+        </div>
       </div>
     </li>
   )
