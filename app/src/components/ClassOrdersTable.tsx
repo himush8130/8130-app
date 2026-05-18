@@ -6,6 +6,7 @@ import { useAuthStore } from '../store/auth'
 import { deleteClassOrder } from '../lib/adminActions'
 import { CollapsibleSection } from './CollapsibleSection'
 import { Button } from './ui/Button'
+import { Badge } from './ui/Badge'
 
 function formatDateForOutput(iso: string | null): string {
   if (!iso) return ''
@@ -51,23 +52,9 @@ export function ClassOrdersTable() {
       ) : rows.length === 0 ? (
         <p className="text-sm text-muted text-center py-4">אין דרישות פתוחות</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-muted-surface text-xs text-muted">
-              <tr>
-                <th className="text-start px-3 py-2">קריאה</th>
-                <th className="text-start px-3 py-2">כלי</th>
-                <th className="text-start px-3 py-2">כיתה</th>
-                <th className="text-start px-3 py-2">תאריך</th>
-                <th className="text-start px-3 py-2">חציית גבל</th>
-                <th className="text-start px-3 py-2">פעולות</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((o) => <Row key={o.id} order={o} />)}
-            </tbody>
-          </table>
-        </div>
+        <ul className="flex flex-col">
+          {rows.map((o) => <Row key={o.id} order={o} />)}
+        </ul>
       )}
     </CollapsibleSection>
   )
@@ -102,36 +89,48 @@ function Row({ order }: { order: ClassOrderWithCall }) {
   }
 
   return (
-    <tr className="border-t border-border">
-      <td className="px-3 py-2">
-        <Link to={`/call/${order.call_id}`} className="text-primary hover:underline font-mono">
-          {order.service_calls?.display_id ?? '—'}
-        </Link>
-      </td>
-      <td className="px-3 py-2 font-mono">{order.vehicle_number ?? '—'}</td>
-      <td className="px-3 py-2">{order.class_required}</td>
-      <td className="px-3 py-2 font-mono">{formatDateForOutput(order.target_date)}</td>
-      <td className="px-3 py-2 text-xs">
-        {order.crossing_gvul === 'yes' ? 'חוצה גבל' : 'ללא חציית גבל'}
-      </td>
-      <td className="px-3 py-2">
-        <div className="flex gap-1.5 items-center flex-wrap">
-          <Button onClick={copy} className="text-xs px-3 py-1">
-            {copied ? '✓ הועתק' : 'העתק טקסט'}
-          </Button>
-          {!confirmDelete ? (
-            <Button variant="ghost" onClick={() => setConfirmDelete(true)} className="text-xs px-3 py-1">מחק</Button>
-          ) : (
-            <>
-              <Button onClick={remove} disabled={busy} className="text-xs px-3 py-1">
-                {busy ? '...' : 'אשר מחיקה'}
-              </Button>
-              <Button variant="ghost" onClick={() => setConfirmDelete(false)} className="text-xs px-3 py-1">בטל</Button>
-            </>
+    <li className="border-t border-border first:border-t-0 px-3 py-2 flex flex-col gap-1.5">
+      {/* Top row: call link · vehicle · date · crossing flag */}
+      <div className="flex items-center justify-between gap-2 text-xs">
+        <div className="flex items-center gap-2 min-w-0 flex-wrap">
+          <Link
+            to={`/call/${order.call_id}`}
+            className="text-primary hover:underline font-mono whitespace-nowrap"
+          >
+            {order.service_calls?.display_id ?? '—'}
+          </Link>
+          {order.vehicle_number && (
+            <span className="font-mono text-muted whitespace-nowrap">· {order.vehicle_number}</span>
           )}
-          {error && <span className="text-xs text-danger">{error}</span>}
+          <span className="font-mono text-muted whitespace-nowrap">· {formatDateForOutput(order.target_date)}</span>
         </div>
-      </td>
-    </tr>
+        <Badge tone={order.crossing_gvul === 'yes' ? 'warning' : 'neutral'}>
+          {order.crossing_gvul === 'yes' ? 'חוצה גבל' : 'ללא חציית גבל'}
+        </Badge>
+      </div>
+
+      {/* Class required (the main payload of the row) */}
+      <div className="text-sm text-foreground break-words">
+        כיתה: <span className="font-medium">{order.class_required}</span>
+      </div>
+
+      {/* Actions */}
+      <div className="flex gap-1.5 items-center flex-wrap">
+        <Button onClick={copy} className="text-xs px-3 py-1">
+          {copied ? '✓ הועתק' : 'העתק טקסט'}
+        </Button>
+        {!confirmDelete ? (
+          <Button variant="ghost" onClick={() => setConfirmDelete(true)} className="text-xs px-3 py-1">מחק</Button>
+        ) : (
+          <>
+            <Button onClick={remove} disabled={busy} className="text-xs px-3 py-1">
+              {busy ? '...' : 'אשר מחיקה'}
+            </Button>
+            <Button variant="ghost" onClick={() => setConfirmDelete(false)} className="text-xs px-3 py-1">בטל</Button>
+          </>
+        )}
+        {error && <span className="text-xs text-danger">{error}</span>}
+      </div>
+    </li>
   )
 }

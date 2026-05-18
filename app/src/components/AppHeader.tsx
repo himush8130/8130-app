@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../store/auth'
 import { useFeedbackMode } from '../store/feedbackMode'
 import { Button } from './ui/Button'
 import { ComponentBadge } from '../feedback/ComponentBadge'
+import { hardReload } from '../lib/hardReload'
 
 const MANAGER_VIEWS: Array<{ to: string; label: string; matches: (p: string) => boolean }> = [
   { to: '/manager',          label: 'מנהל',          matches: (p) => p.startsWith('/manager') && !p.startsWith('/manager/vehicles') },
@@ -22,6 +24,13 @@ export function AppHeader({ subtitle }: { subtitle?: string }) {
   function handleLogout() {
     logout()
     navigate('/login', { replace: true })
+  }
+
+  const [refreshing, setRefreshing] = useState(false)
+  async function handleRefresh() {
+    if (refreshing) return
+    setRefreshing(true)
+    await hardReload()
   }
 
   const isManager = employee?.permissions === 'manager'
@@ -60,6 +69,19 @@ export function AppHeader({ subtitle }: { subtitle?: string }) {
             >
               ספר כלי
             </Link>
+
+            <span className="inline-flex items-center">
+              <ComponentBadge id={1005} />
+              <button
+                type="button"
+                onClick={handleRefresh}
+                disabled={refreshing}
+                title="רענן נתונים ובדוק עדכון לאפליקציה"
+                className="text-xs text-muted hover:text-foreground border border-border rounded-md px-2 py-1 inline-flex items-center disabled:opacity-50"
+              >
+                {refreshing ? '...' : '⟳ רענן'}
+              </button>
+            </span>
 
             <span className="inline-flex items-center">
               <ComponentBadge id={1004} />
