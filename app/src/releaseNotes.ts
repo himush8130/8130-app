@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'שיפור ויזואלי: כפתורי הכותרת בשורה אחידה — 📝 לוג הערות · ⟳ רענון · יציאה — באותו גובה, באותן גבולות.'
+export const LATEST_NOTE = 'שיפור ויזואלי: רווח כפול בין כפתורי הכותרת; כרטיסי "דרישות כיתות אחזקה" מסודרים יותר — תווית חציית גבל בשורה אחת, כיתה בולטת, פעולות מופרדות בקו עליון.'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build

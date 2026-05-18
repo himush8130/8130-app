@@ -89,10 +89,10 @@ function Row({ order }: { order: ClassOrderWithCall }) {
   }
 
   return (
-    <li className="border-t border-border first:border-t-0 px-3 py-2 flex flex-col gap-1.5">
-      {/* Top row: call link · vehicle · date · crossing flag */}
-      <div className="flex items-center justify-between gap-2 text-xs">
-        <div className="flex items-center gap-2 min-w-0 flex-wrap">
+    <li className="border-t border-border first:border-t-0 p-3 flex flex-col gap-2">
+      {/* Header row: call link + meta on the right, crossing-gvul chip on the left */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-xs min-w-0 flex-wrap">
           <Link
             to={`/call/${order.call_id}`}
             className="text-primary hover:underline font-mono whitespace-nowrap"
@@ -104,18 +104,23 @@ function Row({ order }: { order: ClassOrderWithCall }) {
           )}
           <span className="font-mono text-muted whitespace-nowrap">· {formatDateForOutput(order.target_date)}</span>
         </div>
-        <Badge tone={order.crossing_gvul === 'yes' ? 'warning' : 'neutral'}>
-          {order.crossing_gvul === 'yes' ? 'חוצה גבל' : 'ללא חציית גבל'}
-        </Badge>
+        <span className="shrink-0">
+          <Badge tone={order.crossing_gvul === 'yes' ? 'warning' : 'neutral'}>
+            <span className="whitespace-nowrap">
+              {order.crossing_gvul === 'yes' ? 'חוצה גבל' : 'ללא חציית גבל'}
+            </span>
+          </Badge>
+        </span>
       </div>
 
-      {/* Class required (the main payload of the row) */}
+      {/* Main payload: the requested class. Bigger weight so it's the row's anchor. */}
       <div className="text-sm text-foreground break-words">
-        כיתה: <span className="font-medium">{order.class_required}</span>
+        <span className="text-muted">כיתה: </span>
+        <span className="font-semibold">{order.class_required}</span>
       </div>
 
-      {/* Actions */}
-      <div className="flex gap-1.5 items-center flex-wrap">
+      {/* Actions row, separated by a subtle rule */}
+      <div className="flex gap-2 items-center flex-wrap pt-2 border-t border-border">
         <Button onClick={copy} className="text-xs px-3 py-1">
           {copied ? '✓ הועתק' : 'העתק טקסט'}
         </Button>

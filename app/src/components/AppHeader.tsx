@@ -55,7 +55,7 @@ export function AppHeader({ subtitle }: { subtitle?: string }) {
         </div>
 
         {employee && (
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-3">
             <span className="text-sm text-muted hidden sm:inline">{employee.name}</span>
 
             <span className="inline-flex items-center">
