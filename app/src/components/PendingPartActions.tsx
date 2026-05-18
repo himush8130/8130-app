@@ -130,20 +130,62 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
                                           : 'אין מק״טים חסומים'}
         </p>
       )}
-      {rows.length > 0 && (
-        <ul>
-          {rows.map((row) => (
-            <PendingActionRow
-              key={row.id}
-              row={row}
-              highlight={highlightRows}
-              showWithdrawal={effective === 'delivered'}
-              onCopyName={copyName}
-              copied={copiedId === row.id}
-            />
-          ))}
-        </ul>
-      )}
+      {rows.length > 0 && (() => {
+        // Group rows whose parent is a standalone warehouse order under
+        // a per-order header. Call-linked rows render flat at the top.
+        const callRows: typeof rows = []
+        const byOrder = new Map<string, { display_id: string; rows: typeof rows }>()
+        for (const r of rows) {
+          if (r.warehouse_order_id && r.warehouse_orders?.display_id) {
+            const entry = byOrder.get(r.warehouse_order_id) ?? {
+              display_id: r.warehouse_orders.display_id,
+              rows: [] as typeof rows,
+            }
+            entry.rows.push(r)
+            byOrder.set(r.warehouse_order_id, entry)
+          } else {
+            callRows.push(r)
+          }
+        }
+        const orderEntries = [...byOrder.values()].sort((a, b) => a.display_id.localeCompare(b.display_id))
+        return (
+          <>
+            {callRows.length > 0 && (
+              <ul>
+                {callRows.map((row) => (
+                  <PendingActionRow
+                    key={row.id}
+                    row={row}
+                    highlight={highlightRows}
+                    showWithdrawal={effective === 'delivered'}
+                    onCopyName={copyName}
+                    copied={copiedId === row.id}
+                  />
+                ))}
+              </ul>
+            )}
+            {orderEntries.map((entry) => (
+              <div key={entry.display_id}>
+                <div className="px-4 py-2 bg-muted-surface border-y border-border text-xs font-semibold text-foreground">
+                  הזמנת מחסן כללית <span className="font-mono text-muted">{entry.display_id}</span>
+                </div>
+                <ul>
+                  {entry.rows.map((row) => (
+                    <PendingActionRow
+                      key={row.id}
+                      row={row}
+                      highlight={highlightRows}
+                      showWithdrawal={effective === 'delivered'}
+                      onCopyName={copyName}
+                      copied={copiedId === row.id}
+                    />
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </>
+        )
+      })()}
     </CollapsibleSection>
   )
 }

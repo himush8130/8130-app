@@ -31,6 +31,7 @@ const FIELDS: Field[] = [
   { key: 'copy_sku_label',       label: 'תווית "מק״ט"' },
   { key: 'copy_part_name_label', label: 'תווית "שם החלק"' },
   { key: 'copy_qty_label',       label: 'תווית "כמות"' },
+  { key: 'copy_tsakah_value',    label: 'צק״ח של היחידה', hint: 'יוצג בפורמט "הזמנת כיתה" אחרי "צק״ח:"' },
 ]
 
 export function SettingsCopyFormatPage() {

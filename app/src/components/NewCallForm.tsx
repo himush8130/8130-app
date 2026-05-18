@@ -9,6 +9,7 @@ import { Card, CardBody, CardHeader } from './ui/Card'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { SpecialtiesPicker } from './SpecialtiesPicker'
+import { OrderClassPanel } from './OrderClassPanel'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { TankSpecialty } from '../types/db'
 import type { Part } from '../types/parts'
@@ -164,6 +165,12 @@ export function NewCallForm({ onCreated, onCancel, initialVehicleNumber }: Props
           catalog={catalog ?? []}
           drafts={drafts}
           onChange={setDrafts}
+        />
+
+        <OrderClassPanel
+          vehicleNumber={vehicleNumber.trim() || null}
+          description={description}
+          badgeId={6011}
         />
 
         <div className="flex gap-2 items-center pt-1">

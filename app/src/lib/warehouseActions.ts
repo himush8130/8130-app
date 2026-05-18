@@ -160,3 +160,31 @@ export function deleteRequiredPart(employeeNumber: number, requiredPartId: strin
     params: { required_part_id: requiredPartId },
   })
 }
+
+export function setRequiredPartOrderNumber(
+  employeeNumber: number,
+  requiredPartId: string,
+  orderNumber: string | null,
+) {
+  return invoke({
+    employee_number: employeeNumber,
+    action: 'set_required_part_order_number',
+    params: { required_part_id: requiredPartId, order_number: orderNumber ?? null },
+  })
+}
+
+export interface WarehouseOrderItemPayload {
+  part_id: string
+  quantity: number
+}
+
+export function createWarehouseOrder(
+  employeeNumber: number,
+  items: WarehouseOrderItemPayload[],
+) {
+  return invoke<{ id: string; display_id: string }>({
+    employee_number: employeeNumber,
+    action: 'create_warehouse_order',
+    params: { items },
+  }) as Promise<ActionResult<any> & { order?: { id: string; display_id: string }; items?: unknown[] }>
+}

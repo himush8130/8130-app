@@ -107,7 +107,7 @@ export function PendingActionRow({ row, highlight, showWithdrawal, onCopyName, c
           ) : (
             <span className="font-mono text-muted" title="תאריך דרישה">{requestedDate}</span>
           )}
-          {row.service_calls?.display_id && (
+          {row.service_calls?.display_id && row.call_id && (
             <Link
               to={`/call/${row.call_id}`}
               onClick={(e) => e.stopPropagation()}

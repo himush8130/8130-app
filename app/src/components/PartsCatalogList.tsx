@@ -9,6 +9,7 @@ import { Input } from './ui/Input'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import { useAuthStore } from '../store/auth'
 import { updatePart, setPartQuantity, createPart, type PartUpdates, type NewPartPayload } from '../lib/warehouseActions'
+import { AddWarehouseOrderForm } from './AddWarehouseOrderForm'
 
 interface Filters {
   sku: string
@@ -61,6 +62,7 @@ export function PartsCatalogList({ parts }: { parts: Part[] }) {
   const queryClient = useQueryClient()
 
   const [adding, setAdding] = useState(false)
+  const [ordering, setOrdering] = useState(false)
   const [searchParams, setSearchParams] = useSearchParams()
   const [f, setF] = useState<Filters>(() => ({
     ...EMPTY_FILTERS,
@@ -134,8 +136,15 @@ export function PartsCatalogList({ parts }: { parts: Part[] }) {
         <ComponentBadge id={4002} />
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <h3 className="text-sm font-semibold text-foreground">קטלוג חלקים</h3>
-          {canEdit && !adding && (
-            <Button onClick={() => setAdding(true)}>+ הוסף חלק חדש</Button>
+          {canEdit && (
+            <div className="flex gap-1.5 flex-wrap">
+              {!ordering && !adding && (
+                <Button variant="secondary" onClick={() => setOrdering(true)}>+ הזמנת מחסן כללית</Button>
+              )}
+              {!adding && !ordering && (
+                <Button onClick={() => setAdding(true)}>+ הוסף חלק חדש</Button>
+              )}
+            </div>
           )}
         </div>
       </CardHeader>
@@ -150,6 +159,15 @@ export function PartsCatalogList({ parts }: { parts: Part[] }) {
               queryClient.invalidateQueries({ queryKey: ['parts'] })
             }}
             onCancel={() => setAdding(false)}
+          />
+        </CardBody>
+      )}
+
+      {ordering && (
+        <CardBody className="border-b border-border bg-muted-surface">
+          <AddWarehouseOrderForm
+            onDone={() => setOrdering(false)}
+            onCancel={() => setOrdering(false)}
           />
         </CardBody>
       )}

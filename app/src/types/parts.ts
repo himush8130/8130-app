@@ -23,17 +23,28 @@ export interface Part {
 
 export interface CallRequiredPart {
   id: string
-  call_id: string
+  /** null when the row belongs to a standalone warehouse order. */
+  call_id: string | null
+  /** null when the row belongs to a service call. */
+  warehouse_order_id: string | null
   part_id: string                   // UUID FK to parts.id
   quantity: number
   status: RequiredPartStatus
   requested_by: number | null
   requested_at: string
   rejection_reason: string | null
+  order_number: string | null
   /** Embedded via PostgREST. is_sku_blocked is optional (some queries
    *  don't request it) but when present the UI treats blocked parts
    *  as having a single status: blocked. */
   parts?: { name: string; sku: string; quantity: number; is_sku_blocked?: boolean } | null
+}
+
+export interface WarehouseOrder {
+  id: string
+  display_id: string                // "WO-26-0001"
+  created_by: number | null
+  created_at: string
 }
 
 export interface PartWithdrawal {

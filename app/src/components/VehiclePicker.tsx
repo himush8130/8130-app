@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useVehicles } from '../hooks/useVehicles'
 import { useVehicleCallStats } from '../hooks/useVehicleCallStats'
 import { Card, CardBody, CardHeader } from './ui/Card'
@@ -11,11 +11,24 @@ const CATEGORIES: Array<{ key: string; label: string; types: string[] }> = [
   { key: 'cars',   label: 'רכבים',     types: ['רכב'] },
 ]
 
+const CATEGORY_KEYS = new Set(CATEGORIES.map((c) => c.key))
+
 export function VehiclePicker() {
   const { data: vehicles } = useVehicles()
   const { data: stats }    = useVehicleCallStats()
   const [filter, setFilter] = useState('')
-  const [category, setCategory] = useState<string | null>(null)
+  // Domain selection is mirrored to ?domain= so the browser back button
+  // from /vehicle/<n> lands on the list of that domain rather than
+  // skipping it.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const domainParam = searchParams.get('domain')
+  const category = domainParam && CATEGORY_KEYS.has(domainParam) ? domainParam : null
+  function setCategory(next: string | null) {
+    const sp = new URLSearchParams(searchParams)
+    if (next) sp.set('domain', next)
+    else      sp.delete('domain')
+    setSearchParams(sp)
+  }
 
   const counts = useMemo(() => {
     const out: Record<string, number> = {}

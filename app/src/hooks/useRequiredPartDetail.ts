@@ -36,12 +36,17 @@ export function useRequiredPartDetail(requiredPartId: string | undefined) {
       if (rowErr) throw rowErr
       const partRow = (row as any).parts as Part | null
 
-      // 2. The parent call (display_id + vehicle_number)
-      const { data: call } = await supabase
-        .from('service_calls')
-        .select('id, display_id, vehicle_number, description')
-        .eq('id', row.call_id)
-        .maybeSingle()
+      // 2. The parent call (display_id + vehicle_number). Skipped when
+      // the row belongs to a standalone warehouse order (call_id null).
+      let call: RequiredPartDetail['call'] = null
+      if (row.call_id) {
+        const { data: c } = await supabase
+          .from('service_calls')
+          .select('id, display_id, vehicle_number, description')
+          .eq('id', row.call_id)
+          .maybeSingle()
+        call = c ?? null
+      }
 
       // 3. Every catalog row with the same SKU (possible dispense sources).
       let locations: Part[] = []
@@ -74,7 +79,7 @@ export function useRequiredPartDetail(requiredPartId: string | undefined) {
         row: row as CallRequiredPart,
         locations,
         withdrawal,
-        call: call ?? null,
+        call,
       }
     },
   })

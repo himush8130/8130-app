@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'שיפור: טופס "הוסף חלק חדש" מאוכלס מראש מערכי הסינון אך כל שדה נשאר לעריכה, וטבלת "פעולות פתוחות" קיבלה סינון לפי מק״ט.'
+export const LATEST_NOTE = 'חדש: דרישת כיתת אחזקה (העתקה ב-WhatsApp), הזמנת מחסן כללית מהקטלוג, מספר הזמנה אופציונלי לפריט. שיפורים: עמודת תקין כוללת בעיות, טווח תאריכים לטיפול שבועי/חודשי, ניווט מתוקן בספר הכלים.'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build

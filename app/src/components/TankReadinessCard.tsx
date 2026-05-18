@@ -78,7 +78,7 @@ function CompanyRow({ g }: { g: CompanyReadiness }) {
       {g.groupValues.map((v, i) => (
         <td key={i} className="px-2 py-1.5 font-medium text-foreground truncate">{v}</td>
       ))}
-      <td className="px-2 py-1.5 text-success font-medium">{g.healthy}/{g.total}</td>
+      <td className="px-2 py-1.5 text-success font-medium">{operational}/{g.total}</td>
       <td className="px-2 py-1.5 text-warning font-medium">{g.with_issues}</td>
       <td className="px-2 py-1.5 text-danger font-medium">{g.disabled}</td>
       <td className={`px-2 py-1.5 font-semibold ${tone(p)}`}>{p}%</td>

@@ -1,16 +1,65 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../store/auth'
 import { useRequiredPartDetail } from '../hooks/useRequiredPartDetail'
-import { recordWithdrawal, updateRequiredPartStatus, updatePart } from '../lib/warehouseActions'
+import { recordWithdrawal, setRequiredPartOrderNumber, updateRequiredPartStatus, updatePart } from '../lib/warehouseActions'
 import { AppHeader } from '../components/AppHeader'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
+import { Input } from '../components/ui/Input'
 import { StatusBadgeMenu } from '../components/StatusBadgeMenu'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { Part } from '../types/parts'
 import type { RequiredPartStatus } from '../types/db'
+
+function OrderNumberEditor({
+  rowId, initial, onSaved,
+}: {
+  rowId: string
+  initial: string | null
+  onSaved: () => void
+}) {
+  const employee = useAuthStore((s) => s.employee)!
+  const [value, setValue] = useState(initial ?? '')
+  const [busy, setBusy] = useState(false)
+  const [savedAt, setSavedAt] = useState<number | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => { setValue(initial ?? '') }, [initial])
+
+  const dirty = value.trim() !== (initial ?? '').trim()
+
+  async function save() {
+    setBusy(true); setError(null)
+    const trimmed = value.trim() || null
+    const res = await setRequiredPartOrderNumber(employee.employee_number, rowId, trimmed)
+    setBusy(false)
+    if (!res.ok) { setError('שגיאה'); return }
+    setSavedAt(Date.now())
+    setTimeout(() => setSavedAt(null), 1500)
+    onSaved()
+  }
+
+  return (
+    <div className="flex items-end gap-2">
+      <div className="flex-1">
+        <Input
+          label="מספר הזמנה (אופציונלי)"
+          name={`order-num-${rowId}`}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder="PO-2026-0042"
+        />
+      </div>
+      <Button onClick={save} disabled={busy || !dirty} className="text-xs px-3 py-2">
+        {busy ? '...' : 'שמור'}
+      </Button>
+      {savedAt && <span className="text-xs text-success">✓</span>}
+      {error && <span className="text-xs text-danger">{error}</span>}
+    </div>
+  )
+}
 
 function locationLabel(p: Part): string {
   const out: string[] = []
@@ -46,6 +95,7 @@ export function RequiredPartDetailPage() {
   async function dispense() {
     if (!data) return
     if (!pickedSource) { setActionError('בחר מיקום'); return }
+    if (!data.row.call_id) { setActionError('פריט מהזמנת מחסן — אין הנפקה לטכנאי. עדכן סטטוס בלבד.'); return }
     setBusy(true); setActionError(null)
     const res = await recordWithdrawal(
       employee.employee_number,
@@ -148,6 +198,15 @@ export function RequiredPartDetailPage() {
               <div className="col-span-2">
                 <div className="text-xs text-muted">תיאור התקלה</div>
                 <p className="text-sm text-foreground whitespace-pre-wrap">{data.call.description}</p>
+              </div>
+            )}
+            {canChangeStatus && (
+              <div className="col-span-2">
+                <OrderNumberEditor
+                  rowId={row.id}
+                  initial={(row as any).order_number ?? null}
+                  onSaved={refresh}
+                />
               </div>
             )}
           </CardBody>

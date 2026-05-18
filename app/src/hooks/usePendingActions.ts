@@ -12,6 +12,7 @@ interface PartLocation {
 
 export interface PendingPart extends CallRequiredPart {
   service_calls?: { display_id: string; vehicle_number: string | null } | null
+  warehouse_orders?: { display_id: string } | null
   parts?: { name: string; sku: string; quantity: number; is_sku_blocked?: boolean } | null
   /** Embedded withdrawal (1:1 via required_part_id). Useful only for
    *  the 'delivered' variant where the table needs location + date. */
@@ -37,6 +38,7 @@ export function usePendingActions() {
           *,
           parts(name, quantity, sku, is_sku_blocked),
           service_calls(display_id, vehicle_number),
+          warehouse_orders(display_id),
           part_withdrawals(
             id, withdrawn_at, is_external,
             parts(warehouse, cabinet, storage_type, storage_number, cell_number)

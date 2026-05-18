@@ -17,6 +17,7 @@ import { PhoneActions } from '../components/PhoneActions'
 import { CopyCallSummaryButton } from '../components/CopyCallSummaryButton'
 import { EditCallForm } from '../components/EditCallForm'
 import { VehicleLocationDeptEditor } from '../components/VehicleLocationDeptEditor'
+import { OrderClassPanel } from '../components/OrderClassPanel'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import { deleteCall } from '../lib/managerActions'
 import type { CallStatus, EmployeePermissions } from '../types/db'
@@ -259,6 +260,13 @@ export function CallDetailPage() {
           callId={call.id}
           requiredParts={requiredParts}
           withdrawals={withdrawals}
+        />
+
+        <OrderClassPanel
+          vehicleNumber={call.vehicle_number}
+          description={call.description}
+          requiredParts={requiredParts}
+          badgeId={5019}
         />
 
         <Card>
