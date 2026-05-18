@@ -6,6 +6,7 @@ import { TankReadinessCard } from '../components/TankReadinessCard'
 import { ReleaseNoteFooter } from '../components/ReleaseNoteFooter'
 import { AttendanceReportButton } from '../components/AttendanceReportButton'
 import { TankMaintenanceOverview } from '../components/TankMaintenanceOverview'
+import { ClassOrdersTable } from '../components/ClassOrdersTable'
 import { Card, CardBody } from '../components/ui/Card'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 
@@ -48,6 +49,7 @@ export function ManagerHomePage() {
 
             <TankReadinessCard groupLabels={['פלוגה']} />
             <TankMaintenanceOverview />
+            <ClassOrdersTable />
             <TankReadinessCard
               title="כשירות שאר הכלים"
               typeName="רכב"

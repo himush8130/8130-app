@@ -1,18 +1,21 @@
-import { useEffect } from 'react'
+import { useEffect, useId } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import type { Part } from '../types/parts'
 
 export function useParts() {
   const queryClient = useQueryClient()
+  // Each consumer gets its own realtime channel. Supabase rejects
+  // adding new `.on()` callbacks to a channel that has already called
+  // `.subscribe()`, so reusing a single channel name across multiple
+  // useParts() callers (e.g. PartsCatalogList + AddWarehouseOrderForm
+  // on the warehouse home) crashes the page. The id keeps the channel
+  // unique per hook instance, which is cheap.
+  const id = useId()
 
-  // Subscribe to realtime UPDATE/INSERT/DELETE events on parts. When
-  // anything changes — from this client OR another — invalidate the
-  // cache so every open browser stays in sync. The subscription is
-  // shared across all useParts() consumers via the same channel name.
   useEffect(() => {
     const channel = supabase
-      .channel('parts-changes')
+      .channel(`parts-changes-${id}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'parts' },
@@ -25,7 +28,7 @@ export function useParts() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [queryClient])
+  }, [queryClient, id])
 
   return useQuery({
     queryKey: ['parts'],

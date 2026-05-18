@@ -159,3 +159,36 @@ export function setEmployeeAvailability(
     params: { employee_number: target, date, available, reason: reason ?? null },
   })
 }
+
+// ----- Class orders ("דרישת כיתת אחזקה") -----
+
+export interface ClassOrderInput {
+  call_id:         string
+  tsakah:          string | null
+  model:           string | null
+  class_required:  string
+  vehicle_number:  string | null
+  fault:           string | null
+  parts_available: 'יש' | 'אין' | null
+  target_date:     string         // YYYY-MM-DD
+  location:        string | null
+  contact_name:    string | null
+  contact_phone:   string | null
+  crossing_gvul:   'yes' | 'no'
+}
+
+export function upsertClassOrder(employeeNumber: number, payload: ClassOrderInput) {
+  return invoke({
+    employee_number: employeeNumber,
+    action: 'upsert_class_order',
+    params: payload,
+  })
+}
+
+export function deleteClassOrder(employeeNumber: number, id: string) {
+  return invoke({
+    employee_number: employeeNumber,
+    action: 'delete_class_order',
+    params: { id },
+  })
+}

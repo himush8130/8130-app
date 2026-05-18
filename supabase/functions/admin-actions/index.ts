@@ -58,6 +58,8 @@ Deno.serve(async (req: Request) => {
   // narrowly-scoped fields can be edited by any authenticated employee.
   const TECH_ALLOWED_ACTIONS = new Set([
     'update_vehicle_location_dept',
+    'upsert_class_order',
+    'delete_class_order',
   ])
   if (!TECH_ALLOWED_ACTIONS.has(action) && caller.permissions !== 'manager') {
     return json(403, { ok: false, error: 'requires_manager' })
@@ -85,6 +87,11 @@ Deno.serve(async (req: Request) => {
     // Allowed for any authenticated employee (technicians too) —
     // narrowly scoped to vehicle.location and vehicle.department.
     case 'update_vehicle_location_dept': return await updateVehicleLocationDept(params)
+
+    // Class orders ("דרישת כיתת אחזקה"): tech fills + saves, manager
+    // dispatches via the table on the manager home.
+    case 'upsert_class_order':  return await upsertClassOrder(params, employee_number)
+    case 'delete_class_order':  return await deleteClassOrder(params)
     default:
       return json(400, { ok: false, error: 'unknown_action', action })
   }
@@ -435,6 +442,51 @@ async function setAppSetting(params: any): Promise<Response> {
     .from('app_settings')
     .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' })
   if (error) return json(500, { ok: false, error: 'upsert_failed', detail: error.message })
+  return json(200, { ok: true })
+}
+
+// ----- class_orders -----
+
+const CLASS_ORDER_FIELDS = [
+  'tsakah', 'model', 'class_required', 'vehicle_number', 'fault',
+  'parts_available', 'target_date', 'location', 'contact_name',
+  'contact_phone', 'crossing_gvul',
+]
+
+async function upsertClassOrder(params: any, employee_number: number): Promise<Response> {
+  const callId = params?.call_id
+  if (typeof callId !== 'string') return json(400, { ok: false, error: 'invalid_call_id' })
+  if (typeof params?.class_required !== 'string' || !params.class_required.trim()) {
+    return json(400, { ok: false, error: 'class_required_required' })
+  }
+  if (typeof params?.target_date !== 'string' || !params.target_date) {
+    return json(400, { ok: false, error: 'target_date_required' })
+  }
+  if (params?.crossing_gvul !== 'yes' && params?.crossing_gvul !== 'no') {
+    return json(400, { ok: false, error: 'crossing_gvul_required' })
+  }
+
+  const row: Record<string, unknown> = { call_id: callId, created_by: employee_number }
+  for (const k of CLASS_ORDER_FIELDS) {
+    const v = (params as any)[k]
+    if (typeof v === 'string') row[k] = v
+    else if (v == null) row[k] = null
+  }
+
+  const { data, error } = await admin
+    .from('class_orders')
+    .upsert(row, { onConflict: 'call_id' })
+    .select('*')
+    .single()
+  if (error) return json(500, { ok: false, error: 'upsert_failed', detail: error.message })
+  return json(200, { ok: true, class_order: data })
+}
+
+async function deleteClassOrder(params: any): Promise<Response> {
+  const id = params?.id
+  if (typeof id !== 'string') return json(400, { ok: false, error: 'invalid_id' })
+  const { error } = await admin.from('class_orders').delete().eq('id', id)
+  if (error) return json(500, { ok: false, error: 'delete_failed', detail: error.message })
   return json(200, { ok: true })
 }
 

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useRef, useState, useMemo } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useVehicles } from '../hooks/useVehicles'
 import { useParts } from '../hooks/useParts'
@@ -9,7 +9,7 @@ import { Card, CardBody, CardHeader } from './ui/Card'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { SpecialtiesPicker } from './SpecialtiesPicker'
-import { OrderClassPanel } from './OrderClassPanel'
+import { OrderClassPanel, type OrderClassPanelHandle } from './OrderClassPanel'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { TankSpecialty } from '../types/db'
 import type { Part } from '../types/parts'
@@ -47,6 +47,7 @@ export function NewCallForm({ onCreated, onCancel, initialVehicleNumber }: Props
   const [busy, setBusy]                   = useState(false)
   const [result, setResult]               = useState<{ display_id?: string; anomalies?: Array<{ code: string; detail?: string }>; partsAdded?: number; partsFailed?: number } | null>(null)
   const [error, setError]                 = useState<string | null>(null)
+  const classPanelRef                     = useRef<OrderClassPanelHandle>(null)
 
   // Detect tank vehicle to surface the specialty picker.
   const matchedVehicle = useMemo(() => {
@@ -77,6 +78,12 @@ export function NewCallForm({ onCreated, onCancel, initialVehicleNumber }: Props
     const callId = res.call?.id
     let partsAdded  = 0
     let partsFailed = 0
+
+    // If the user filled in the "הזמן כיתה" panel, persist it now
+    // that we have a call_id to attach to.
+    if (callId) {
+      await classPanelRef.current?.saveIfFilled(callId)
+    }
 
     if (callId && drafts.length > 0) {
       for (const d of drafts) {
@@ -168,6 +175,8 @@ export function NewCallForm({ onCreated, onCancel, initialVehicleNumber }: Props
         />
 
         <OrderClassPanel
+          ref={classPanelRef}
+          callId={null}
           vehicleNumber={vehicleNumber.trim() || null}
           description={description}
           badgeId={6011}

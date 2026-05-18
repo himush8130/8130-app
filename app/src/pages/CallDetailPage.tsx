@@ -263,6 +263,7 @@ export function CallDetailPage() {
         />
 
         <OrderClassPanel
+          callId={call.id}
           vehicleNumber={call.vehicle_number}
           description={call.description}
           requiredParts={requiredParts}
