@@ -96,6 +96,11 @@ Deno.serve(async (req: Request) => {
         return json(403, { ok: false, error: 'requires_warehouse_or_manager' })
       }
       return await setRequiredPartOrderNumber(params)
+    case 'bulk_update_required_part_status':
+      if (caller.permissions !== 'warehouse' && caller.permissions !== 'manager') {
+        return json(403, { ok: false, error: 'requires_warehouse_or_manager' })
+      }
+      return await bulkUpdateRequiredPartStatus(params)
     case 'create_warehouse_order':
       if (caller.permissions !== 'warehouse' && caller.permissions !== 'manager') {
         return json(403, { ok: false, error: 'requires_warehouse_or_manager' })
@@ -158,7 +163,7 @@ async function updateRequiredPartStatus(params: any): Promise<Response> {
   // Read the existing row first so we can detect the transition.
   const { data: before, error: beforeErr } = await admin
     .from('call_required_parts')
-    .select('id, call_id, part_id, quantity, status, rejection_reason')
+    .select('id, call_id, part_id, quantity, status, rejection_reason, order_number')
     .eq('id', required_part_id)
     .maybeSingle()
   if (beforeErr) return json(500, { ok: false, error: 'lookup_failed', detail: beforeErr.message })
@@ -174,6 +179,31 @@ async function updateRequiredPartStatus(params: any): Promise<Response> {
     // else: leave existing reason as-is (preserves on transitions inside the family).
   } else {
     patch.rejection_reason = null
+  }
+
+  // awaiting_receipt_since bookkeeping — drives the >24h/>48h colours
+  // on the warehouse home.
+  if (status === 'awaiting_receipt' && before.status !== 'awaiting_receipt') {
+    patch.awaiting_receipt_since = new Date().toISOString()
+  } else if (status !== 'awaiting_receipt' && before.status === 'awaiting_receipt') {
+    patch.awaiting_receipt_since = null
+  }
+
+  // Leaving awaiting_order for awaiting_receipt / received requires an
+  // order number. Accept either an existing value on the row or one
+  // passed in this call.
+  const REQUIRES_ORDER_NUMBER = new Set(['awaiting_receipt', 'received'])
+  if (before.status === 'awaiting_order' && REQUIRES_ORDER_NUMBER.has(status)) {
+    const incoming = typeof params?.order_number === 'string' ? params.order_number.trim() : ''
+    const effective = incoming || (before as any).order_number || ''
+    if (!effective) {
+      return json(400, { ok: false, error: 'order_number_required' })
+    }
+    if (incoming) patch.order_number = incoming
+  } else if (typeof params?.order_number === 'string') {
+    // Manager can amend the order number on any other transition too.
+    const v = params.order_number.trim()
+    patch.order_number = v || null
   }
 
   const { data, error } = await admin
@@ -504,6 +534,39 @@ async function updatePartQuantity(params: any): Promise<Response> {
     .single()
   if (error) return json(500, { ok: false, error: 'update_failed', detail: error.message })
   return json(200, { ok: true, part: data })
+}
+
+// ---------------------------------------------------------------------
+// bulk_update_required_part_status — used by the warehouse-home tabs
+// to advance many rows at once with a single shared order_number.
+// Calls updateRequiredPartStatus once per id so the inventory + call
+// status side-effects stay in one place.
+// ---------------------------------------------------------------------
+async function bulkUpdateRequiredPartStatus(params: any): Promise<Response> {
+  const ids = Array.isArray(params?.required_part_ids) ? params.required_part_ids : []
+  const status = params?.status
+  if (ids.length === 0 || typeof status !== 'string') {
+    return json(400, { ok: false, error: 'invalid_params' })
+  }
+  const order_number = typeof params?.order_number === 'string' ? params.order_number : undefined
+
+  const results: Array<{ id: string; ok: boolean; error?: string }> = []
+  for (const id of ids) {
+    if (typeof id !== 'string') {
+      results.push({ id: String(id), ok: false, error: 'invalid_id' })
+      continue
+    }
+    const res = await updateRequiredPartStatus({
+      required_part_id: id,
+      status,
+      order_number,
+    })
+    const body = await res.json().catch(() => ({} as any))
+    results.push({ id, ok: !!body?.ok, error: body?.error })
+  }
+
+  const failed = results.filter((r) => !r.ok)
+  return json(200, { ok: failed.length === 0, results, failed_count: failed.length })
 }
 
 // ---------------------------------------------------------------------

@@ -173,6 +173,23 @@ export function setRequiredPartOrderNumber(
   })
 }
 
+export function bulkUpdateRequiredPartStatus(
+  employeeNumber: number,
+  ids: string[],
+  status: RequiredPartStatus,
+  orderNumber?: string | null,
+) {
+  return invoke({
+    employee_number: employeeNumber,
+    action: 'bulk_update_required_part_status',
+    params: {
+      required_part_ids: ids,
+      status,
+      ...(orderNumber !== undefined ? { order_number: orderNumber ?? null } : {}),
+    },
+  }) as Promise<ActionResult<any> & { failed_count?: number; results?: Array<{ id: string; ok: boolean; error?: string }> }>
+}
+
 export interface WarehouseOrderItemPayload {
   part_id: string
   quantity: number

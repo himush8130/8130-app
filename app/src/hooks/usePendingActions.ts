@@ -11,6 +11,7 @@ interface PartLocation {
 }
 
 export interface PendingPart extends CallRequiredPart {
+  awaiting_receipt_since: string | null
   service_calls?: { display_id: string; vehicle_number: string | null } | null
   warehouse_orders?: { display_id: string } | null
   parts?: { name: string; sku: string; quantity: number; is_sku_blocked?: boolean } | null

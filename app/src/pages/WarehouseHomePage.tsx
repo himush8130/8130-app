@@ -3,6 +3,7 @@ import { useParts } from '../hooks/useParts'
 import { AppHeader } from '../components/AppHeader'
 import { PartsCatalogList } from '../components/PartsCatalogList'
 import { PendingPartActions } from '../components/PendingPartActions'
+import { ActivePartActions } from '../components/ActivePartActions'
 import { PartsListSection } from '../components/PartsListSection'
 import { Card, CardBody } from '../components/ui/Card'
 import { ComponentBadge } from '../feedback/ComponentBadge'
@@ -24,7 +25,7 @@ export function WarehouseHomePage() {
 
         {/* Collapsible tables. The active-actions table opens by
             default since it's the day-to-day work surface. */}
-        <PendingPartActions defaultOpen />
+        <ActivePartActions />
         <PendingPartActions variant="rejected" />
         <PendingPartActions variant="blocked" />
         <PartsListSection
