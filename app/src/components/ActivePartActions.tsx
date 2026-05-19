@@ -10,7 +10,8 @@ import { Card } from './ui/Card'
 import { Input } from './ui/Input'
 import { Button } from './ui/Button'
 import { ComponentBadge } from '../feedback/ComponentBadge'
-import { bulkUpdateRequiredPartStatus } from '../lib/warehouseActions'
+import { bulkUpdateRequiredPartStatus, updateRequiredPartStatus, type ReceiveDestination } from '../lib/warehouseActions'
+import { ReceiveDestinationDialog } from './ReceiveDestinationDialog'
 import { buildCopyText } from '../lib/copyFormat'
 import type { RequiredPartStatus } from '../types/db'
 
@@ -76,6 +77,14 @@ export function ActivePartActions() {
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  /** Per-item destination queue used when target = received. Each item
+   *  pops up the dialog one at a time. orderNumber is set when the
+   *  source tab is awaiting_order — the same number applies to all
+   *  items in the batch. */
+  const [receiveQueue, setReceiveQueue] = useState<
+    Array<{ id: string; partId: string; name: string; sku: string; orderNumber?: string }>
+  >([])
+  const [receiveTotal, setReceiveTotal] = useState(0)
 
   async function copyName(row: PendingPart) {
     if (!settings || !row.parts) return
@@ -176,22 +185,91 @@ export function ActivePartActions() {
     setOrderNumberDraft('')
   }
 
+  function buildQueue(orderNumber?: string) {
+    const items = rows
+      .filter((r) => selectedIds.has(r.id))
+      .map((r) => ({
+        id:      r.id,
+        partId:  r.part_id,
+        name:    r.parts?.name ?? '?',
+        sku:     r.parts?.sku ?? '',
+        ...(orderNumber ? { orderNumber } : {}),
+      }))
+    setReceiveQueue(items)
+    setReceiveTotal(items.length)
+  }
+
   function startTransition(target: 'awaiting_receipt' | 'received') {
     if (selectedIds.size === 0) return
+    if (target === 'received') {
+      // Each item needs its own destination — queue them up.
+      if (tab === 'awaiting_order') {
+        // Order number first, then start the destination queue.
+        setPendingOrderNumber({ status: 'received' })
+        setOrderNumberDraft('')
+        return
+      }
+      buildQueue()
+      return
+    }
+    // awaiting_receipt: bulk in one call, no destination needed.
     if (tab === 'awaiting_order') {
-      // Order number is required for this direction.
-      setPendingOrderNumber({ status: target })
+      setPendingOrderNumber({ status: 'awaiting_receipt' })
       setOrderNumberDraft('')
       return
     }
     void applyStatus(target)
   }
 
-  async function confirmOrderNumber() {
+  function confirmOrderNumber() {
     if (!pendingOrderNumber) return
     const num = orderNumberDraft.trim()
     if (!num) { setError('מספר דרישה חובה'); return }
-    await applyStatus(pendingOrderNumber.status, num)
+    if (pendingOrderNumber.status === 'received') {
+      // Continue to the destination queue, applying the same order
+      // number to every item.
+      setPendingOrderNumber(null)
+      setOrderNumberDraft('')
+      buildQueue(num)
+      return
+    }
+    void applyStatus(pendingOrderNumber.status, num)
+  }
+
+  async function confirmReceive(dest: ReceiveDestination) {
+    if (!employee || receiveQueue.length === 0) return
+    const [current, ...rest] = receiveQueue
+    setBusy(true); setError(null)
+    const res: any = await updateRequiredPartStatus(
+      employee.employee_number,
+      current.id,
+      'received',
+      null,
+      dest,
+      current.orderNumber,
+    )
+    setBusy(false)
+    if (!res.ok) {
+      setError(`שגיאה בעדכון פריט ${current.sku}: ${res.error ?? ''}`)
+      // Bail out of the rest of the queue so the user can investigate.
+      setReceiveQueue([])
+      setReceiveTotal(0)
+      queryClient.invalidateQueries({ queryKey: ['pending_parts_actions'] })
+      return
+    }
+    if (rest.length === 0) {
+      setReceiveQueue([])
+      setReceiveTotal(0)
+      setSelectedIds(new Set())
+      queryClient.invalidateQueries({ queryKey: ['pending_parts_actions'] })
+    } else {
+      setReceiveQueue(rest)
+    }
+  }
+
+  function cancelReceiveQueue() {
+    setReceiveQueue([])
+    setReceiveTotal(0)
   }
 
   // What bulk actions are available from each tab? Only forward-moving
@@ -330,6 +408,17 @@ export function ActivePartActions() {
             </ul>
           )}
         </>
+      )}
+
+      {receiveQueue.length > 0 && (
+        <ReceiveDestinationDialog
+          partId={receiveQueue[0].partId}
+          busy={busy}
+          progress={`${receiveTotal - receiveQueue.length + 1} מתוך ${receiveTotal}`}
+          subtitle={`${receiveQueue[0].name} · ${receiveQueue[0].sku}`}
+          onClose={cancelReceiveQueue}
+          onConfirm={confirmReceive}
+        />
       )}
     </Card>
   )

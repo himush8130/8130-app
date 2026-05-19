@@ -52,6 +52,7 @@ export function updateRequiredPartStatus(
   status: RequiredPartStatus,
   reason?: string | null,
   receive?: ReceiveDestination,
+  orderNumber?: string,
 ) {
   return invoke({
     employee_number: employeeNumber,
@@ -61,6 +62,7 @@ export function updateRequiredPartStatus(
       status,
       reason: reason ?? null,
       ...(receive ?? {}),
+      ...(orderNumber !== undefined ? { order_number: orderNumber } : {}),
     },
   })
 }

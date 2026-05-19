@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'מחסנאי: תאריך הזמנה בדף ניהול הפריט; שורות "ממתין לקבלה" מסומנות רק בצבע (ללא טקסט); הערה חשובה לכלי לא מופיעה יותר על קריאות אלא רק בכרטיס הכלי וספר רק"ם. הריענון משופר.'
+export const LATEST_NOTE = 'מחסנאי: בעת מעבר ל"התקבל" נשאלת השאלה "איפה להוסיף" — גם בבחירה מרובה (כל פריט בנפרד) וגם בדף ניהול הפריט.'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build

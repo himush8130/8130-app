@@ -3,12 +3,13 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../store/auth'
 import { useRequiredPartDetail } from '../hooks/useRequiredPartDetail'
-import { recordWithdrawal, setRequiredPartOrderNumber, updateRequiredPartStatus, updatePart } from '../lib/warehouseActions'
+import { recordWithdrawal, setRequiredPartOrderNumber, updateRequiredPartStatus, updatePart, type ReceiveDestination } from '../lib/warehouseActions'
 import { AppHeader } from '../components/AppHeader'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { StatusBadgeMenu } from '../components/StatusBadgeMenu'
+import { ReceiveDestinationDialog } from '../components/ReceiveDestinationDialog'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { Part } from '../types/parts'
 import type { RequiredPartStatus } from '../types/db'
@@ -80,6 +81,7 @@ export function RequiredPartDetailPage() {
   const [pickedSource, setPickedSource] = useState<string>('')   // parts.id of chosen location
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [receiveOpen, setReceiveOpen] = useState(false)
 
   const canChangeStatus = employee.permissions === 'warehouse' || employee.permissions === 'manager'
 
@@ -126,9 +128,9 @@ export function RequiredPartDetailPage() {
     refresh()
   }
 
-  async function advance(next: RequiredPartStatus) {
+  async function advance(next: RequiredPartStatus, receive?: ReceiveDestination) {
     setBusy(true); setActionError(null)
-    const res = await updateRequiredPartStatus(employee.employee_number, data!.row.id, next)
+    const res = await updateRequiredPartStatus(employee.employee_number, data!.row.id, next, null, receive)
     setBusy(false)
     if (!res.ok) { setActionError('שגיאה'); return }
     refresh()
@@ -306,7 +308,11 @@ export function RequiredPartDetailPage() {
                 </Button>
               )}
               {row.status === 'awaiting_receipt' && (
-                <Button onClick={() => advance('received')} disabled={busy} className="bg-warning hover:bg-warning/90 text-white">
+                <Button
+                  onClick={() => { setActionError(null); setReceiveOpen(true) }}
+                  disabled={busy}
+                  className="bg-warning hover:bg-warning/90 text-white"
+                >
                   סמן כהתקבל
                 </Button>
               )}
@@ -348,6 +354,19 @@ export function RequiredPartDetailPage() {
               </div>
             </CardBody>
           </Card>
+        )}
+
+        {receiveOpen && (
+          <ReceiveDestinationDialog
+            partId={row.part_id}
+            busy={busy}
+            subtitle={part?.name ? `${part.name} · ${part.sku}` : undefined}
+            onClose={() => setReceiveOpen(false)}
+            onConfirm={async (dest) => {
+              setReceiveOpen(false)
+              await advance('received', dest)
+            }}
+          />
         )}
       </main>
     </>
