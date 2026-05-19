@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'מחסנאי: שלושת הכפתורים (ממתין להזמנה / ממתין לקבלה / התקבל) הם עכשיו הכותרת עצמה. ברירת מחדל מקופלת; לחיצה על טאב פותחת, לחיצה שנייה על אותו טאב מקפלת.'
+export const LATEST_NOTE = 'מחסנאי: שלושת כפתורי הסטטוס כעת מרובעים שווי-גודל בשורה אחת — אדום/צהוב/כחול לפי הסטטוס, כמות מודגשת מתחת לשם.'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build

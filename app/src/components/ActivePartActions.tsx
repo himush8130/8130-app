@@ -18,6 +18,24 @@ const TAB_LABEL: Record<Tab, string> = {
   received:         'התקבל',
 }
 
+// Status-coloured classes for the three big square tab buttons.
+// Each status keeps its tone whether the tab is active or not — the
+// active state just intensifies the same hue and inverts the text.
+const TAB_CLASSES: Record<Tab, { active: string; inactive: string }> = {
+  awaiting_order: {
+    active:   'bg-danger text-white border-danger',
+    inactive: 'bg-danger/10 text-danger border-danger/40 hover:bg-danger/15',
+  },
+  awaiting_receipt: {
+    active:   'bg-warning text-white border-warning',
+    inactive: 'bg-warning/10 text-warning border-warning/40 hover:bg-warning/15',
+  },
+  received: {
+    active:   'bg-info text-white border-info',
+    inactive: 'bg-info/10 text-info border-info/40 hover:bg-info/15',
+  },
+}
+
 const HOUR = 60 * 60 * 1000
 
 /** Single combined card for the three live statuses the warehouse
@@ -165,27 +183,25 @@ export function ActivePartActions() {
     <Card>
       <ComponentBadge id={4003} />
 
-      {/* Tabs ARE the header. Clicking the active tab collapses the
-          panel back to the closed default. */}
-      <div className="px-3 py-3 flex gap-2 flex-wrap">
+      {/* Tabs ARE the header. Three equal-sized squares in a single
+          row, each coloured by the status it represents. Clicking
+          the active tab collapses the panel back to the default. */}
+      <div className="px-3 py-3 grid grid-cols-3 gap-2">
         {(Object.keys(TAB_LABEL) as Tab[]).map((t) => {
           const active = tab === t
+          const palette = TAB_CLASSES[t]
           return (
             <button
               key={t}
               type="button"
               onClick={() => clickTab(t)}
               aria-expanded={active}
-              className={`text-sm px-3 py-2 rounded-md border transition-colors flex items-center gap-2 ${
-                active
-                  ? 'bg-primary text-primary-fg border-primary'
-                  : 'bg-card text-foreground border-border hover:bg-muted-surface'
+              className={`aspect-square rounded-md border transition-colors flex flex-col items-center justify-center gap-1 px-2 text-center ${
+                active ? palette.active : palette.inactive
               }`}
             >
-              <span className="font-medium">{TAB_LABEL[t]}</span>
-              <span className={`text-xs font-mono ${active ? 'opacity-90' : 'text-muted'}`}>
-                ({counts[t]})
-              </span>
+              <span className="text-sm font-medium leading-tight">{TAB_LABEL[t]}</span>
+              <span className="text-2xl font-bold leading-none">{counts[t]}</span>
             </button>
           )
         })}
