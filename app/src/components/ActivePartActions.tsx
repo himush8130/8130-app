@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../store/auth'
 import { usePendingActions, type PendingPart } from '../hooks/usePendingActions'
-import { CollapsibleSection } from './CollapsibleSection'
+import { Card } from './ui/Card'
 import { Input } from './ui/Input'
 import { Button } from './ui/Button'
+import { ComponentBadge } from '../feedback/ComponentBadge'
 import { bulkUpdateRequiredPartStatus } from '../lib/warehouseActions'
 import type { RequiredPartStatus } from '../types/db'
 
@@ -36,7 +37,11 @@ export function ActivePartActions() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
 
-  const [tab, setTab] = useState<Tab>('awaiting_order')
+  // Selected tab is also the open-state of the panel:
+  //   null  → all collapsed; only the three buttons are visible.
+  //   <tab> → that tab is open and its list is rendered below.
+  //   Clicking the active tab again collapses back to null.
+  const [tab, setTab] = useState<Tab | null>(null)
   const [skuFilter, setSkuFilter] = useState('')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [pendingOrderNumber, setPendingOrderNumber] = useState<{ status: 'awaiting_receipt' | 'received' } | null>(null)
@@ -59,6 +64,7 @@ export function ActivePartActions() {
 
   // Filter + sort the rows shown under the active tab.
   const rows = useMemo<PendingPart[]>(() => {
+    if (!tab) return []
     const skuQ = skuFilter.trim().toLowerCase()
     const filtered = (data ?? []).filter((r) => {
       if (r.status !== tab) return false
@@ -78,12 +84,12 @@ export function ActivePartActions() {
     return filtered.sort((a, b) => a.requested_at.localeCompare(b.requested_at))
   }, [data, tab, skuFilter])
 
-  // Clear selection when tab or filter changes — different rows are visible.
-  function switchTab(next: Tab) {
-    setTab(next)
+  // Toggle behaviour: click open tab → close. Click other tab → switch.
+  function clickTab(next: Tab) {
     setSelectedIds(new Set())
     setError(null)
     setPendingOrderNumber(null)
+    setTab((cur) => (cur === next ? null : next))
   }
 
   function toggle(id: string) {
@@ -155,32 +161,29 @@ export function ActivePartActions() {
     return []  // received: dispense per-row via the detail page
   })()
 
-  const allCount = counts.awaiting_order + counts.awaiting_receipt + counts.received
-
   return (
-    <CollapsibleSection
-      title="פעולות פתוחות"
-      count={allCount}
-      defaultOpen
-      badgeId={4003}
-    >
-      {/* Tab bar */}
-      <div className="px-3 pt-3 flex gap-2 flex-wrap">
+    <Card>
+      <ComponentBadge id={4003} />
+
+      {/* Tabs ARE the header. Clicking the active tab collapses the
+          panel back to the closed default. */}
+      <div className="px-3 py-3 flex gap-2 flex-wrap">
         {(Object.keys(TAB_LABEL) as Tab[]).map((t) => {
           const active = tab === t
           return (
             <button
               key={t}
               type="button"
-              onClick={() => switchTab(t)}
-              className={`text-xs px-3 py-1.5 rounded-md border transition-colors flex items-center gap-1.5 ${
+              onClick={() => clickTab(t)}
+              aria-expanded={active}
+              className={`text-sm px-3 py-2 rounded-md border transition-colors flex items-center gap-2 ${
                 active
                   ? 'bg-primary text-primary-fg border-primary'
                   : 'bg-card text-foreground border-border hover:bg-muted-surface'
               }`}
             >
-              <span>{TAB_LABEL[t]}</span>
-              <span className={`text-[11px] font-mono ${active ? 'opacity-90' : 'text-muted'}`}>
+              <span className="font-medium">{TAB_LABEL[t]}</span>
+              <span className={`text-xs font-mono ${active ? 'opacity-90' : 'text-muted'}`}>
                 ({counts[t]})
               </span>
             </button>
@@ -188,98 +191,99 @@ export function ActivePartActions() {
         })}
       </div>
 
-      {/* SKU filter */}
-      <div className="px-3 pt-2 pb-1">
-        <Input
-          label="סינון לפי מק״ט"
-          name="active-sku-filter"
-          value={skuFilter}
-          onChange={(e) => setSkuFilter(e.target.value)}
-          placeholder="034910308"
-        />
-      </div>
-
-      {/* Bulk action toolbar — only appears when at least one row is selected */}
-      {bulkButtons.length > 0 && (
-        <div className="px-3 py-2 border-t border-border bg-muted-surface/40 flex items-center gap-2 flex-wrap text-xs">
-          <button
-            type="button"
-            onClick={selectAllVisible}
-            className="text-primary hover:underline"
-          >
-            סמן הכל ({rows.length})
-          </button>
-          {selectedIds.size > 0 && (
-            <>
-              <button type="button" onClick={clearSelection} className="text-muted hover:underline">
-                נקה ({selectedIds.size})
-              </button>
-              <span className="text-muted">·</span>
-              {bulkButtons.map((b) => (
-                <Button
-                  key={b.to}
-                  onClick={() => startTransition(b.to)}
-                  className="text-xs px-3 py-1"
-                  disabled={busy}
-                >
-                  {b.label}
-                </Button>
-              ))}
-            </>
-          )}
-          {error && <span className="text-danger">{error}</span>}
-        </div>
-      )}
-
-      {/* Order-number prompt */}
-      {pendingOrderNumber && (
-        <div className="px-3 py-3 border-t border-border bg-warning/5 flex flex-col gap-2">
-          <p className="text-sm text-foreground">
-            הזן מספר דרישה לכל {selectedIds.size} הפריטים שנבחרו
-            ({TAB_LABEL[pendingOrderNumber.status]})
-          </p>
-          <div className="flex gap-2 items-end">
-            <div className="flex-1">
-              <Input
-                label="מספר דרישה"
-                name="bulk-order-number"
-                value={orderNumberDraft}
-                onChange={(e) => setOrderNumberDraft(e.target.value)}
-                autoFocus
-              />
-            </div>
-            <Button onClick={confirmOrderNumber} disabled={busy || !orderNumberDraft.trim()} className="text-xs px-3 py-2">
-              {busy ? 'מעדכן...' : 'אישור'}
-            </Button>
-            <Button variant="ghost" onClick={() => setPendingOrderNumber(null)} className="text-xs px-3 py-2">
-              ביטול
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* List */}
-      {isLoading && <p className="text-sm text-muted text-center py-4">טוען...</p>}
-      {!isLoading && rows.length === 0 && (
-        <p className="text-sm text-muted text-center py-4">
-          {skuFilter.trim() ? 'לא נמצא מק״ט תואם' : 'אין פריטים בסטטוס הזה'}
-        </p>
-      )}
-      {rows.length > 0 && (
-        <ul className="border-t border-border">
-          {rows.map((row) => (
-            <ActiveRow
-              key={row.id}
-              row={row}
-              tab={tab}
-              selected={selectedIds.has(row.id)}
-              onToggle={() => toggle(row.id)}
-              onOpen={() => navigate(`/warehouse/required-part/${row.id}`)}
+      {/* Body — only renders when a tab is open. */}
+      {tab && (
+        <>
+          <div className="px-3 pt-1 pb-2 border-t border-border">
+            <Input
+              label="סינון לפי מק״ט"
+              name="active-sku-filter"
+              value={skuFilter}
+              onChange={(e) => setSkuFilter(e.target.value)}
+              placeholder="034910308"
             />
-          ))}
-        </ul>
+          </div>
+
+          {bulkButtons.length > 0 && (
+            <div className="px-3 py-2 border-t border-border bg-muted-surface/40 flex items-center gap-2 flex-wrap text-xs">
+              <button
+                type="button"
+                onClick={selectAllVisible}
+                className="text-primary hover:underline"
+              >
+                סמן הכל ({rows.length})
+              </button>
+              {selectedIds.size > 0 && (
+                <>
+                  <button type="button" onClick={clearSelection} className="text-muted hover:underline">
+                    נקה ({selectedIds.size})
+                  </button>
+                  <span className="text-muted">·</span>
+                  {bulkButtons.map((b) => (
+                    <Button
+                      key={b.to}
+                      onClick={() => startTransition(b.to)}
+                      className="text-xs px-3 py-1"
+                      disabled={busy}
+                    >
+                      {b.label}
+                    </Button>
+                  ))}
+                </>
+              )}
+              {error && <span className="text-danger">{error}</span>}
+            </div>
+          )}
+
+          {pendingOrderNumber && (
+            <div className="px-3 py-3 border-t border-border bg-warning/5 flex flex-col gap-2">
+              <p className="text-sm text-foreground">
+                הזן מספר דרישה לכל {selectedIds.size} הפריטים שנבחרו
+                ({TAB_LABEL[pendingOrderNumber.status]})
+              </p>
+              <div className="flex gap-2 items-end">
+                <div className="flex-1">
+                  <Input
+                    label="מספר דרישה"
+                    name="bulk-order-number"
+                    value={orderNumberDraft}
+                    onChange={(e) => setOrderNumberDraft(e.target.value)}
+                    autoFocus
+                  />
+                </div>
+                <Button onClick={confirmOrderNumber} disabled={busy || !orderNumberDraft.trim()} className="text-xs px-3 py-2">
+                  {busy ? 'מעדכן...' : 'אישור'}
+                </Button>
+                <Button variant="ghost" onClick={() => setPendingOrderNumber(null)} className="text-xs px-3 py-2">
+                  ביטול
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {isLoading && <p className="text-sm text-muted text-center py-4">טוען...</p>}
+          {!isLoading && rows.length === 0 && (
+            <p className="text-sm text-muted text-center py-4">
+              {skuFilter.trim() ? 'לא נמצא מק״ט תואם' : 'אין פריטים בסטטוס הזה'}
+            </p>
+          )}
+          {rows.length > 0 && (
+            <ul className="border-t border-border">
+              {rows.map((row) => (
+                <ActiveRow
+                  key={row.id}
+                  row={row}
+                  tab={tab}
+                  selected={selectedIds.has(row.id)}
+                  onToggle={() => toggle(row.id)}
+                  onOpen={() => navigate(`/warehouse/required-part/${row.id}`)}
+                />
+              ))}
+            </ul>
+          )}
+        </>
       )}
-    </CollapsibleSection>
+    </Card>
   )
 }
 
