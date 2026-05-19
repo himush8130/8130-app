@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Card, CardBody } from './ui/Card'
 import { Badge } from './ui/Badge'
-import { VehicleNoteBadge } from './VehicleNoteBadge'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { ServiceCall, CallStatus, RequiredPartStatus, Vehicle } from '../types/db'
 import type { CallPartsSummary } from '../hooks/useCallsPartsStatus'
@@ -117,9 +116,6 @@ export function CallCard({ call, partsSummary, vehicle }: Props) {
                 )}
                 {(call.anomaly_flags?.length ?? 0) > 0 && (
                   <Badge tone="warning">{call.anomaly_flags!.length} חריגות</Badge>
-                )}
-                {vehicle && (
-                  <VehicleNoteBadge note={vehicle.important_note} color={vehicle.important_note_color} compact />
                 )}
               </div>
 

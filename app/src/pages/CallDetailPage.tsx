@@ -17,7 +17,6 @@ import { PhoneActions } from '../components/PhoneActions'
 import { CopyCallSummaryButton } from '../components/CopyCallSummaryButton'
 import { EditCallForm } from '../components/EditCallForm'
 import { VehicleLocationDeptEditor } from '../components/VehicleLocationDeptEditor'
-import { VehicleNoteBadge } from '../components/VehicleNoteBadge'
 import { OrderClassPanel } from '../components/OrderClassPanel'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import { deleteCall } from '../lib/managerActions'
@@ -190,13 +189,6 @@ export function CallDetailPage() {
                 ))}
                 {(call.anomaly_flags?.length ?? 0) > 0 && (
                   <Badge tone="warning">{call.anomaly_flags!.length} חריגות</Badge>
-                )}
-                {call.vehicle_number && vehiclesMap.get(call.vehicle_number) && (
-                  <VehicleNoteBadge
-                    note={vehiclesMap.get(call.vehicle_number)!.important_note}
-                    color={vehiclesMap.get(call.vehicle_number)!.important_note_color}
-                    compact
-                  />
                 )}
               </div>
             </div>

@@ -346,19 +346,14 @@ function ActiveRow({
   onCopyName: () => void
   onOpen: () => void
 }) {
-  // Highlight overdue rows in the "ממתין לקבלה" tab.
+  // Highlight overdue rows in the "ממתין לקבלה" tab — tint only,
+  // no text label.
   let urgencyTone: string = ''
-  let urgencyLabel: string | null = null
   if (tab === 'awaiting_receipt') {
     const since = row.awaiting_receipt_since ?? row.requested_at
     const ageHours = (Date.now() - new Date(since).getTime()) / HOUR
-    if (ageHours >= 48) {
-      urgencyTone = 'bg-danger/5 border-danger/30'
-      urgencyLabel = `מעל ${Math.floor(ageHours)}ש'`
-    } else if (ageHours >= 24) {
-      urgencyTone = 'bg-warning/5 border-warning/30'
-      urgencyLabel = `מעל ${Math.floor(ageHours)}ש'`
-    }
+    if (ageHours >= 48)      urgencyTone = 'bg-danger/5 border-danger/30'
+    else if (ageHours >= 24) urgencyTone = 'bg-warning/5 border-warning/30'
   }
 
   return (
@@ -398,11 +393,6 @@ function ActiveRow({
           </span>
           <span className="font-mono text-xs text-muted">{row.parts?.sku ?? ''}</span>
           <span className="text-xs text-muted">× {row.quantity}</span>
-          {urgencyLabel && (
-            <span className={`text-[11px] font-semibold ${urgencyTone.includes('danger') ? 'text-danger' : 'text-warning'}`}>
-              {urgencyLabel}
-            </span>
-          )}
         </div>
         <div className="flex gap-2 flex-wrap mt-1 text-[11px] text-muted">
           {row.service_calls?.display_id && (

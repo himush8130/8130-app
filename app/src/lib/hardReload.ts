@@ -4,12 +4,27 @@
 // busting query string, so the network request bypasses any stale
 // cached HTML.
 export async function hardReload(): Promise<void> {
-  await withTimeout(deleteAllCaches(), 1500)
+  // Run all cleanup steps in parallel with a single budget, so a
+  // hung step can't stall the navigation.
+  await withTimeout(Promise.all([
+    unregisterServiceWorkers(),
+    deleteAllCaches(),
+  ]), 1500)
 
   const url = new URL(window.location.href)
   url.searchParams.set('_r', Date.now().toString())
   // replace() so the back button doesn't return to the broken state.
   window.location.replace(url.toString())
+}
+
+async function unregisterServiceWorkers(): Promise<void> {
+  if (!('serviceWorker' in navigator)) return
+  try {
+    const regs = await navigator.serviceWorker.getRegistrations()
+    await Promise.all(regs.map((r) => r.unregister().catch(() => false)))
+  } catch {
+    // Best-effort; some browsers throw on locked-down origins.
+  }
 }
 
 async function deleteAllCaches(): Promise<void> {

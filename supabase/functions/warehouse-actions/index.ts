@@ -181,11 +181,15 @@ async function updateRequiredPartStatus(params: any): Promise<Response> {
     patch.rejection_reason = null
   }
 
-  // awaiting_receipt_since bookkeeping — drives the >24h/>48h colours
-  // on the warehouse home.
+  // awaiting_receipt_since bookkeeping. We treat this as the "order
+  // placed" timestamp: it's set the first time the row enters
+  // awaiting_receipt and survives the move to received so the detail
+  // page can keep showing the order date. If the row is rolled all
+  // the way back to awaiting_order, we clear it so a future order
+  // gets a fresh timestamp.
   if (status === 'awaiting_receipt' && before.status !== 'awaiting_receipt') {
     patch.awaiting_receipt_since = new Date().toISOString()
-  } else if (status !== 'awaiting_receipt' && before.status === 'awaiting_receipt') {
+  } else if (status === 'awaiting_order') {
     patch.awaiting_receipt_since = null
   }
 

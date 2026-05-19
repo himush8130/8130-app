@@ -194,6 +194,17 @@ export function RequiredPartDetailPage() {
                 <span className="text-sm text-danger">{row.rejection_reason}</span>
               </div>
             )}
+            {(row as any).awaiting_receipt_since && (
+              <div>
+                <div className="text-xs text-muted">תאריך הזמנה</div>
+                <span className="text-sm text-foreground font-mono">
+                  {new Date((row as any).awaiting_receipt_since).toLocaleString('he-IL', {
+                    year: 'numeric', month: '2-digit', day: '2-digit',
+                    hour: '2-digit', minute: '2-digit',
+                  })}
+                </span>
+              </div>
+            )}
             {data.call?.description && (
               <div className="col-span-2">
                 <div className="text-xs text-muted">תיאור התקלה</div>
