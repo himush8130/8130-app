@@ -71,6 +71,7 @@ export function ActivePartActions() {
   }
 
   const [skuFilter, setSkuFilter] = useState('')
+  const [orderFilter, setOrderFilter] = useState('')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [pendingOrderNumber, setPendingOrderNumber] = useState<{ status: 'awaiting_receipt' | 'received' } | null>(null)
   const [orderNumberDraft, setOrderNumberDraft] = useState('')
@@ -124,10 +125,12 @@ export function ActivePartActions() {
   const rows = useMemo<PendingPart[]>(() => {
     if (!tab) return []
     const skuQ = skuFilter.trim().toLowerCase()
+    const orderQ = tab === 'awaiting_receipt' ? orderFilter.trim().toLowerCase() : ''
     const filtered = (data ?? []).filter((r) => {
       if (r.status !== tab) return false
       if (r.parts?.is_sku_blocked) return false
       if (skuQ && !(r.parts?.sku ?? '').toLowerCase().includes(skuQ)) return false
+      if (orderQ && !((r.order_number ?? '').toLowerCase().includes(orderQ))) return false
       return true
     })
 
@@ -140,11 +143,12 @@ export function ActivePartActions() {
       })
     }
     return filtered.sort((a, b) => a.requested_at.localeCompare(b.requested_at))
-  }, [data, tab, skuFilter])
+  }, [data, tab, skuFilter, orderFilter])
 
   // Toggle behaviour: click open tab → close. Click other tab → switch.
   function clickTab(next: Tab) {
     setSelectedIds(new Set())
+    setOrderFilter('')
     setError(null)
     setPendingOrderNumber(null)
     setTab(tab === next ? null : next)
@@ -318,7 +322,7 @@ export function ActivePartActions() {
       {/* Body — only renders when a tab is open. */}
       {tab && (
         <>
-          <div className="px-3 pt-1 pb-2 border-t border-border">
+          <div className="px-3 pt-1 pb-2 border-t border-border grid grid-cols-1 sm:grid-cols-2 gap-2">
             <Input
               label="סינון לפי מק״ט"
               name="active-sku-filter"
@@ -326,6 +330,15 @@ export function ActivePartActions() {
               onChange={(e) => setSkuFilter(e.target.value)}
               placeholder="034910308"
             />
+            {tab === 'awaiting_receipt' && (
+              <Input
+                label="סינון לפי מספר דרישה"
+                name="active-order-filter"
+                value={orderFilter}
+                onChange={(e) => setOrderFilter(e.target.value)}
+                placeholder="PO-2026-0042"
+              />
+            )}
           </div>
 
           {bulkButtons.length > 0 && (
