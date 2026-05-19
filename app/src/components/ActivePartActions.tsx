@@ -458,16 +458,24 @@ function ActiveRow({
     else if (ageHours >= 24) urgencyTone = 'bg-warning/5 border-warning/30'
   }
 
+  // Multi-select is only meaningful where a bulk action exists.
+  // The "התקבל" tab has no bulk transition — each received item
+  // is dispensed per-row via the detail page — so the checkbox
+  // is hidden there to avoid the dead affordance.
+  const showCheckbox = tab !== 'received'
+
   return (
     <li className={`flex items-start gap-3 px-3 py-3 border-b border-border last:border-0 ${urgencyTone}`}>
-      <input
-        type="checkbox"
-        checked={selected}
-        onChange={onToggle}
-        onClick={(e) => e.stopPropagation()}
-        className="mt-1 w-4 h-4 accent-primary"
-        aria-label="בחר פריט"
-      />
+      {showCheckbox && (
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={onToggle}
+          onClick={(e) => e.stopPropagation()}
+          className="mt-1 w-4 h-4 accent-primary"
+          aria-label="בחר פריט"
+        />
+      )}
       <div
         role="button"
         tabIndex={0}

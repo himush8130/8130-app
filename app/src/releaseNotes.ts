@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'מחסנאי: סינון לפי מספר דרישה בטאב "ממתין לקבלה".'
+export const LATEST_NOTE = 'מחסנאי: הוסר ה-checkbox בטאב "התקבל" (אין פעולה קבוצתית שם). נוסף סינון לפי מספר דרישה בטאב "ממתין לקבלה".'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build
