@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'מחסנאי: שלושת כפתורי הסטטוס כעת מרובעים שווי-גודל בשורה אחת — אדום/צהוב/כחול לפי הסטטוס, כמות מודגשת מתחת לשם.'
+export const LATEST_NOTE = 'מחסנאי: לחיצה על טאב פעיל מודגשת רק ב-border עבה (אותו צבע); העתקת פורמט חזרה בלחיצה על שם הפריט; חזרה מדף פריט שומרת על הטאב הפתוח.'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build

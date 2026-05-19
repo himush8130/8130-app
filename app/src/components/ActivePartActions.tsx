@@ -1,13 +1,17 @@
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../store/auth'
 import { usePendingActions, type PendingPart } from '../hooks/usePendingActions'
+import { useAppSettings } from '../hooks/useAppSettings'
+import { useVehiclesMap } from '../hooks/useVehicles'
+import { useVehicleCallStats } from '../hooks/useVehicleCallStats'
 import { Card } from './ui/Card'
 import { Input } from './ui/Input'
 import { Button } from './ui/Button'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import { bulkUpdateRequiredPartStatus } from '../lib/warehouseActions'
+import { buildCopyText } from '../lib/copyFormat'
 import type { RequiredPartStatus } from '../types/db'
 
 type Tab = 'awaiting_order' | 'awaiting_receipt' | 'received'
@@ -19,21 +23,13 @@ const TAB_LABEL: Record<Tab, string> = {
 }
 
 // Status-coloured classes for the three big square tab buttons.
-// Each status keeps its tone whether the tab is active or not — the
-// active state just intensifies the same hue and inverts the text.
-const TAB_CLASSES: Record<Tab, { active: string; inactive: string }> = {
-  awaiting_order: {
-    active:   'bg-danger text-white border-danger',
-    inactive: 'bg-danger/10 text-danger border-danger/40 hover:bg-danger/15',
-  },
-  awaiting_receipt: {
-    active:   'bg-warning text-white border-warning',
-    inactive: 'bg-warning/10 text-warning border-warning/40 hover:bg-warning/15',
-  },
-  received: {
-    active:   'bg-info text-white border-info',
-    inactive: 'bg-info/10 text-info border-info/40 hover:bg-info/15',
-  },
+// Same hue in both states; the active state just gets a thicker
+// border so the press-affordance is clearly visible without
+// flipping the whole colour.
+const TAB_BASE: Record<Tab, string> = {
+  awaiting_order:   'bg-danger/10  text-danger  border-danger  hover:bg-danger/15',
+  awaiting_receipt: 'bg-warning/10 text-warning border-warning hover:bg-warning/15',
+  received:         'bg-info/10    text-info    border-info    hover:bg-info/15',
 }
 
 const HOUR = 60 * 60 * 1000
@@ -52,20 +48,55 @@ const HOUR = 60 * 60 * 1000
 export function ActivePartActions() {
   const employee = useAuthStore((s) => s.employee)
   const { data, isLoading } = usePendingActions()
+  const { data: settings } = useAppSettings()
+  const vehiclesMap = useVehiclesMap()
+  const { data: callStats } = useVehicleCallStats()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
 
-  // Selected tab is also the open-state of the panel:
-  //   null  → all collapsed; only the three buttons are visible.
-  //   <tab> → that tab is open and its list is rendered below.
-  //   Clicking the active tab again collapses back to null.
-  const [tab, setTab] = useState<Tab | null>(null)
+  // The active tab is mirrored to ?actab= so navigating into a row's
+  // detail page and back lands the user on the same open tab they
+  // came from — instead of resetting to the collapsed default.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tabParam = searchParams.get('actab') as Tab | null
+  const tab: Tab | null = tabParam === 'awaiting_order' || tabParam === 'awaiting_receipt' || tabParam === 'received'
+    ? tabParam
+    : null
+  function setTab(next: Tab | null) {
+    const sp = new URLSearchParams(searchParams)
+    if (next) sp.set('actab', next)
+    else      sp.delete('actab')
+    setSearchParams(sp, { replace: true })
+  }
+
   const [skuFilter, setSkuFilter] = useState('')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [pendingOrderNumber, setPendingOrderNumber] = useState<{ status: 'awaiting_receipt' | 'received' } | null>(null)
   const [orderNumberDraft, setOrderNumberDraft] = useState('')
+  const [copiedId, setCopiedId] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  async function copyName(row: PendingPart) {
+    if (!settings || !row.parts) return
+    const sc = row.service_calls as { vehicle_number?: string | null } | null | undefined
+    const vehicleNumber = sc?.vehicle_number ?? null
+    const vehicle = vehicleNumber ? vehiclesMap.get(vehicleNumber) ?? null : null
+    const stats   = vehicleNumber ? callStats?.get(vehicleNumber) : undefined
+    const text = buildCopyText({
+      settings,
+      vehicle,
+      vehicleDisabled: !!stats?.disabled,
+      row,
+      partName: row.parts.name,
+      partSku:  row.parts.sku,
+    })
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedId(row.id)
+      setTimeout(() => setCopiedId((v) => (v === row.id ? null : v)), 1500)
+    } catch { /* clipboard may be denied */ }
+  }
 
   // Counts across the three tabs — feed the headline numbers in the
   // tab buttons. Rejected/blocked/delivered rows are excluded.
@@ -107,7 +138,7 @@ export function ActivePartActions() {
     setSelectedIds(new Set())
     setError(null)
     setPendingOrderNumber(null)
-    setTab((cur) => (cur === next ? null : next))
+    setTab(tab === next ? null : next)
   }
 
   function toggle(id: string) {
@@ -189,18 +220,17 @@ export function ActivePartActions() {
       <div className="px-3 py-3 grid grid-cols-3 gap-2">
         {(Object.keys(TAB_LABEL) as Tab[]).map((t) => {
           const active = tab === t
-          const palette = TAB_CLASSES[t]
           return (
             <button
               key={t}
               type="button"
               onClick={() => clickTab(t)}
               aria-expanded={active}
-              className={`aspect-square rounded-md border transition-colors flex flex-col items-center justify-center gap-1 px-2 text-center ${
-                active ? palette.active : palette.inactive
-              }`}
+              className={`aspect-square rounded-md transition-colors flex flex-col items-center justify-center gap-1 px-2 text-center ${
+                TAB_BASE[t]
+              } ${active ? 'border-[3px] font-semibold' : 'border'}`}
             >
-              <span className="text-sm font-medium leading-tight">{TAB_LABEL[t]}</span>
+              <span className="text-sm leading-tight">{TAB_LABEL[t]}</span>
               <span className="text-2xl font-bold leading-none">{counts[t]}</span>
             </button>
           )
@@ -291,7 +321,9 @@ export function ActivePartActions() {
                   row={row}
                   tab={tab}
                   selected={selectedIds.has(row.id)}
+                  copied={copiedId === row.id}
                   onToggle={() => toggle(row.id)}
+                  onCopyName={() => copyName(row)}
                   onOpen={() => navigate(`/warehouse/required-part/${row.id}`)}
                 />
               ))}
@@ -304,12 +336,14 @@ export function ActivePartActions() {
 }
 
 function ActiveRow({
-  row, tab, selected, onToggle, onOpen,
+  row, tab, selected, copied, onToggle, onCopyName, onOpen,
 }: {
   row: PendingPart
   tab: Tab
   selected: boolean
+  copied: boolean
   onToggle: () => void
+  onCopyName: () => void
   onOpen: () => void
 }) {
   // Highlight overdue rows in the "ממתין לקבלה" tab.
@@ -337,14 +371,30 @@ function ActiveRow({
         className="mt-1 w-4 h-4 accent-primary"
         aria-label="בחר פריט"
       />
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         onClick={onOpen}
-        className="flex-1 min-w-0 text-start"
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen() }
+        }}
+        className="flex-1 min-w-0 text-start cursor-pointer"
       >
         <div className="flex items-baseline gap-2 flex-wrap">
-          <span className="text-sm font-medium text-foreground truncate">
-            {row.parts?.name ?? '?'}
+          {/* Click-to-copy the WhatsApp payload — same behaviour as the
+              legacy pending-actions list. Stops propagation so it
+              doesn't also navigate. */}
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onCopyName() }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onCopyName() }
+            }}
+            title="לחץ להעתקת הפורמט"
+            className="text-sm font-medium text-foreground truncate cursor-pointer hover:underline"
+          >
+            {row.parts?.name ?? '?'}{copied && <span className="text-success ms-1 text-xs">✓ הועתק</span>}
           </span>
           <span className="font-mono text-xs text-muted">{row.parts?.sku ?? ''}</span>
           <span className="text-xs text-muted">× {row.quantity}</span>
@@ -365,7 +415,7 @@ function ActiveRow({
             <span className="font-mono">מס׳ דרישה: {(row as any).order_number}</span>
           )}
         </div>
-      </button>
+      </div>
     </li>
   )
 }
