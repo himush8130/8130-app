@@ -12,7 +12,6 @@ import { Input } from './ui/Input'
 import { SpecialtiesPicker } from './SpecialtiesPicker'
 import { OrderClassPanel, type OrderClassPanelHandle } from './OrderClassPanel'
 import { ComponentBadge } from '../feedback/ComponentBadge'
-import { findBlockedSku } from '../lib/blockedSkuLookup'
 import type { TankSpecialty } from '../types/db'
 import type { Part } from '../types/parts'
 
@@ -248,30 +247,6 @@ function DraftPartsEditor({
   const [nameQ, setNameQ] = useState('')
   const [qty, setQty]     = useState('1')
   const [picked, setPicked] = useState<Part | null>(null)
-  /** When the typed SKU was a blocked one and the catalog records a
-   *  replacement, we silently swap to the new SKU and stash the
-   *  original here so the UI can tell the user what happened. */
-  const [substitutedFrom, setSubstitutedFrom] = useState<string | null>(null)
-
-  // Watch the SKU input. When it matches a blocked catalog row and the
-  // manager has recorded a replacement SKU, auto-substitute the new
-  // part — saves the technician from re-typing and prevents the
-  // blocked SKU from leaving the form.
-  useEffect(() => {
-    const match = findBlockedSku(catalog, skuQ)
-    if (!match) return
-    const newSku = match.replacementSku?.trim()
-    if (!newSku) return
-    if (substitutedFrom === match.blockedSku) return  // already swapped
-    const replacement = catalog.find(
-      (p) => p.sku.trim().toLowerCase() === newSku.toLowerCase() && !p.is_sku_blocked,
-    )
-    if (!replacement) return
-    setSubstitutedFrom(match.blockedSku)
-    setSkuQ(replacement.sku)
-    setNameQ(replacement.name)
-    setPicked(replacement)
-  }, [skuQ, catalog, substitutedFrom])
 
   const matches = useMemo(() => {
     const sku  = skuQ.trim().toLowerCase()
@@ -297,7 +272,7 @@ function DraftPartsEditor({
   }
 
   function reset() {
-    setSkuQ(''); setNameQ(''); setQty('1'); setPicked(null); setSubstitutedFrom(null)
+    setSkuQ(''); setNameQ(''); setQty('1'); setPicked(null)
   }
 
   function addExisting() {
@@ -357,22 +332,6 @@ function DraftPartsEditor({
         <Input label="מק״ט" name="draft-sku"  value={skuQ}  onChange={(e) => { setSkuQ(e.target.value);  setPicked(null) }} />
         <Input label="שם"   name="draft-name" value={nameQ} onChange={(e) => { setNameQ(e.target.value); setPicked(null) }} />
       </div>
-      {substitutedFrom && (
-        <div className="text-xs px-3 py-2 rounded-md border border-info/40 bg-info/10 text-info">
-          הוחלף אוטומטית מהמק״ט החסום <span className="font-mono font-semibold">{substitutedFrom}</span>
-        </div>
-      )}
-      {!substitutedFrom && (() => {
-        const match = findBlockedSku(catalog, skuQ)
-        if (!match) return null
-        // Has a replacement → the effect above will auto-swap; nothing to show here.
-        if (match.replacementSku) return null
-        return (
-          <div className="text-xs px-3 py-2 rounded-md border border-warning/40 bg-warning/10 text-warning">
-            מק״ט זה חסום (טרם הוגדר מק״ט חליף)
-          </div>
-        )
-      })()}
 
       {matches.length > 0 && !picked && (
         <ul className="bg-card border border-border rounded-md max-h-32 overflow-y-auto">

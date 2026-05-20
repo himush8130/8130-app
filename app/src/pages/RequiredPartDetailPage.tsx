@@ -3,64 +3,16 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../store/auth'
 import { useRequiredPartDetail } from '../hooks/useRequiredPartDetail'
-import { recordWithdrawal, setRequiredPartOrderNumber, updateRequiredPartStatus, updatePart, type ReceiveDestination, type PartUpdates } from '../lib/warehouseActions'
+import { recordWithdrawal, setRequiredPartOrderNumber, updateRequiredPartStatus, updatePart, type ReceiveDestination } from '../lib/warehouseActions'
 import { AppHeader } from '../components/AppHeader'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { StatusBadgeMenu } from '../components/StatusBadgeMenu'
 import { ReceiveDestinationDialog } from '../components/ReceiveDestinationDialog'
-import { BlockedSkuStatusMigrationDialog } from '../components/BlockedSkuStatusMigrationDialog'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { Part } from '../types/parts'
 import type { RequiredPartStatus } from '../types/db'
-
-function BlockedReplacementEditor({
-  part, employeeNumber, onSaved,
-}: {
-  part: Part
-  employeeNumber: number
-  onSaved: () => void
-}) {
-  const [value, setValue] = useState(part.replacement_sku ?? '')
-  const [busy, setBusy] = useState(false)
-  const [savedAt, setSavedAt] = useState<number | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => { setValue(part.replacement_sku ?? '') }, [part.replacement_sku])
-
-  const dirty = value.trim() !== (part.replacement_sku ?? '').trim()
-
-  async function save() {
-    setBusy(true); setError(null)
-    const updates: PartUpdates = { replacement_sku: value.trim() || null }
-    const res = await updatePart(employeeNumber, part.id, updates)
-    setBusy(false)
-    if (!res.ok) { setError('שגיאה'); return }
-    setSavedAt(Date.now())
-    setTimeout(() => setSavedAt(null), 1500)
-    onSaved()
-  }
-
-  return (
-    <div className="flex items-end gap-2">
-      <div className="flex-1">
-        <Input
-          label="מק״ט חדש (חליף)"
-          name={`replacement-${part.id}`}
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          placeholder="המק״ט שמחליף את החסום"
-        />
-      </div>
-      <Button onClick={save} disabled={busy || !dirty} className="text-xs px-3 py-2">
-        {busy ? '...' : 'שמור'}
-      </Button>
-      {savedAt && <span className="text-xs text-success">✓</span>}
-      {error && <span className="text-xs text-danger">{error}</span>}
-    </div>
-  )
-}
 
 function OrderNumberEditor({
   rowId, initial, onSaved,
@@ -130,7 +82,6 @@ export function RequiredPartDetailPage() {
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [receiveOpen, setReceiveOpen] = useState(false)
-  const [migrationOpen, setMigrationOpen] = useState(false)
 
   const canChangeStatus = employee.permissions === 'warehouse' || employee.permissions === 'manager'
 
@@ -275,19 +226,14 @@ export function RequiredPartDetailPage() {
         </Card>
 
         {/* Blocked SKU shortcut */}
-        {isBlocked && canChangeStatus && part && (
+        {isBlocked && canChangeStatus && (
           <Card>
-            <CardBody className="flex flex-col gap-3">
+            <CardBody>
               <p className="text-sm text-foreground">
                 המק״ט מסומן כחסום. ניתן לבטל חסימה ידנית, או להעביר את הפריט לסטטוס אחר —
                 המעבר יבטל את החסימה אוטומטית.
               </p>
-              <BlockedReplacementEditor
-                part={part}
-                employeeNumber={employee.employee_number}
-                onSaved={() => { refresh(); setMigrationOpen(true) }}
-              />
-              <div>
+              <div className="flex gap-2 mt-2">
                 <Button onClick={unblock} disabled={busy} className="text-xs px-3 py-1">
                   בטל סימון מק״ט חסום
                 </Button>
@@ -423,14 +369,6 @@ export function RequiredPartDetailPage() {
           />
         )}
 
-        {migrationOpen && part && (
-          <BlockedSkuStatusMigrationDialog
-            partId={part.id}
-            partSku={part.sku}
-            partName={part.name}
-            onClose={() => { setMigrationOpen(false); refresh() }}
-          />
-        )}
       </main>
     </>
   )
