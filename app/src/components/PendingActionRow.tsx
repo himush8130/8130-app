@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { StatusBadgeMenu } from './StatusBadgeMenu'
+import { CopyMenu } from './CopyMenu'
 import type { CallRequiredPart } from '../types/parts'
 
 interface Withdrawal {
@@ -27,9 +28,9 @@ interface Props {
   highlight?: boolean
   /** True for the 'delivered' variant — shows the dispense location + date instead of the request date. */
   showWithdrawal?: boolean
-  /** Quick-copy on part-name click. */
-  onCopyName?:    (row: RowData) => void
-  copied?:        boolean
+  /** Returns the WhatsApp-format text for the row, or null when the
+   *  data isn't ready yet (e.g. app_settings still loading). */
+  copyFormatText?: () => string | null
 }
 
 function formatLoc(p: Withdrawal['parts']): string {
@@ -48,7 +49,7 @@ function formatDateShort(s: string): string {
   return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
-export function PendingActionRow({ row, highlight, showWithdrawal, onCopyName, copied }: Props) {
+export function PendingActionRow({ row, highlight, showWithdrawal, copyFormatText }: Props) {
   const navigate = useNavigate()
   const isBlocked = !!row.parts?.is_sku_blocked
   const wd = (row.part_withdrawals ?? [])[0]
@@ -72,21 +73,17 @@ export function PendingActionRow({ row, highlight, showWithdrawal, onCopyName, c
       }}
       className={`block px-4 py-3 border-b border-border last:border-0 cursor-pointer hover:bg-muted-surface ${highlight ? 'bg-danger/5 hover:bg-danger/10' : ''}`}
     >
-      {/* Top row: name (right, generous width) + sku (left) */}
+      {/* Top row: name (right, generous width) + sku (left) + copy menu */}
       <div className="flex items-baseline gap-3">
-        {onCopyName ? (
-          <span
-            role="button"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onCopyName(row) }}
-            title="לחץ להעתקת תקציר"
-            className="text-base text-foreground font-medium truncate flex-1 min-w-0 cursor-pointer hover:underline"
-          >
-            {row.parts?.name ?? '?'}{copied && <span className="text-success ms-1 text-xs">✓ הועתק</span>}
-          </span>
-        ) : (
-          <span className="text-base text-foreground font-medium truncate flex-1 min-w-0">{row.parts?.name ?? '?'}</span>
-        )}
+        <span className="text-base text-foreground font-medium truncate flex-1 min-w-0">{row.parts?.name ?? '?'}</span>
         <span className="font-mono text-xs text-muted shrink-0 whitespace-nowrap">{row.parts?.sku ?? ''}</span>
+        <CopyMenu
+          getText={{
+            ...(copyFormatText ? { format: copyFormatText } : {}),
+            sku:    () => row.parts?.sku ?? null,
+            order:  () => row.order_number ?? null,
+          }}
+        />
       </div>
 
       {/* Bottom row: status + ×qty | date + "קישור לקריאה" */}
@@ -119,6 +116,10 @@ export function PendingActionRow({ row, highlight, showWithdrawal, onCopyName, c
           )}
         </span>
       </div>
+
+      {row.order_number && (
+        <div className="text-[11px] text-muted truncate mt-1">מס׳ דרישה: <span className="font-mono">{row.order_number}</span></div>
+      )}
 
       {row.rejection_reason && (
         <div className="text-[11px] text-danger truncate mt-1">סיבת דחייה: {row.rejection_reason}</div>

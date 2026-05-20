@@ -12,6 +12,7 @@ import { Button } from './ui/Button'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import { bulkUpdateRequiredPartStatus, updateRequiredPartStatus, type ReceiveDestination } from '../lib/warehouseActions'
 import { ReceiveDestinationDialog } from './ReceiveDestinationDialog'
+import { CopyMenu } from './CopyMenu'
 import { buildCopyText } from '../lib/copyFormat'
 import type { RequiredPartStatus } from '../types/db'
 
@@ -75,7 +76,6 @@ export function ActivePartActions() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [pendingOrderNumber, setPendingOrderNumber] = useState<{ status: 'awaiting_receipt' | 'received' } | null>(null)
   const [orderNumberDraft, setOrderNumberDraft] = useState('')
-  const [copiedId, setCopiedId] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   /** Per-item destination queue used when target = received. Each item
@@ -87,13 +87,13 @@ export function ActivePartActions() {
   >([])
   const [receiveTotal, setReceiveTotal] = useState(0)
 
-  async function copyName(row: PendingPart) {
-    if (!settings || !row.parts) return
+  function copyFormatText(row: PendingPart): string | null {
+    if (!settings || !row.parts) return null
     const sc = row.service_calls as { vehicle_number?: string | null } | null | undefined
     const vehicleNumber = sc?.vehicle_number ?? null
     const vehicle = vehicleNumber ? vehiclesMap.get(vehicleNumber) ?? null : null
     const stats   = vehicleNumber ? callStats?.get(vehicleNumber) : undefined
-    const text = buildCopyText({
+    return buildCopyText({
       settings,
       vehicle,
       vehicleDisabled: !!stats?.disabled,
@@ -101,11 +101,6 @@ export function ActivePartActions() {
       partName: row.parts.name,
       partSku:  row.parts.sku,
     })
-    try {
-      await navigator.clipboard.writeText(text)
-      setCopiedId(row.id)
-      setTimeout(() => setCopiedId((v) => (v === row.id ? null : v)), 1500)
-    } catch { /* clipboard may be denied */ }
   }
 
   // Counts across the three tabs — feed the headline numbers in the
@@ -412,9 +407,8 @@ export function ActivePartActions() {
                   row={row}
                   tab={tab}
                   selected={selectedIds.has(row.id)}
-                  copied={copiedId === row.id}
                   onToggle={() => toggle(row.id)}
-                  onCopyName={() => copyName(row)}
+                  copyFormatText={() => copyFormatText(row)}
                   onOpen={() => navigate(`/warehouse/required-part/${row.id}`)}
                 />
               ))}
@@ -438,14 +432,13 @@ export function ActivePartActions() {
 }
 
 function ActiveRow({
-  row, tab, selected, copied, onToggle, onCopyName, onOpen,
+  row, tab, selected, onToggle, copyFormatText, onOpen,
 }: {
   row: PendingPart
   tab: Tab
   selected: boolean
-  copied: boolean
   onToggle: () => void
-  onCopyName: () => void
+  copyFormatText: () => string | null
   onOpen: () => void
 }) {
   // Highlight overdue rows in the "ממתין לקבלה" tab — tint only,
@@ -486,20 +479,8 @@ function ActiveRow({
         className="flex-1 min-w-0 text-start cursor-pointer"
       >
         <div className="flex items-baseline gap-2 flex-wrap">
-          {/* Click-to-copy the WhatsApp payload — same behaviour as the
-              legacy pending-actions list. Stops propagation so it
-              doesn't also navigate. */}
-          <span
-            role="button"
-            tabIndex={0}
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onCopyName() }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onCopyName() }
-            }}
-            title="לחץ להעתקת הפורמט"
-            className="text-sm font-medium text-foreground truncate cursor-pointer hover:underline"
-          >
-            {row.parts?.name ?? '?'}{copied && <span className="text-success ms-1 text-xs">✓ הועתק</span>}
+          <span className="text-sm font-medium text-foreground truncate">
+            {row.parts?.name ?? '?'}
           </span>
           <span className="font-mono text-xs text-muted">{row.parts?.sku ?? ''}</span>
           <span className="text-xs text-muted">× {row.quantity}</span>
@@ -511,11 +492,18 @@ function ActiveRow({
           {row.warehouse_orders?.display_id && (
             <span className="font-mono">הזמנת מחסן {row.warehouse_orders.display_id}</span>
           )}
-          {(row as any).order_number && (
-            <span className="font-mono">מס׳ דרישה: {(row as any).order_number}</span>
+          {row.order_number && (
+            <span className="font-mono">מס׳ דרישה: {row.order_number}</span>
           )}
         </div>
       </div>
+      <CopyMenu
+        getText={{
+          format: copyFormatText,
+          sku:    () => row.parts?.sku ?? null,
+          order:  () => row.order_number ?? null,
+        }}
+      />
     </li>
   )
 }

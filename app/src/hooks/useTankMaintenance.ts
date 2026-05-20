@@ -33,6 +33,16 @@ export interface TankMaintenanceOverviewRow {
   nextWeek: 'שבועי' | 'חודשי'
 }
 
+// Manager's preferred company order: ל, then כ, then מ, then anything
+// else alphabetically. Matches the verbal order they call them out in.
+const COMPANY_ORDER = ['ל', 'כ', 'מ']
+function companyRank(sub: string | null): number {
+  if (!sub) return COMPANY_ORDER.length + 1
+  const first = sub.charAt(0)
+  const idx = COMPANY_ORDER.indexOf(first)
+  return idx === -1 ? COMPANY_ORDER.length : idx
+}
+
 /** Returns each tank with this-week/next-week treatment kind. */
 export function useTankMaintenanceOverview() {
   const { data: vehicles } = useVehicles()
@@ -75,7 +85,12 @@ export function useTankMaintenanceOverview() {
         thisWeek: monthly.has(`${t.vehicle_number}|${thisIso}`) ? 'חודשי' : 'שבועי',
         nextWeek: monthly.has(`${t.vehicle_number}|${nextIso}`) ? 'חודשי' : 'שבועי',
       } as TankMaintenanceOverviewRow))
-      .sort((a, b) => a.vehicle_number.localeCompare(b.vehicle_number))
+      .sort((a, b) => {
+        const ca = companyRank(a.sub_department)
+        const cb = companyRank(b.sub_department)
+        if (ca !== cb) return ca - cb
+        return a.vehicle_number.localeCompare(b.vehicle_number)
+      })
   }, [tanks, monthlyQuery.data, thisIso, nextIso])
 
   return {

@@ -11,6 +11,7 @@ import { Input } from './ui/Input'
 import { SpecialtiesPicker } from './SpecialtiesPicker'
 import { OrderClassPanel, type OrderClassPanelHandle } from './OrderClassPanel'
 import { ComponentBadge } from '../feedback/ComponentBadge'
+import { findBlockedSku } from '../lib/blockedSkuLookup'
 import type { TankSpecialty } from '../types/db'
 import type { Part } from '../types/parts'
 
@@ -307,6 +308,18 @@ function DraftPartsEditor({
         <Input label="מק״ט" name="draft-sku"  value={skuQ}  onChange={(e) => { setSkuQ(e.target.value);  setPicked(null) }} />
         <Input label="שם"   name="draft-name" value={nameQ} onChange={(e) => { setNameQ(e.target.value); setPicked(null) }} />
       </div>
+      {(() => {
+        const match = findBlockedSku(catalog, skuQ)
+        if (!match) return null
+        return (
+          <div className="text-xs px-3 py-2 rounded-md border border-warning/40 bg-warning/10 text-warning">
+            מק״ט זה חסום
+            {match.replacementSku
+              ? <>, מק״ט חדש: <span className="font-mono font-semibold">{match.replacementSku}</span></>
+              : ' (טרם הוגדר מק״ט חליף)'}
+          </div>
+        )
+      })()}
 
       {matches.length > 0 && !picked && (
         <ul className="bg-card border border-border rounded-md max-h-32 overflow-y-auto">

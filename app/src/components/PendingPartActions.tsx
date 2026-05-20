@@ -33,16 +33,15 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
   const { data: settings } = useAppSettings()
   const vehiclesMap = useVehiclesMap()
   const { data: callStats } = useVehicleCallStats()
-  const [copiedId, setCopiedId] = useState<string | null>(null)
   const [skuFilter, setSkuFilter] = useState('')
 
-  async function copyName(row: RowData) {
-    if (!settings || !row.parts) return
+  function copyFormatText(row: RowData): string | null {
+    if (!settings || !row.parts) return null
     const sc = row.service_calls as { vehicle_number?: string | null } | null | undefined
     const vehicleNumber = sc?.vehicle_number ?? null
     const vehicle = vehicleNumber ? vehiclesMap.get(vehicleNumber) ?? null : null
     const stats   = vehicleNumber ? callStats?.get(vehicleNumber) : undefined
-    const text = buildCopyText({
+    return buildCopyText({
       settings,
       vehicle,
       vehicleDisabled: !!stats?.disabled,
@@ -50,11 +49,6 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
       partName: row.parts.name,
       partSku:  row.parts.sku,
     })
-    try {
-      await navigator.clipboard.writeText(text)
-      setCopiedId(row.id)
-      setTimeout(() => setCopiedId((v) => (v === row.id ? null : v)), 1500)
-    } catch { /* clipboard may be denied */ }
   }
 
   const skuQuery = effective === 'active' ? skuFilter.trim().toLowerCase() : ''
@@ -158,8 +152,7 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
                     row={row}
                     highlight={highlightRows}
                     showWithdrawal={effective === 'delivered'}
-                    onCopyName={copyName}
-                    copied={copiedId === row.id}
+                    copyFormatText={() => copyFormatText(row)}
                   />
                 ))}
               </ul>
@@ -176,8 +169,7 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
                       row={row}
                       highlight={highlightRows}
                       showWithdrawal={effective === 'delivered'}
-                      onCopyName={copyName}
-                      copied={copiedId === row.id}
+                      copyFormatText={() => copyFormatText(row)}
                     />
                   ))}
                 </ul>

@@ -10,6 +10,7 @@ import { ComponentBadge } from '../feedback/ComponentBadge'
 import { useAuthStore } from '../store/auth'
 import { updatePart, setPartQuantity, createPart, type PartUpdates, type NewPartPayload } from '../lib/warehouseActions'
 import { AddWarehouseOrderForm } from './AddWarehouseOrderForm'
+import { findBlockedSku } from '../lib/blockedSkuLookup'
 
 interface Filters {
   sku: string
@@ -179,6 +180,18 @@ export function PartsCatalogList({ parts }: { parts: Part[] }) {
           <Input label="חיפוש שם" name="filter-name" value={f.name}
                  onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="אגן / מצנן..." />
         </div>
+        {(() => {
+          const match = findBlockedSku(parts, f.sku)
+          if (!match) return null
+          return (
+            <div className="text-xs px-3 py-2 rounded-md border border-warning/40 bg-warning/10 text-warning">
+              מק״ט זה חסום
+              {match.replacementSku
+                ? <>, מק״ט חדש: <span className="font-mono font-semibold">{match.replacementSku}</span></>
+                : ' (טרם הוגדר מק״ט חליף)'}
+            </div>
+          )
+        })()}
 
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           <FilterSelect label="מחסן" value={f.warehouse} options={warehouses}
