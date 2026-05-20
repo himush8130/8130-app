@@ -99,7 +99,7 @@ export function ActivePartActions() {
       vehicleDisabled: !!stats?.disabled,
       row,
       partName: row.parts.name,
-      partSku:  row.sku_override ?? row.parts.sku,
+      partSku:  row.parts.sku,
     })
   }
 
@@ -482,7 +482,7 @@ function ActiveRow({
           <span className="text-sm font-medium text-foreground truncate">
             {row.parts?.name ?? '?'}
           </span>
-          <span className="font-mono text-xs text-muted">{row.sku_override ?? row.parts?.sku ?? ''}</span>
+          <span className="font-mono text-xs text-muted">{row.parts?.sku ?? ''}</span>
           <span className="text-xs text-muted">× {row.quantity}</span>
         </div>
         <div className="flex gap-2 flex-wrap mt-1 text-[11px] text-muted">
@@ -500,7 +500,7 @@ function ActiveRow({
       <CopyMenu
         getText={{
           format: copyFormatText,
-          sku:    () => row.sku_override ?? row.parts?.sku ?? null,
+          sku:    () => row.parts?.sku ?? null,
           order:  () => row.order_number ?? null,
         }}
       />

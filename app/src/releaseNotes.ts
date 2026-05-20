@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'דף ניהול והנפקת פריט: עריכת מק״ט לפריט הנדרש הספציפי בלבד (אוברייד). הקטלוג וקריאות אחרות עם אותו פריט נשארים ללא שינוי.'
+export const LATEST_NOTE = 'דף ניהול והנפקת פריט: עריכת מק״ט כותבת ישירות לקטלוג ומשפיעה על כל הקריאות שמשתמשות בפריט.'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build

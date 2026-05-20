@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../store/auth'
 import { useRequiredPartDetail } from '../hooks/useRequiredPartDetail'
-import { recordWithdrawal, setRequiredPartOrderNumber, setRequiredPartSkuOverride, updateRequiredPartStatus, updatePart, type ReceiveDestination } from '../lib/warehouseActions'
+import { recordWithdrawal, setRequiredPartOrderNumber, updateRequiredPartStatus, updatePart, type ReceiveDestination } from '../lib/warehouseActions'
 import { AppHeader } from '../components/AppHeader'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
@@ -14,30 +14,31 @@ import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { Part } from '../types/parts'
 import type { RequiredPartStatus } from '../types/db'
 
-function SkuOverrideEditor({
-  rowId, initial, fallback, onSaved,
+function PartSkuEditor({
+  partId, currentSku, employeeNumber, onSaved,
 }: {
-  rowId: string
-  initial: string | null
-  fallback: string
+  partId: string
+  currentSku: string
+  employeeNumber: number
   onSaved: () => void
 }) {
-  const employee = useAuthStore((s) => s.employee)!
   const [editing, setEditing] = useState(false)
-  const [value, setValue] = useState(initial ?? fallback)
+  const [value, setValue] = useState(currentSku)
   const [busy, setBusy] = useState(false)
   const [savedAt, setSavedAt] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => { if (!editing) setValue(initial ?? fallback) }, [initial, fallback, editing])
+  useEffect(() => { if (!editing) setValue(currentSku) }, [currentSku, editing])
 
   async function save() {
-    setBusy(true); setError(null)
+    setError(null)
     const trimmed = value.trim()
-    const next = trimmed && trimmed !== fallback ? trimmed : null
-    const res = await setRequiredPartSkuOverride(employee.employee_number, rowId, next)
+    if (!trimmed) { setError('מק״ט חובה'); return }
+    if (trimmed === currentSku) { setEditing(false); return }
+    setBusy(true)
+    const res = await updatePart(employeeNumber, partId, { sku: trimmed })
     setBusy(false)
-    if (!res.ok) { setError('שגיאה'); return }
+    if (!res.ok) { setError('שמירה נכשלה'); return }
     setEditing(false)
     setSavedAt(Date.now())
     setTimeout(() => setSavedAt(null), 1500)
@@ -47,17 +48,14 @@ function SkuOverrideEditor({
   if (!editing) {
     return (
       <span className="inline-flex items-center gap-2">
-        <span className="font-mono text-xs text-muted">{initial ?? fallback}</span>
+        <span className="font-mono text-xs text-muted">{currentSku}</span>
         <button
           type="button"
-          onClick={() => { setEditing(true); setValue(initial ?? fallback) }}
+          onClick={() => { setEditing(true); setValue(currentSku) }}
           className="text-[11px] text-primary hover:underline"
         >
           ערוך מק״ט
         </button>
-        {initial && initial !== fallback && (
-          <span className="text-[11px] text-muted">(מקור: <span className="font-mono">{fallback}</span>)</span>
-        )}
         {savedAt && <span className="text-[11px] text-success">✓</span>}
       </span>
     )
@@ -77,7 +75,7 @@ function SkuOverrideEditor({
       </Button>
       <Button
         variant="ghost"
-        onClick={() => { setEditing(false); setValue(initial ?? fallback); setError(null) }}
+        onClick={() => { setEditing(false); setValue(currentSku); setError(null) }}
         className="text-xs px-3 py-1"
       >
         ביטול
@@ -238,13 +236,13 @@ export function RequiredPartDetailPage() {
           <CardHeader>
             <h2 className="text-lg font-semibold text-foreground">{part?.name ?? '?'}</h2>
             {canChangeStatus && part?.sku
-              ? <SkuOverrideEditor
-                  rowId={row.id}
-                  initial={row.sku_override ?? null}
-                  fallback={part.sku}
+              ? <PartSkuEditor
+                  partId={part.id}
+                  currentSku={part.sku}
+                  employeeNumber={employee.employee_number}
                   onSaved={refresh}
                 />
-              : <span className="font-mono text-xs text-muted">{row.sku_override ?? part?.sku}</span>
+              : <span className="font-mono text-xs text-muted">{part?.sku}</span>
             }
           </CardHeader>
           <CardBody className="grid grid-cols-2 gap-3 text-sm">
@@ -441,7 +439,7 @@ export function RequiredPartDetailPage() {
           <ReceiveDestinationDialog
             partId={row.part_id}
             busy={busy}
-            subtitle={part?.name ? `${part.name} · ${row.sku_override ?? part.sku}` : undefined}
+            subtitle={part?.name ? `${part.name} · ${part.sku}` : undefined}
             onClose={() => setReceiveOpen(false)}
             onConfirm={async (dest) => {
               setReceiveOpen(false)
