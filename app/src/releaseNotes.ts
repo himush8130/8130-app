@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'תיקון: מיון פלוגות בטבלת טיפול שבועי/חודשי קורא "פלוגה ל/כ/מ" במלואו ולא רק את התו הראשון.'
+export const LATEST_NOTE = 'שיפור: בתפריט העתקה כל אופציה היא כפתור עם גבול נפרד; אחרי לחיצה מופיע חיווי מפורש "✓ הועתק פורמט / מק״ט / מספר דרישה".'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build

@@ -8,6 +8,12 @@ const OPTION_LABEL: Record<Option, string> = {
   order:  'העתקת מספר דרישה',
 }
 
+const COPIED_LABEL: Record<Option, string> = {
+  format: 'הועתק פורמט',
+  sku:    'הועתק מק״ט',
+  order:  'הועתק מספר דרישה',
+}
+
 interface Props {
   /** Returns the text to copy, OR null when this option should be
    *  hidden (e.g. no order_number on the row). */
@@ -40,7 +46,7 @@ export function CopyMenu({ getText }: Props) {
     try {
       await navigator.clipboard.writeText(text)
       setFlash(opt)
-      setTimeout(() => setFlash(null), 1200)
+      setTimeout(() => setFlash(null), 1800)
     } catch {
       // clipboard may be denied
     }
@@ -56,21 +62,26 @@ export function CopyMenu({ getText }: Props) {
   })
 
   return (
-    <span ref={ref} className="relative inline-block" onClick={(e) => e.stopPropagation()}>
+    <span ref={ref} className="relative inline-flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
       <button
         type="button"
         onClick={(e) => { e.preventDefault(); setOpen((v) => !v) }}
         aria-haspopup="menu"
         aria-expanded={open}
         title="העתקה"
-        className="inline-flex items-center justify-center w-7 h-7 rounded-md border border-border text-muted hover:text-foreground hover:bg-muted-surface"
+        className="inline-flex items-center justify-center w-7 h-7 rounded-md border border-border text-muted hover:text-foreground hover:bg-muted-surface shrink-0"
       >
-        {flash ? '✓' : '⧉'}
+        ⧉
       </button>
+      {flash && (
+        <span className="text-[11px] text-success font-medium whitespace-nowrap">
+          ✓ {COPIED_LABEL[flash]}
+        </span>
+      )}
       {open && options.length > 0 && (
         <div
           role="menu"
-          className="absolute top-full mt-1 z-30 min-w-[10rem] bg-card border border-border rounded-md shadow-lg py-1"
+          className="absolute top-full mt-1 z-30 min-w-[11rem] bg-card border border-border rounded-md shadow-lg p-1.5 flex flex-col gap-1"
           style={{ insetInlineEnd: 0 }}
         >
           {options.map((opt) => (
@@ -79,7 +90,7 @@ export function CopyMenu({ getText }: Props) {
               type="button"
               role="menuitem"
               onClick={() => copy(opt)}
-              className="w-full text-start text-xs px-3 py-1.5 hover:bg-muted-surface text-foreground"
+              className="text-start text-xs px-3 py-1.5 rounded-md border border-border bg-card text-foreground hover:bg-muted-surface hover:border-primary/50 transition-colors"
             >
               {OPTION_LABEL[opt]}
             </button>
