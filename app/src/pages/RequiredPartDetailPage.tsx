@@ -10,17 +10,20 @@ import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { StatusBadgeMenu } from '../components/StatusBadgeMenu'
 import { ReceiveDestinationDialog } from '../components/ReceiveDestinationDialog'
-import { BlockedSkuStatusMigrationDialog } from '../components/BlockedSkuStatusMigrationDialog'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { Part } from '../types/parts'
 import type { RequiredPartStatus } from '../types/db'
+
+interface ReplacementSaveResult {
+  migrated?: { count: number; replacement_part_id: string | null }
+}
 
 function BlockedReplacementEditor({
   part, employeeNumber, onSaved,
 }: {
   part: Part
   employeeNumber: number
-  onSaved: () => void
+  onSaved: (result: ReplacementSaveResult) => void
 }) {
   const [value, setValue] = useState(part.replacement_sku ?? '')
   const [busy, setBusy] = useState(false)
@@ -34,12 +37,12 @@ function BlockedReplacementEditor({
   async function save() {
     setBusy(true); setError(null)
     const updates: PartUpdates = { replacement_sku: value.trim() || null }
-    const res = await updatePart(employeeNumber, part.id, updates)
+    const res: any = await updatePart(employeeNumber, part.id, updates)
     setBusy(false)
     if (!res.ok) { setError('שגיאה'); return }
     setSavedAt(Date.now())
     setTimeout(() => setSavedAt(null), 1500)
-    onSaved()
+    onSaved({ migrated: res.migrated })
   }
 
   return (
@@ -130,7 +133,7 @@ export function RequiredPartDetailPage() {
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [receiveOpen, setReceiveOpen] = useState(false)
-  const [migrationOpen, setMigrationOpen] = useState(false)
+  const [migrationResult, setMigrationResult] = useState<string | null>(null)
 
   const canChangeStatus = employee.permissions === 'warehouse' || employee.permissions === 'manager'
 
@@ -262,6 +265,12 @@ export function RequiredPartDetailPage() {
                 <p className="text-sm text-foreground whitespace-pre-wrap">{data.call.description}</p>
               </div>
             )}
+            {data.migratedFromSku && (
+              <div className="col-span-2">
+                <div className="text-xs text-muted">קשור למק״ט חסום</div>
+                <span className="text-sm text-foreground font-mono">{data.migratedFromSku}</span>
+              </div>
+            )}
             {canChangeStatus && (
               <div className="col-span-2">
                 <OrderNumberEditor
@@ -285,8 +294,26 @@ export function RequiredPartDetailPage() {
               <BlockedReplacementEditor
                 part={part}
                 employeeNumber={employee.employee_number}
-                onSaved={() => { refresh(); setMigrationOpen(true) }}
+                onSaved={(result) => {
+                  refresh()
+                  if (result?.migrated) {
+                    const n = result.migrated.count
+                    if (result.migrated.replacement_part_id == null) {
+                      setMigrationResult('שמירה הצליחה אבל לא נמצא פריט תואם לשליחת ההזמנות. ודא שהמק״ט החדש קיים בקטלוג.')
+                    } else if (n === 0) {
+                      setMigrationResult('שמירה הצליחה. אין פריטים פתוחים לעדכון.')
+                    } else {
+                      setMigrationResult(`שמירה הצליחה. ${n} פריטים פתוחים הועברו למק״ט החדש בסטטוס "ממתין להזמנה".`)
+                    }
+                    setTimeout(() => setMigrationResult(null), 4000)
+                  }
+                }}
               />
+              {migrationResult && (
+                <div className="text-xs px-3 py-2 rounded-md border border-info/40 bg-info/10 text-info">
+                  {migrationResult}
+                </div>
+              )}
               <div>
                 <Button onClick={unblock} disabled={busy} className="text-xs px-3 py-1">
                   בטל סימון מק״ט חסום
@@ -423,14 +450,6 @@ export function RequiredPartDetailPage() {
           />
         )}
 
-        {migrationOpen && part && (
-          <BlockedSkuStatusMigrationDialog
-            partId={part.id}
-            partSku={part.sku}
-            partName={part.name}
-            onClose={() => { setMigrationOpen(false); refresh() }}
-          />
-        )}
       </main>
     </>
   )

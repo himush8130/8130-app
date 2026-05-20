@@ -35,6 +35,10 @@ export interface CallRequiredPart {
   requested_at: string
   rejection_reason: string | null
   order_number: string | null
+  /** When non-null, this row was migrated off a blocked part_id to
+   *  the current one. The id points at the original (blocked) parts
+   *  row so the UI can render "related blocked sku: …". */
+  migrated_from_part_id: string | null
   /** Embedded via PostgREST. is_sku_blocked is optional (some queries
    *  don't request it) but when present the UI treats blocked parts
    *  as having a single status: blocked. */
