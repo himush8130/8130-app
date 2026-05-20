@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 type Option = 'format' | 'sku' | 'order'
 
@@ -46,7 +47,7 @@ export function CopyMenu({ getText }: Props) {
     try {
       await navigator.clipboard.writeText(text)
       setFlash(opt)
-      setTimeout(() => setFlash(null), 1800)
+      setTimeout(() => setFlash(null), 800)
     } catch {
       // clipboard may be denied
     }
@@ -62,7 +63,7 @@ export function CopyMenu({ getText }: Props) {
   })
 
   return (
-    <span ref={ref} className="relative inline-flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+    <span ref={ref} className="relative inline-block" onClick={(e) => e.stopPropagation()}>
       <button
         type="button"
         onClick={(e) => { e.preventDefault(); setOpen((v) => !v) }}
@@ -73,11 +74,6 @@ export function CopyMenu({ getText }: Props) {
       >
         ⧉
       </button>
-      {flash && (
-        <span className="text-[11px] text-success font-medium whitespace-nowrap">
-          ✓ {COPIED_LABEL[flash]}
-        </span>
-      )}
       {open && options.length > 0 && (
         <div
           role="menu"
@@ -96,6 +92,20 @@ export function CopyMenu({ getText }: Props) {
             </button>
           ))}
         </div>
+      )}
+      {/* Floating confirmation toast — anchored to the viewport so it
+          doesn't shift the row that hosts the menu. Renders into
+          document.body via portal so it sits above every other card. */}
+      {flash && typeof document !== 'undefined' && createPortal(
+        <div
+          aria-live="polite"
+          className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
+        >
+          <div className="bg-foreground text-card px-4 py-2 rounded-md shadow-xl text-sm font-medium">
+            ✓ {COPIED_LABEL[flash]}
+          </div>
+        </div>,
+        document.body,
       )}
     </span>
   )

@@ -10,6 +10,7 @@ import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { StatusBadgeMenu } from '../components/StatusBadgeMenu'
 import { ReceiveDestinationDialog } from '../components/ReceiveDestinationDialog'
+import { BlockedSkuStatusMigrationDialog } from '../components/BlockedSkuStatusMigrationDialog'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { Part } from '../types/parts'
 import type { RequiredPartStatus } from '../types/db'
@@ -129,6 +130,7 @@ export function RequiredPartDetailPage() {
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [receiveOpen, setReceiveOpen] = useState(false)
+  const [migrationOpen, setMigrationOpen] = useState(false)
 
   const canChangeStatus = employee.permissions === 'warehouse' || employee.permissions === 'manager'
 
@@ -283,7 +285,7 @@ export function RequiredPartDetailPage() {
               <BlockedReplacementEditor
                 part={part}
                 employeeNumber={employee.employee_number}
-                onSaved={refresh}
+                onSaved={() => { refresh(); setMigrationOpen(true) }}
               />
               <div>
                 <Button onClick={unblock} disabled={busy} className="text-xs px-3 py-1">
@@ -418,6 +420,15 @@ export function RequiredPartDetailPage() {
               setReceiveOpen(false)
               await advance('received', dest)
             }}
+          />
+        )}
+
+        {migrationOpen && part && (
+          <BlockedSkuStatusMigrationDialog
+            partId={part.id}
+            partSku={part.sku}
+            partName={part.name}
+            onClose={() => { setMigrationOpen(false); refresh() }}
           />
         )}
       </main>

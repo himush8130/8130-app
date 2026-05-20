@@ -1,8 +1,9 @@
-import { useRef, useState, useMemo } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useVehicles } from '../hooks/useVehicles'
 import { useParts } from '../hooks/useParts'
 import { useAuthStore } from '../store/auth'
+import { supabase } from '../lib/supabase'
 import { createCall } from '../lib/managerActions'
 import { addRequiredPart, createPart } from '../lib/warehouseActions'
 import { Card, CardBody, CardHeader } from './ui/Card'
@@ -34,6 +35,7 @@ interface Props {
 
 export function NewCallForm({ onCreated, onCancel, initialVehicleNumber }: Props) {
   const employee = useAuthStore((s) => s.employee)!
+  const setEmployee = useAuthStore((s) => s.setEmployee)
   const queryClient = useQueryClient()
   const { data: vehicles } = useVehicles()
 
@@ -42,6 +44,29 @@ export function NewCallForm({ onCreated, onCancel, initialVehicleNumber }: Props
   const [vehicleNumber, setVehicleNumber] = useState(initialVehicleNumber ?? '')
   const [description, setDescription]     = useState('')
   const [phone, setPhone]                 = useState(employee.phone ?? '')
+
+  // The auth-store copy of `employee` is whatever was persisted at
+  // login. If the warehouse manager later filled in the phone on the
+  // employees table, the cached value can lag. Re-fetch on mount so
+  // the reporter-phone field is pre-populated whenever the DB has a
+  // value — even if the user didn't log out and back in.
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const { data } = await supabase
+        .from('employees')
+        .select('*')
+        .eq('employee_number', employee.employee_number)
+        .maybeSingle()
+      if (cancelled || !data) return
+      if (data.phone && data.phone !== employee.phone) {
+        setEmployee({ ...employee, phone: data.phone })
+        setPhone((cur) => cur || data.phone)
+      }
+    })()
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const [isDisabling, setIsDisabling]     = useState(false)
   const [specialties, setSpecialties]     = useState<TankSpecialty[]>([])
   const [drafts, setDrafts]               = useState<DraftPart[]>([])
@@ -223,6 +248,30 @@ function DraftPartsEditor({
   const [nameQ, setNameQ] = useState('')
   const [qty, setQty]     = useState('1')
   const [picked, setPicked] = useState<Part | null>(null)
+  /** When the typed SKU was a blocked one and the catalog records a
+   *  replacement, we silently swap to the new SKU and stash the
+   *  original here so the UI can tell the user what happened. */
+  const [substitutedFrom, setSubstitutedFrom] = useState<string | null>(null)
+
+  // Watch the SKU input. When it matches a blocked catalog row and the
+  // manager has recorded a replacement SKU, auto-substitute the new
+  // part — saves the technician from re-typing and prevents the
+  // blocked SKU from leaving the form.
+  useEffect(() => {
+    const match = findBlockedSku(catalog, skuQ)
+    if (!match) return
+    const newSku = match.replacementSku?.trim()
+    if (!newSku) return
+    if (substitutedFrom === match.blockedSku) return  // already swapped
+    const replacement = catalog.find(
+      (p) => p.sku.trim().toLowerCase() === newSku.toLowerCase() && !p.is_sku_blocked,
+    )
+    if (!replacement) return
+    setSubstitutedFrom(match.blockedSku)
+    setSkuQ(replacement.sku)
+    setNameQ(replacement.name)
+    setPicked(replacement)
+  }, [skuQ, catalog, substitutedFrom])
 
   const matches = useMemo(() => {
     const sku  = skuQ.trim().toLowerCase()
@@ -248,7 +297,7 @@ function DraftPartsEditor({
   }
 
   function reset() {
-    setSkuQ(''); setNameQ(''); setQty('1'); setPicked(null)
+    setSkuQ(''); setNameQ(''); setQty('1'); setPicked(null); setSubstitutedFrom(null)
   }
 
   function addExisting() {
@@ -308,15 +357,19 @@ function DraftPartsEditor({
         <Input label="מק״ט" name="draft-sku"  value={skuQ}  onChange={(e) => { setSkuQ(e.target.value);  setPicked(null) }} />
         <Input label="שם"   name="draft-name" value={nameQ} onChange={(e) => { setNameQ(e.target.value); setPicked(null) }} />
       </div>
-      {(() => {
+      {substitutedFrom && (
+        <div className="text-xs px-3 py-2 rounded-md border border-info/40 bg-info/10 text-info">
+          הוחלף אוטומטית מהמק״ט החסום <span className="font-mono font-semibold">{substitutedFrom}</span>
+        </div>
+      )}
+      {!substitutedFrom && (() => {
         const match = findBlockedSku(catalog, skuQ)
         if (!match) return null
+        // Has a replacement → the effect above will auto-swap; nothing to show here.
+        if (match.replacementSku) return null
         return (
           <div className="text-xs px-3 py-2 rounded-md border border-warning/40 bg-warning/10 text-warning">
-            מק״ט זה חסום
-            {match.replacementSku
-              ? <>, מק״ט חדש: <span className="font-mono font-semibold">{match.replacementSku}</span></>
-              : ' (טרם הוגדר מק״ט חליף)'}
+            מק״ט זה חסום (טרם הוגדר מק״ט חליף)
           </div>
         )
       })()}

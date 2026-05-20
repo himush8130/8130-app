@@ -155,9 +155,16 @@ export function PartsCatalogList({ parts }: { parts: Part[] }) {
           <AddPartForm
             employeeNumber={employee.employee_number}
             filters={f}
-            onDone={() => {
+            onDone={(createdSku) => {
               setAdding(false)
               queryClient.invalidateQueries({ queryKey: ['parts'] })
+              // The catalog list is hidden until at least one filter
+              // field has a value. Without this the warehouse worker
+              // sees the form close and nothing new appear, and
+              // believes the create silently failed. Surface the new
+              // part by seeding the sku filter with what they just
+              // typed.
+              if (createdSku) setF((cur) => ({ ...cur, sku: createdSku }))
             }}
             onCancel={() => setAdding(false)}
           />
@@ -559,7 +566,7 @@ function AddPartForm({
 }: {
   employeeNumber: number
   filters: Filters
-  onDone: () => void
+  onDone: (createdSku: string) => void
   onCancel: () => void
 }) {
   const [draft, setDraft] = useState({
@@ -618,7 +625,7 @@ function AddPartForm({
     const res = await createPart(employeeNumber, payload)
     setBusy(false)
     if (!res.ok) { setError('שגיאה ביצירת פריט'); return }
-    onDone()
+    onDone(payload.sku)
   }
 
   return (
