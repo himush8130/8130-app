@@ -34,6 +34,10 @@ export interface CallRequiredPart {
   requested_at: string
   rejection_reason: string | null
   order_number: string | null
+  /** When non-null, overrides the displayed SKU for this row only.
+   *  The catalog parts row stays untouched, so other calls that
+   *  share the same part keep showing the original SKU. */
+  sku_override: string | null
   /** Embedded via PostgREST. is_sku_blocked is optional (some queries
    *  don't request it) but when present the UI treats blocked parts
    *  as having a single status: blocked. */

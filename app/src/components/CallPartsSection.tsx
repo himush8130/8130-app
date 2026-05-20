@@ -393,7 +393,7 @@ function RequiredPartRow({
             {row.parts?.name ?? '?'}
           </span>
           <span className="font-mono text-[11px] text-muted">
-            {row.parts?.sku ?? ''}
+            {row.sku_override ?? row.parts?.sku ?? ''}
           </span>
           <span className="text-xs text-muted">×{row.quantity}</span>
           {isBlocked

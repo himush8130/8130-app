@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../store/auth'
 import { useRequiredPartDetail } from '../hooks/useRequiredPartDetail'
-import { recordWithdrawal, setRequiredPartOrderNumber, updateRequiredPartStatus, updatePart, type ReceiveDestination } from '../lib/warehouseActions'
+import { recordWithdrawal, setRequiredPartOrderNumber, setRequiredPartSkuOverride, updateRequiredPartStatus, updatePart, type ReceiveDestination } from '../lib/warehouseActions'
 import { AppHeader } from '../components/AppHeader'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
@@ -13,6 +13,79 @@ import { ReceiveDestinationDialog } from '../components/ReceiveDestinationDialog
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { Part } from '../types/parts'
 import type { RequiredPartStatus } from '../types/db'
+
+function SkuOverrideEditor({
+  rowId, initial, fallback, onSaved,
+}: {
+  rowId: string
+  initial: string | null
+  fallback: string
+  onSaved: () => void
+}) {
+  const employee = useAuthStore((s) => s.employee)!
+  const [editing, setEditing] = useState(false)
+  const [value, setValue] = useState(initial ?? fallback)
+  const [busy, setBusy] = useState(false)
+  const [savedAt, setSavedAt] = useState<number | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => { if (!editing) setValue(initial ?? fallback) }, [initial, fallback, editing])
+
+  async function save() {
+    setBusy(true); setError(null)
+    const trimmed = value.trim()
+    const next = trimmed && trimmed !== fallback ? trimmed : null
+    const res = await setRequiredPartSkuOverride(employee.employee_number, rowId, next)
+    setBusy(false)
+    if (!res.ok) { setError('שגיאה'); return }
+    setEditing(false)
+    setSavedAt(Date.now())
+    setTimeout(() => setSavedAt(null), 1500)
+    onSaved()
+  }
+
+  if (!editing) {
+    return (
+      <span className="inline-flex items-center gap-2">
+        <span className="font-mono text-xs text-muted">{initial ?? fallback}</span>
+        <button
+          type="button"
+          onClick={() => { setEditing(true); setValue(initial ?? fallback) }}
+          className="text-[11px] text-primary hover:underline"
+        >
+          ערוך מק״ט
+        </button>
+        {initial && initial !== fallback && (
+          <span className="text-[11px] text-muted">(מקור: <span className="font-mono">{fallback}</span>)</span>
+        )}
+        {savedAt && <span className="text-[11px] text-success">✓</span>}
+      </span>
+    )
+  }
+
+  return (
+    <span className="inline-flex items-center gap-2 flex-wrap">
+      <input
+        autoFocus
+        type="text"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        className="px-2 py-1 bg-card border border-primary rounded text-xs font-mono w-40"
+      />
+      <Button onClick={save} disabled={busy} className="text-xs px-3 py-1">
+        {busy ? '...' : 'שמור'}
+      </Button>
+      <Button
+        variant="ghost"
+        onClick={() => { setEditing(false); setValue(initial ?? fallback); setError(null) }}
+        className="text-xs px-3 py-1"
+      >
+        ביטול
+      </Button>
+      {error && <span className="text-[11px] text-danger">{error}</span>}
+    </span>
+  )
+}
 
 function OrderNumberEditor({
   rowId, initial, onSaved,
@@ -164,7 +237,15 @@ export function RequiredPartDetailPage() {
         <Card>
           <CardHeader>
             <h2 className="text-lg font-semibold text-foreground">{part?.name ?? '?'}</h2>
-            <span className="font-mono text-xs text-muted">{part?.sku}</span>
+            {canChangeStatus && part?.sku
+              ? <SkuOverrideEditor
+                  rowId={row.id}
+                  initial={row.sku_override ?? null}
+                  fallback={part.sku}
+                  onSaved={refresh}
+                />
+              : <span className="font-mono text-xs text-muted">{row.sku_override ?? part?.sku}</span>
+            }
           </CardHeader>
           <CardBody className="grid grid-cols-2 gap-3 text-sm">
             <div>
@@ -360,7 +441,7 @@ export function RequiredPartDetailPage() {
           <ReceiveDestinationDialog
             partId={row.part_id}
             busy={busy}
-            subtitle={part?.name ? `${part.name} · ${part.sku}` : undefined}
+            subtitle={part?.name ? `${part.name} · ${row.sku_override ?? part.sku}` : undefined}
             onClose={() => setReceiveOpen(false)}
             onConfirm={async (dest) => {
               setReceiveOpen(false)

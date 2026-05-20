@@ -96,6 +96,11 @@ Deno.serve(async (req: Request) => {
         return json(403, { ok: false, error: 'requires_warehouse_or_manager' })
       }
       return await setRequiredPartOrderNumber(params)
+    case 'set_required_part_sku_override':
+      if (caller.permissions !== 'warehouse' && caller.permissions !== 'manager') {
+        return json(403, { ok: false, error: 'requires_warehouse_or_manager' })
+      }
+      return await setRequiredPartSkuOverride(params)
     case 'bulk_update_required_part_status':
       if (caller.permissions !== 'warehouse' && caller.permissions !== 'manager') {
         return json(403, { ok: false, error: 'requires_warehouse_or_manager' })
@@ -571,6 +576,29 @@ async function bulkUpdateRequiredPartStatus(params: any): Promise<Response> {
 
   const failed = results.filter((r) => !r.ok)
   return json(200, { ok: failed.length === 0, results, failed_count: failed.length })
+}
+
+// ---------------------------------------------------------------------
+// set_required_part_sku_override — per-row SKU rename. Touches only
+// the required-part row; the catalog parts row and any other call
+// pointing to the same part stay untouched.
+// ---------------------------------------------------------------------
+async function setRequiredPartSkuOverride(params: any): Promise<Response> {
+  const { required_part_id, sku_override } = params ?? {}
+  if (typeof required_part_id !== 'string') {
+    return json(400, { ok: false, error: 'invalid_params' })
+  }
+  const value = typeof sku_override === 'string' && sku_override.trim()
+    ? sku_override.trim()
+    : null
+  const { data, error } = await admin
+    .from('call_required_parts')
+    .update({ sku_override: value })
+    .eq('id', required_part_id)
+    .select('id, sku_override')
+    .single()
+  if (error) return json(500, { ok: false, error: 'update_failed', detail: error.message })
+  return json(200, { ok: true, required_part: data })
 }
 
 // ---------------------------------------------------------------------

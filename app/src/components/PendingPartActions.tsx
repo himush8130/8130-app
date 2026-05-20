@@ -47,7 +47,7 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
       vehicleDisabled: !!stats?.disabled,
       row,
       partName: row.parts.name,
-      partSku:  row.parts.sku,
+      partSku:  row.sku_override ?? row.parts.sku,
     })
   }
 

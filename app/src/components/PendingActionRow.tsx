@@ -76,11 +76,11 @@ export function PendingActionRow({ row, highlight, showWithdrawal, copyFormatTex
       {/* Top row: name (right, generous width) + sku (left) + copy menu */}
       <div className="flex items-baseline gap-3">
         <span className="text-base text-foreground font-medium truncate flex-1 min-w-0">{row.parts?.name ?? '?'}</span>
-        <span className="font-mono text-xs text-muted shrink-0 whitespace-nowrap">{row.parts?.sku ?? ''}</span>
+        <span className="font-mono text-xs text-muted shrink-0 whitespace-nowrap">{row.sku_override ?? row.parts?.sku ?? ''}</span>
         <CopyMenu
           getText={{
             ...(copyFormatText ? { format: copyFormatText } : {}),
-            sku:    () => row.parts?.sku ?? null,
+            sku:    () => row.sku_override ?? row.parts?.sku ?? null,
             order:  () => row.order_number ?? null,
           }}
         />

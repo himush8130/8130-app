@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'תיקון: חזרה למצב יציב — כל לוגיקת "מק״ט חליף" שנוספה היום הוסרה. מק״ט חסום נשאר עם הסימון בלבד, ללא מק״ט חליף או הגירה אוטומטית.'
+export const LATEST_NOTE = 'דף ניהול והנפקת פריט: עריכת מק״ט לפריט הנדרש הספציפי בלבד (אוברייד). הקטלוג וקריאות אחרות עם אותו פריט נשארים ללא שינוי.'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build

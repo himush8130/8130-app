@@ -175,6 +175,18 @@ export function setRequiredPartOrderNumber(
   })
 }
 
+export function setRequiredPartSkuOverride(
+  employeeNumber: number,
+  requiredPartId: string,
+  skuOverride: string | null,
+) {
+  return invoke({
+    employee_number: employeeNumber,
+    action: 'set_required_part_sku_override',
+    params: { required_part_id: requiredPartId, sku_override: skuOverride ?? null },
+  })
+}
+
 export function bulkUpdateRequiredPartStatus(
   employeeNumber: number,
   ids: string[],
