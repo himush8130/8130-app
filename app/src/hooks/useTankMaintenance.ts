@@ -34,13 +34,18 @@ export interface TankMaintenanceOverviewRow {
 }
 
 // Manager's preferred company order: ל, then כ, then מ, then anything
-// else alphabetically. Matches the verbal order they call them out in.
+// else (e.g. מפג״ד) at the bottom. Sub-department values look like
+// "פלוגה ל" / "פלוגה כ" / "פלוגה מ", so we match by inclusion rather
+// than by the first character.
 const COMPANY_ORDER = ['ל', 'כ', 'מ']
 function companyRank(sub: string | null): number {
   if (!sub) return COMPANY_ORDER.length + 1
-  const first = sub.charAt(0)
-  const idx = COMPANY_ORDER.indexOf(first)
-  return idx === -1 ? COMPANY_ORDER.length : idx
+  for (let i = 0; i < COMPANY_ORDER.length; i++) {
+    if (sub.includes(`פלוגה ${COMPANY_ORDER[i]}`)) return i
+    // Fallback: a bare letter as the entire sub_department.
+    if (sub.trim() === COMPANY_ORDER[i]) return i
+  }
+  return COMPANY_ORDER.length
 }
 
 /** Returns each tank with this-week/next-week treatment kind. */

@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'מחסנאי: כפתור העתקה (⧉) עם 3 אופציות בכל שורה; מספר דרישה מוצג בכל הטבלאות; מק״ט חסום מקבל שדה מק״ט חליף ומציג אזהרה כשמקלידים אותו. טיפול שבועי/חודשי ממוין לפי פלוגות (ל / כ / מ).'
+export const LATEST_NOTE = 'תיקון: מיון פלוגות בטבלת טיפול שבועי/חודשי קורא "פלוגה ל/כ/מ" במלואו ולא רק את התו הראשון.'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build
