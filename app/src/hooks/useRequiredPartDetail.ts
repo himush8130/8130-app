@@ -11,9 +11,6 @@ export interface RequiredPartDetail {
   withdrawal: WithdrawalDetail | null
   /** Embedded parent call info (display_id, vehicle_number). */
   call:       { id: string; display_id: string; vehicle_number: string | null; description: string | null } | null
-  /** When the row was migrated off a blocked part, this is the
-   *  blocked part's SKU — surfaced as "related blocked sku: X". */
-  migratedFromSku: string | null
 }
 
 export interface WithdrawalDetail {
@@ -78,23 +75,11 @@ export function useRequiredPartDetail(requiredPartId: string | undefined) {
         }
       }
 
-      // 5. The blocked source SKU (if this row was migrated).
-      let migratedFromSku: string | null = null
-      if ((row as any).migrated_from_part_id) {
-        const { data: src } = await supabase
-          .from('parts')
-          .select('sku')
-          .eq('id', (row as any).migrated_from_part_id)
-          .maybeSingle()
-        migratedFromSku = src?.sku ?? null
-      }
-
       return {
         row: row as CallRequiredPart,
         locations,
         withdrawal,
         call,
-        migratedFromSku,
       }
     },
   })

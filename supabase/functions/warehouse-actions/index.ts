@@ -502,48 +502,7 @@ async function updatePart(params: any): Promise<Response> {
     .select('*')
     .single()
   if (error) return json(500, { ok: false, error: 'update_failed', detail: error.message })
-
-  // ---- Blocked-SKU → replacement migration -------------------------
-  // When a manager saves a real replacement_sku on a row that's
-  // marked blocked, fan it out to every open required-part: rewrite
-  // their part_id to the replacement part and reset them to
-  // awaiting_order so the warehouse re-orders under the new SKU.
-  // The original part_id is stashed in migrated_from_part_id so the
-  // detail page can show "related blocked sku: X".
-  let migrated: { count: number; replacement_part_id: string | null } | undefined
-  const newReplacement = typeof patch.replacement_sku === 'string' ? patch.replacement_sku.trim() : ''
-  if (newReplacement && data.is_sku_blocked) {
-    const { data: target } = await admin
-      .from('parts')
-      .select('id, sku')
-      .eq('sku', newReplacement)
-      .eq('is_sku_blocked', false)
-      .limit(1)
-      .maybeSingle()
-    if (target?.id) {
-      // Open statuses that should follow the SKU swap. delivered is
-      // historical; rejected / rejected_final / pending_special_approval
-      // cannot coexist with a blocked part per spec.
-      const MIGRATABLE = ['in_stock', 'awaiting_order', 'awaiting_receipt', 'received']
-      const { data: moved } = await admin
-        .from('call_required_parts')
-        .update({
-          part_id:                target.id,
-          migrated_from_part_id:  part_id,
-          status:                 'awaiting_order',
-          order_number:           null,
-          awaiting_receipt_since: null,
-        })
-        .eq('part_id', part_id)
-        .in('status', MIGRATABLE)
-        .select('id')
-      migrated = { count: (moved ?? []).length, replacement_part_id: target.id }
-    } else {
-      migrated = { count: 0, replacement_part_id: null }
-    }
-  }
-
-  return json(200, { ok: true, part: data, ...(migrated ? { migrated } : {}) })
+  return json(200, { ok: true, part: data })
 }
 
 // ---------------------------------------------------------------------
