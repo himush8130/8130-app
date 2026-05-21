@@ -33,12 +33,28 @@ export function useParts() {
   return useQuery({
     queryKey: ['parts'],
     queryFn: async (): Promise<Part[]> => {
-      const { data, error } = await supabase
-        .from('parts')
-        .select('*')
-        .order('sku')
-      if (error) throw error
-      return (data ?? []) as Part[]
+      // Supabase / PostgREST caps a single SELECT response at 1000
+      // rows (default max_rows on the API). The catalog already has
+      // ~1.4k rows, so any SKU that lexicographically sorts past
+      // position 1000 silently never reaches the client — search
+      // queries against it look broken. Page through the table
+      // until we hit a partial page and then stop.
+      const PAGE = 1000
+      const out: Part[] = []
+      let from = 0
+      while (true) {
+        const { data, error } = await supabase
+          .from('parts')
+          .select('*')
+          .order('sku')
+          .range(from, from + PAGE - 1)
+        if (error) throw error
+        const rows = (data ?? []) as Part[]
+        out.push(...rows)
+        if (rows.length < PAGE) break
+        from += PAGE
+      }
+      return out
     },
   })
 }
