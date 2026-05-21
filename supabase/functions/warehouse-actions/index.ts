@@ -327,38 +327,33 @@ async function updateRequiredPartStatus(params: any): Promise<Response> {
       await admin.from('part_withdrawals').delete().eq('id', wd.id)
     }
   } else if (before.status === 'not_consumed' && status === 'in_stock') {
-    // The tech returned the un-used part to the warehouse: refund
-    // the stock and drop any withdrawal row that may exist.
-    //
-    // Two paths:
-    //  - There IS a real withdrawal record (the warehouse went
-    //    through "מסור לטכנאי"). Refund into its source part_id
-    //    (skip if external) and delete the withdrawal.
-    //  - There is NO withdrawal record because the row got to
-    //    delivered / not_consumed via a manual status change in the
-    //    badge menu. We still want the user-visible action to
-    //    actually return the units to the catalog row the
-    //    required-part points at — otherwise "החזר למלאי" is a
-    //    no-op as far as inventory is concerned, which is confusing.
+    // Return-to-stock. Same logic as transitioning into 'received':
+    // the caller can pick a destination (existing catalog row,
+    // external warehouse, or a brand-new row) and we route the
+    // units there. Any matching withdrawal record is dropped first
+    // so the catalog isn't double-counted.
     const { data: wd } = await admin
       .from('part_withdrawals')
       .select('id, quantity, part_id, is_external')
       .eq('required_part_id', required_part_id)
       .maybeSingle()
     if (wd) {
-      if (!wd.is_external) {
-        const { data: stockRow } = await admin
-          .from('parts').select('quantity').eq('id', wd.part_id).maybeSingle()
-        await admin.from('parts').update({ quantity: (stockRow?.quantity ?? 0) + (wd.quantity ?? 0) })
-          .eq('id', wd.part_id)
-      }
       await admin.from('part_withdrawals').delete().eq('id', wd.id)
+    }
+
+    if (params?.receive_to) {
+      const err = await applyReceiveDestination(before.quantity)
+      if (err) return json(500, { ok: false, error: 'return_failed', detail: err })
     } else {
-      // No withdrawal — refund the required-part's own part_id.
+      // Fallback: no destination provided. Refund the catalog row
+      // the row points at (or the withdrawal's source if it had
+      // one and isn't external). Keeps the legacy callers working.
+      const targetId = wd && !wd.is_external ? wd.part_id : before.part_id
+      const refundQty = wd ? (wd.quantity ?? before.quantity) : before.quantity
       const { data: stockRow } = await admin
-        .from('parts').select('quantity').eq('id', before.part_id).maybeSingle()
-      await admin.from('parts').update({ quantity: (stockRow?.quantity ?? 0) + before.quantity })
-        .eq('id', before.part_id)
+        .from('parts').select('quantity').eq('id', targetId).maybeSingle()
+      await admin.from('parts').update({ quantity: (stockRow?.quantity ?? 0) + refundQty })
+        .eq('id', targetId)
     }
   }
 

@@ -8,10 +8,11 @@ import { usePendingActions } from '../hooks/usePendingActions'
 import { useAuthStore } from '../store/auth'
 import { CollapsibleSection } from './CollapsibleSection'
 import { PendingActionRow, type RowData } from './PendingActionRow'
+import { ReceiveDestinationDialog } from './ReceiveDestinationDialog'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { buildCopyText } from '../lib/copyFormat'
-import { updateRequiredPartStatus } from '../lib/warehouseActions'
+import { updateRequiredPartStatus, type ReceiveDestination } from '../lib/warehouseActions'
 import type { RequiredPartStatus } from '../types/db'
 
 const PENDING_REJECTED_SET: ReadonlySet<RequiredPartStatus> = new Set([
@@ -43,12 +44,22 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
   const queryClient = useQueryClient()
   const [busyId, setBusyId] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  /** Row currently waiting on the warehouse-picker dialog. */
+  const [returnRow, setReturnRow] = useState<RowData | null>(null)
 
-  async function returnToStock(row: RowData) {
-    if (!employee) return
+  async function confirmReturnDestination(dest: ReceiveDestination) {
+    if (!employee || !returnRow) return
+    const row = returnRow
     setBusyId(row.id)
-    const res = await updateRequiredPartStatus(employee.employee_number, row.id, 'in_stock')
+    const res = await updateRequiredPartStatus(
+      employee.employee_number,
+      row.id,
+      'in_stock',
+      null,
+      dest,
+    )
     setBusyId(null)
+    setReturnRow(null)
     if (res.ok) {
       queryClient.invalidateQueries({ queryKey: ['pending_parts_actions'] })
       queryClient.invalidateQueries({ queryKey: ['parts'] })
@@ -189,7 +200,7 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
                       effective === 'not_consumed' ? (
                         <Button
                           variant="secondary"
-                          onClick={(e) => { e.stopPropagation(); void returnToStock(row) }}
+                          onClick={(e) => { e.stopPropagation(); setReturnRow(row) }}
                           disabled={busyId === row.id}
                           className="text-xs px-3 py-1"
                         >
@@ -218,7 +229,7 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
                         effective === 'not_consumed' ? (
                           <Button
                             variant="secondary"
-                            onClick={(e) => { e.stopPropagation(); void returnToStock(row) }}
+                            onClick={(e) => { e.stopPropagation(); setReturnRow(row) }}
                             disabled={busyId === row.id}
                             className="text-xs px-3 py-1"
                           >
@@ -234,6 +245,20 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
           </>
         )
       })()}
+      {/* Warehouse-destination picker for "החזר למלאי" — reuses the
+          same dialog that the receive flow uses. The chosen
+          destination is forwarded to the server as a `receive`
+          parameter and applied identically. */}
+      {returnRow && (
+        <ReceiveDestinationDialog
+          partId={returnRow.part_id}
+          busy={busyId === returnRow.id}
+          subtitle={`${returnRow.parts?.name ?? ''} · ${returnRow.parts?.sku ?? ''}`}
+          onClose={() => setReturnRow(null)}
+          onConfirm={confirmReturnDestination}
+        />
+      )}
+
       {/* Floating confirmation after "החזר למלאי" — sits above
           everything via portal, 2.2s, doesn't push the table. */}
       {toast && typeof document !== 'undefined' && createPortal(
