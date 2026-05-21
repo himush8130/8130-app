@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'תיקון: שורות בסטטוס "לא נצרך" מופיעות עכשיו בטבלת המחסנאי. בדף ה-warehouse-actions היה חסר ערך בסינון.'
+export const LATEST_NOTE = 'שיפור: לחיצה על "החזר למלאי" מציגה טוסט מאשר במרכז המסך — "X יחידות הוחזרו למלאי · שם פריט · מק״ט" — כך שאין צורך לחפש את הפריט בקטלוג כדי לאמת.'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build

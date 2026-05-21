@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAppSettings } from '../hooks/useAppSettings'
 import { useVehiclesMap } from '../hooks/useVehicles'
@@ -41,6 +42,7 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
   const employee = useAuthStore((s) => s.employee)
   const queryClient = useQueryClient()
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
 
   async function returnToStock(row: RowData) {
     if (!employee) return
@@ -50,6 +52,13 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
     if (res.ok) {
       queryClient.invalidateQueries({ queryKey: ['pending_parts_actions'] })
       queryClient.invalidateQueries({ queryKey: ['parts'] })
+      const name = row.parts?.name ?? 'הפריט'
+      const sku  = row.parts?.sku  ?? ''
+      setToast(`✓ ${row.quantity} יחידות הוחזרו למלאי · ${name}${sku ? ` · ${sku}` : ''}`)
+      setTimeout(() => setToast(null), 2200)
+    } else {
+      setToast('שגיאה בהחזרה למלאי')
+      setTimeout(() => setToast(null), 2200)
     }
   }
 
@@ -225,6 +234,19 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
           </>
         )
       })()}
+      {/* Floating confirmation after "החזר למלאי" — sits above
+          everything via portal, 2.2s, doesn't push the table. */}
+      {toast && typeof document !== 'undefined' && createPortal(
+        <div
+          aria-live="polite"
+          className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
+        >
+          <div className="bg-foreground text-card px-4 py-2 rounded-md shadow-xl text-sm font-medium max-w-md text-center">
+            {toast}
+          </div>
+        </div>,
+        document.body,
+      )}
     </CollapsibleSection>
   )
 }
