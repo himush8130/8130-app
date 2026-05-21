@@ -1,0 +1,809 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>8130 APP — מפת המערכת</title>
+<style>
+  :root {
+    --bg:           #f6f2e8;
+    --bg-canvas:    #fffaf0;
+    --card:         #ffffff;
+    --border:       #d4c9b0;
+    --border-soft:  #e6dec8;
+    --olive:        #4a5d23;
+    --olive-soft:   #6b7e3e;
+    --olive-tint:   #eef0e3;
+    --sand:         #c9a96e;
+    --ink:          #2a2a26;
+    --muted:        #6b6857;
+    --danger:       #c43d3d;
+    --warning:      #c9941e;
+    --info:         #4a7a9e;
+    --success:      #4a7d3e;
+    --neutral:      #888888;
+    --mono:         ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Heebo", "Segoe UI", Arial, sans-serif;
+    line-height: 1.55;
+  }
+  code { font-family: var(--mono); font-size: 0.85em; color: var(--olive); background: rgba(0,0,0,0.04); padding: 1px 4px; border-radius: 3px; }
+
+  /* ---------- hero ---------- */
+  .hero {
+    background: linear-gradient(135deg, #3a4720 0%, #5a6c30 100%);
+    color: #f4f2e8;
+    padding: 30px 24px;
+    border-bottom: 3px solid #2a3618;
+  }
+  .hero h1 { margin: 0 0 6px; font-size: 1.7rem; }
+  .hero p { margin: 0 0 18px; opacity: 0.85; font-size: 0.92rem; }
+  .stats { display: flex; flex-wrap: wrap; gap: 10px; }
+  .stat {
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.22);
+    border-radius: 10px;
+    padding: 8px 14px;
+    display: inline-flex; flex-direction: column;
+    min-width: 90px;
+  }
+  .stat .n { font-size: 1.55rem; font-weight: 800; line-height: 1; }
+  .stat .l { font-size: 0.72rem; opacity: 0.85; margin-top: 2px; }
+
+  /* ---------- section frame ---------- */
+  section { max-width: 1280px; margin: 30px auto; padding: 0 16px; }
+  section > h2 {
+    font-size: 1.15rem;
+    margin: 0 0 14px;
+    color: var(--olive);
+    padding-right: 12px;
+    border-right: 4px solid var(--olive);
+  }
+  section > .lead {
+    color: var(--muted);
+    font-size: 0.88rem;
+    margin: -8px 0 14px;
+    padding-right: 16px;
+  }
+
+  /* ---------- the map canvas ---------- */
+  .map-wrap {
+    background: var(--bg-canvas);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 8px;
+    overflow-x: auto;
+  }
+  .map {
+    position: relative;
+    width: 1200px;
+    height: 920px;
+    margin: 0 auto;
+  }
+  .map .arrows {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  /* entity card */
+  .entity {
+    position: absolute;
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.06);
+    z-index: 2;
+    min-width: 130px;
+  }
+  .entity .name { font-weight: 600; font-size: 0.84rem; color: var(--ink); }
+  .entity .table { font-family: var(--mono); font-size: 0.68rem; color: var(--muted); margin-top: 2px; }
+  .entity .meta { font-size: 0.7rem; color: var(--muted); margin-top: 3px; }
+  .entity.people  { border-color: var(--info); }
+  .entity.vehicle { border-color: #4d6b1f; background: #fbfcf4; }
+  .entity.call    { border-color: #5a6e3a; }
+  .entity.part    { border-color: var(--sand); background: #fffaf0; }
+  .entity.infra   { border-color: var(--neutral); background: #f9f9f7; }
+
+  /* screen pill */
+  .screen {
+    position: absolute;
+    background: #fff;
+    border: 1.5px dashed var(--olive-soft);
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-size: 0.72rem;
+    color: var(--olive);
+    z-index: 3;
+    font-weight: 500;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    white-space: nowrap;
+  }
+  .screen::before { content: "▢ "; opacity: 0.5; font-size: 0.6rem; }
+
+  /* role chip — circle */
+  .role {
+    position: absolute;
+    border-radius: 50%;
+    width: 64px;
+    height: 64px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: #fff;
+    z-index: 4;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.18);
+    font-size: 0.78rem;
+    text-align: center;
+    line-height: 1.1;
+  }
+  .role .em { font-size: 1.25rem; line-height: 1; margin-bottom: 1px; }
+  .role.tech      { background: var(--info); }
+  .role.warehouse { background: var(--sand); }
+  .role.manager   { background: var(--danger); }
+
+  /* external box (base44 / whatsapp) */
+  .external {
+    position: absolute;
+    background: #2c3a50;
+    color: #fff;
+    border-radius: 10px;
+    padding: 7px 12px;
+    font-size: 0.74rem;
+    z-index: 3;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    text-align: center;
+  }
+  .external .em { font-size: 1rem; margin-bottom: 2px; display: block; }
+
+  /* legend chip */
+  .legend {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 0.74rem;
+    color: var(--muted);
+    padding: 6px 8px;
+  }
+  .legend .swatch { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: middle; margin-left: 4px; }
+  .legend .stroke {
+    display: inline-block;
+    width: 30px;
+    height: 0; border-top: 2px solid var(--olive-soft);
+    vertical-align: middle;
+    margin-left: 4px;
+  }
+  .legend .stroke.dashed { border-top-style: dashed; }
+  .legend .stroke.flow {
+    border-top: none;
+    background: repeating-linear-gradient(to right, var(--danger) 0 6px, transparent 6px 12px);
+    height: 2px;
+  }
+
+  /* ---------- arrows / svg styling ---------- */
+  .ar-static {
+    stroke: var(--olive-soft);
+    stroke-width: 1.4;
+    fill: none;
+    opacity: 0.55;
+  }
+  .ar-soft {
+    stroke: var(--neutral);
+    stroke-width: 1.2;
+    stroke-dasharray: 3 4;
+    fill: none;
+    opacity: 0.55;
+  }
+  .ar-flow-1 {
+    stroke: var(--danger);
+    stroke-width: 2.4;
+    fill: none;
+    stroke-dasharray: 8 6;
+    animation: flowL 1.3s linear infinite;
+  }
+  .ar-flow-2 {
+    stroke: var(--warning);
+    stroke-width: 2.4;
+    fill: none;
+    stroke-dasharray: 8 6;
+    animation: flowL 1.4s linear infinite;
+  }
+  .ar-flow-3 {
+    stroke: #7a4d8c;
+    stroke-width: 2.4;
+    fill: none;
+    stroke-dasharray: 8 6;
+    animation: flowL 1.5s linear infinite;
+  }
+  @keyframes flowL {
+    to { stroke-dashoffset: -28; }
+  }
+  .ar-label {
+    font-family: -apple-system, "Heebo", sans-serif;
+    font-size: 11px;
+    fill: var(--muted);
+  }
+  .pulse-node {
+    animation: pulseO 2.5s ease-in-out infinite;
+  }
+  @keyframes pulseO {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+
+  /* ---------- status flow strip ---------- */
+  .status-strip {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 14px;
+    overflow-x: auto;
+  }
+  .status-inner {
+    min-width: 1000px;
+    position: relative;
+    height: 280px;
+  }
+  .status-inner svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  .stt {
+    position: absolute;
+    padding: 7px 14px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.82rem;
+    border: 2px solid;
+    text-align: center;
+    background: #fff;
+  }
+  .stt.in_stock { color: var(--success); border-color: var(--success); background: #eef4e9; }
+  .stt.awaiting_order { color: var(--danger); border-color: var(--danger); background: #fbe9df; }
+  .stt.awaiting_receipt { color: var(--warning); border-color: var(--warning); background: #faf2d8; }
+  .stt.received { color: var(--info); border-color: var(--info); background: #e0ebf5; }
+  .stt.delivered { color: var(--neutral); border-color: var(--neutral); background: #ececea; }
+  .stt.not_consumed { color: var(--warning); border-color: var(--warning); background: #faf2d8; border-style: dashed; }
+  .stt.rejected { color: var(--danger); border-color: var(--danger); background: #fbe9df; }
+  .stt.pending_special_approval { color: var(--warning); border-color: var(--warning); background: #faf2d8; }
+  .stt.rejected_final { color: #4a4a4a; border-color: #555; background: #d8d6d2; }
+
+  /* role cards (the explicit table) */
+  .roles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 12px;
+  }
+  .role-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    border-top: 4px solid;
+  }
+  .role-card.tech      { border-top-color: var(--info); }
+  .role-card.warehouse { border-top-color: var(--sand); }
+  .role-card.manager   { border-top-color: var(--danger); }
+  .role-card h3 { margin: 0 0 4px; font-size: 1rem; }
+  .role-card .who { font-size: 0.78rem; color: var(--muted); margin-bottom: 6px; }
+  .role-card ul { font-size: 0.83rem; color: var(--ink); padding-right: 16px; margin: 4px 0 0; }
+  .role-card ul li { margin: 2px 0; }
+
+  /* screens table */
+  .screens-table {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    font-size: 0.85rem;
+  }
+  .screens-table table { width: 100%; border-collapse: collapse; }
+  .screens-table th { background: #f4eedf; padding: 8px 12px; text-align: right; font-weight: 600; color: var(--olive); border-bottom: 1px solid var(--border); }
+  .screens-table td { padding: 8px 12px; border-top: 1px solid var(--border-soft); vertical-align: top; }
+  .screens-table tr:hover td { background: #fafaf3; }
+  .role-chip {
+    display: inline-block;
+    font-size: 0.66rem;
+    padding: 1px 7px;
+    border-radius: 999px;
+    margin: 0 2px;
+    font-weight: 600;
+  }
+  .role-chip.t { background: var(--info); color: #fff; }
+  .role-chip.w { background: var(--sand); color: #fff; }
+  .role-chip.m { background: var(--danger); color: #fff; }
+  .role-chip.all { background: var(--olive); color: #fff; }
+
+  /* copy cards */
+  .copy-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+  }
+  .copy-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  .copy-card::after {
+    content: "⧉";
+    position: absolute;
+    left: 10px;
+    top: 6px;
+    font-size: 1.5rem;
+    color: var(--olive-soft);
+    opacity: 0.4;
+  }
+  .copy-card h4 { margin: 0 0 4px; font-size: 0.95rem; color: var(--olive); }
+  .copy-card .where { font-size: 0.74rem; color: var(--muted); margin-bottom: 4px; }
+  .copy-card p { margin: 0; font-size: 0.84rem; color: var(--ink); }
+
+  /* footer caveat */
+  footer {
+    max-width: 1280px;
+    margin: 32px auto;
+    padding: 0 16px 48px;
+    color: var(--muted);
+    font-size: 0.86rem;
+  }
+  .caveat {
+    background: #fef7e0;
+    border: 1px solid var(--warning);
+    border-right: 6px solid var(--warning);
+    border-radius: 12px;
+    padding: 14px 16px;
+    color: #6b5400;
+  }
+  .caveat strong { color: #4a3a00; }
+
+  @media print {
+    .map-wrap, .status-strip { overflow: visible; }
+    .ar-flow-1, .ar-flow-2, .ar-flow-3 { animation: none; }
+    .pulse-node { animation: none; opacity: 1; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <h1>8130 APP — מפת המערכת</h1>
+  <p>סקירה חזותית של היישויות, המסכים, התפקידים, וזרימות העבודה הפעילות</p>
+  <div class="stats">
+    <span class="stat"><span class="n">15</span><span class="l">טבלאות בסכמה</span></span>
+    <span class="stat"><span class="n">3</span><span class="l">סוגי הרשאות</span></span>
+    <span class="stat"><span class="n">17</span><span class="l">מסכים</span></span>
+    <span class="stat"><span class="n">9</span><span class="l">סטטוסים לפריט נדרש</span></span>
+    <span class="stat"><span class="n">7+</span><span class="l">כפתורי העתקה</span></span>
+    <span class="stat"><span class="n">18</span><span class="l">מפתחות זרים</span></span>
+    <span class="stat"><span class="n">3</span><span class="l">קשרים "רכים"</span></span>
+  </div>
+</header>
+
+<section>
+  <h2>מפת המערכת — תפקידים, מסכים, ישויות</h2>
+  <p class="lead">חיצים מלאים = מפתחות זרים בין טבלאות. חיצים מקווקווים אפורים = קשרים "רכים" טקסטואליים. חיצים צבעוניים נעים = זרימות עבודה חיות במערכת.</p>
+
+  <div class="map-wrap">
+    <div class="map">
+      <!-- =========================================================== -->
+      <!-- SVG ARROW LAYER                                              -->
+      <!-- =========================================================== -->
+      <svg class="arrows" viewBox="0 0 1200 920" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <marker id="mk-static" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#6b7e3e" opacity="0.7" />
+          </marker>
+          <marker id="mk-soft" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#888888" opacity="0.7" />
+          </marker>
+          <marker id="mk-f1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#c43d3d" />
+          </marker>
+          <marker id="mk-f2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#c9941e" />
+          </marker>
+          <marker id="mk-f3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#7a4d8c" />
+          </marker>
+        </defs>
+
+        <!-- ===== Static FK arrows ===== -->
+        <!-- call_required_parts.call_id → service_calls -->
+        <path class="ar-static" d="M 680,565 C 700,500 720,470 770,455" marker-end="url(#mk-static)" />
+        <!-- call_required_parts.part_id → parts -->
+        <path class="ar-static" d="M 660,580 L 540,580" marker-end="url(#mk-static)" />
+        <!-- call_required_parts.warehouse_order_id → warehouse_orders -->
+        <path class="ar-static" d="M 820,570 L 940,570" marker-end="url(#mk-static)" />
+        <!-- part_withdrawals.part_id → parts -->
+        <path class="ar-static" d="M 425,580 L 470,580" marker-end="url(#mk-static)" />
+        <!-- part_withdrawals.required_part_id → call_required_parts -->
+        <path class="ar-static" d="M 430,560 L 660,560" marker-end="url(#mk-static)" />
+        <!-- part_withdrawals.call_id → service_calls -->
+        <path class="ar-static" d="M 400,545 C 400,490 600,455 770,455" marker-end="url(#mk-static)" />
+        <!-- call_comments.call_id → service_calls -->
+        <path class="ar-static" d="M 930,425 L 850,425" marker-end="url(#mk-static)" />
+        <!-- class_orders.call_id → service_calls -->
+        <path class="ar-static" d="M 1060,425 C 1000,460 920,460 850,440" marker-end="url(#mk-static)" />
+        <!-- employee_availability → employees -->
+        <path class="ar-static" d="M 670,485 L 615,455" marker-end="url(#mk-static)" />
+        <!-- tank_monthly_maintenance.vehicle_number → vehicles -->
+        <path class="ar-static" d="M 235,755 C 200,650 160,520 145,455" marker-end="url(#mk-static)" />
+        <!-- closed_by + several others → employees (shared bundle) -->
+        <path class="ar-static" d="M 770,440 C 700,420 650,420 615,425" marker-end="url(#mk-static)" />
+        <path class="ar-static" d="M 935,440 C 800,420 700,420 615,425" marker-end="url(#mk-static)" />
+        <!-- warehouse_orders.created_by → employees -->
+        <path class="ar-static" d="M 945,560 C 800,520 700,470 615,455" marker-end="url(#mk-static)" />
+        <!-- call_required_parts.requested_by → employees -->
+        <path class="ar-static" d="M 750,560 C 690,510 640,475 615,455" marker-end="url(#mk-static)" />
+        <!-- part_withdrawals → employees (withdrawn_by + released_by) -->
+        <path class="ar-static" d="M 365,560 C 460,500 540,460 575,440" marker-end="url(#mk-static)" />
+
+        <!-- ===== Soft (text-only) relationships ===== -->
+        <!-- vehicles.type_name ↔ professions.name -->
+        <path class="ar-soft" d="M 110,440 C 80,560 80,640 80,675" marker-end="url(#mk-soft)" />
+        <!-- employees.profession_name ↔ professions.name -->
+        <path class="ar-soft" d="M 565,440 C 300,560 180,640 120,680" marker-end="url(#mk-soft)" />
+        <!-- service_calls.vehicle_number ↔ vehicles.vehicle_number -->
+        <path class="ar-soft" d="M 770,425 C 600,420 350,420 175,420" marker-end="url(#mk-soft)" />
+
+        <!-- ===== Animated flow 1 (red, "intake") ===== -->
+        <!-- Base44 → service_calls → tech role -->
+        <path class="ar-flow-1" d="M 130,130 C 350,180 600,300 810,420" marker-end="url(#mk-f1)" />
+        <path class="ar-flow-1" d="M 830,415 C 920,300 980,200 1000,130" marker-end="url(#mk-f1)" />
+        <text class="ar-label" x="380" y="240" fill="#c43d3d" font-weight="600">קליטת קריאה</text>
+
+        <!-- ===== Animated flow 2 (gold, parts pipeline) ===== -->
+        <!-- required_parts → withdrawals → tech → back -->
+        <path class="ar-flow-2" d="M 705,575 C 580,640 500,640 425,585" marker-end="url(#mk-f2)" />
+        <path class="ar-flow-2" d="M 370,545 C 600,720 850,720 1000,140" marker-end="url(#mk-f2)" />
+        <text class="ar-label" x="560" y="675" fill="#c9941e" font-weight="600">משיכת חלק → טכנאי</text>
+
+        <!-- ===== Animated flow 3 (purple, class order) ===== -->
+        <!-- tech → call_detail (screen) → class_orders → manager → whatsapp -->
+        <path class="ar-flow-3" d="M 1000,140 C 1100,250 1120,360 1130,440" marker-end="url(#mk-f3)" />
+        <path class="ar-flow-3" d="M 1130,440 C 1100,250 800,150 470,130" marker-end="url(#mk-f3)" />
+        <path class="ar-flow-3" d="M 470,130 C 350,80 250,75 145,85" marker-end="url(#mk-f3)" />
+        <text class="ar-label" x="850" y="200" fill="#7a4d8c" font-weight="600">דרישת כיתה</text>
+      </svg>
+
+      <!-- =========================================================== -->
+      <!-- HTML LAYER — entities, screens, roles, externals             -->
+      <!-- =========================================================== -->
+
+      <!-- External systems -->
+      <div class="external" style="left: 60px; top: 60px; width: 130px;">
+        <span class="em">📨</span>
+        Base44 webhook
+      </div>
+      <div class="external" style="left: 65px; top: 60px; width: 0; height: 0; opacity: 0;"></div>
+      <div class="external" style="left: 90px; top: 100px; width: 110px;">
+        <span class="em">💬</span>
+        WhatsApp
+      </div>
+
+      <!-- Roles (top) -->
+      <div class="role manager"   style="left: 440px; top: 60px;"><span class="em">👤</span>מנהל</div>
+      <div class="role warehouse" style="left: 740px; top: 60px;"><span class="em">📦</span>מחסנאי</div>
+      <div class="role tech"      style="left: 980px; top: 60px;"><span class="em">🔧</span>טכנאי</div>
+
+      <!-- Screens (row 2) -->
+      <div class="screen" style="left: 410px; top: 175px;">ManagerHome</div>
+      <div class="screen" style="left: 720px; top: 175px;">WarehouseHome</div>
+      <div class="screen" style="left: 970px; top: 175px;">TechnicianHome</div>
+      <div class="screen" style="left: 230px; top: 175px;">VehiclesBook</div>
+
+      <!-- Screens (row 3) -->
+      <div class="screen" style="left: 380px; top: 270px;">AllCallsPage</div>
+      <div class="screen" style="left: 780px; top: 270px;">CallDetail</div>
+      <div class="screen" style="left: 130px; top: 270px;">VehicleHistory</div>
+      <div class="screen" style="left: 560px; top: 270px;">RequiredPartDetail</div>
+      <div class="screen" style="left: 980px; top: 270px;">SettingsX</div>
+
+      <!-- Entities — Calls cluster -->
+      <div class="entity call pulse-node" style="left: 770px; top: 400px; width: 165px;">
+        <div class="name">קריאת שירות</div>
+        <div class="table">service_calls</div>
+        <div class="meta">display_id, status, vehicle_number, profession_name, anomaly_flags</div>
+      </div>
+      <div class="entity call" style="left: 945px; top: 400px; width: 110px;">
+        <div class="name">הערות לקריאה</div>
+        <div class="table">call_comments</div>
+      </div>
+      <div class="entity call" style="left: 1060px; top: 400px; width: 130px;">
+        <div class="name">דרישות כיתות</div>
+        <div class="table">class_orders</div>
+        <div class="meta">tsakah, contact, target_date</div>
+      </div>
+
+      <!-- Entities — People cluster -->
+      <div class="entity people" style="left: 550px; top: 405px; width: 130px;">
+        <div class="name">עובדים</div>
+        <div class="table">employees</div>
+        <div class="meta">number, role, phone, profession_name</div>
+      </div>
+      <div class="entity people" style="left: 565px; top: 487px; width: 115px;">
+        <div class="name">זמינות עובדים</div>
+        <div class="table">employee_availability</div>
+      </div>
+
+      <!-- Entities — Vehicles cluster -->
+      <div class="entity vehicle" style="left: 60px; top: 400px; width: 145px;">
+        <div class="name">כלים</div>
+        <div class="table">vehicles</div>
+        <div class="meta">number, type_name, model, location, important_note, initial_engine_hours</div>
+      </div>
+
+      <!-- Entities — Parts cluster -->
+      <div class="entity part pulse-node" style="left: 660px; top: 540px; width: 165px;">
+        <div class="name">חלקים נדרשים בקריאה</div>
+        <div class="table">call_required_parts</div>
+        <div class="meta">status, order_number, awaiting_receipt_since</div>
+      </div>
+      <div class="entity part" style="left: 940px; top: 540px; width: 145px;">
+        <div class="name">הזמנת מחסן כללית</div>
+        <div class="table">warehouse_orders</div>
+        <div class="meta">display_id (WO-YY-NNNN)</div>
+      </div>
+      <div class="entity part" style="left: 470px; top: 540px; width: 145px;">
+        <div class="name">קטלוג חלקים</div>
+        <div class="table">parts</div>
+        <div class="meta">sku, quantity, location, is_sku_blocked</div>
+      </div>
+      <div class="entity part" style="left: 250px; top: 540px; width: 145px;">
+        <div class="name">משיכות מהמחסן</div>
+        <div class="table">part_withdrawals</div>
+        <div class="meta">המנקה את quantity של parts</div>
+      </div>
+
+      <!-- Entities — Infra/Misc cluster -->
+      <div class="entity infra" style="left: 60px; top: 670px; width: 105px;">
+        <div class="name">מקצועות</div>
+        <div class="table">professions</div>
+      </div>
+      <div class="entity infra" style="left: 180px; top: 670px; width: 140px;">
+        <div class="name">הגדרות גלובליות</div>
+        <div class="table">app_settings</div>
+        <div class="meta">key/value (תוויות פורמט העתקה, צק״ח...)</div>
+      </div>
+      <div class="entity infra" style="left: 350px; top: 670px; width: 130px;">
+        <div class="name">לוג שגיאות</div>
+        <div class="table">app_errors</div>
+      </div>
+      <div class="entity infra" style="left: 510px; top: 670px; width: 145px;">
+        <div class="name">לוג הערות פיתוח</div>
+        <div class="table">feedback_notes</div>
+        <div class="meta">NOTE-XXXX, page_path, status</div>
+      </div>
+      <div class="entity infra" style="left: 180px; top: 750px; width: 165px;">
+        <div class="name">סימון שבוע חודשי לטנקים</div>
+        <div class="table">tank_monthly_maintenance</div>
+        <div class="meta">vehicle_number + week_start</div>
+      </div>
+
+      <!-- Legend / corner -->
+      <div style="position: absolute; right: 18px; bottom: 18px; background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: 0.72rem; max-width: 220px; line-height: 1.6;">
+        <div style="font-weight: 600; color: var(--olive); margin-bottom: 4px;">מקרא</div>
+        <div><span style="display:inline-block; width:14px; height:0; border-top:1.5px solid var(--olive-soft); vertical-align:middle; margin-left:6px;"></span>מפתח זר (FK)</div>
+        <div><span style="display:inline-block; width:14px; height:0; border-top:1.5px dashed var(--neutral); vertical-align:middle; margin-left:6px;"></span>קשר "רך" טקסטואלי</div>
+        <div><span style="display:inline-block; width:14px; height:2px; background: var(--danger); vertical-align:middle; margin-left:6px;"></span>קליטת קריאה</div>
+        <div><span style="display:inline-block; width:14px; height:2px; background: var(--warning); vertical-align:middle; margin-left:6px;"></span>פייפליין חלקים</div>
+        <div><span style="display:inline-block; width:14px; height:2px; background: #7a4d8c; vertical-align:middle; margin-left:6px;"></span>דרישת כיתה</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =========================================================== -->
+<section>
+  <h2>מחזור חיים של פריט נדרש</h2>
+  <p class="lead">תשעה סטטוסים עם מעברים אפשריים. הזרימה הראשית מקווקווית-נעה, המעברים החריגים (סטטוסים שליליים, "לא נצרך") מצוירים סטטיים.</p>
+
+  <div class="status-strip">
+    <div class="status-inner">
+      <svg viewBox="0 0 1000 280" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <marker id="msf" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#6b7e3e" />
+          </marker>
+          <marker id="msd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#c43d3d" />
+          </marker>
+          <marker id="msw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#c9941e" />
+          </marker>
+        </defs>
+        <!-- Main pipeline arrows (animated) -->
+        <path d="M 905,90 L 845,90" class="ar-flow-2" marker-end="url(#msw)" />
+        <path d="M 750,90 L 690,90" class="ar-flow-2" marker-end="url(#msw)" />
+        <path d="M 600,90 L 535,90" class="ar-flow-2" marker-end="url(#msw)" />
+        <path d="M 442,90 L 375,90" class="ar-flow-2" marker-end="url(#msw)" />
+
+        <!-- delivered → not_consumed (alt branch) -->
+        <path d="M 290,110 C 230,150 220,170 230,200" class="ar-static" marker-end="url(#msf)" />
+        <!-- not_consumed → in_stock (return) -->
+        <path d="M 195,205 C 100,180 80,140 100,110" class="ar-static" marker-end="url(#msf)" />
+        <!-- in_stock loop / staying -->
+        <text x="20" y="100" font-size="11" fill="#888">→</text>
+
+        <!-- Rejection branch -->
+        <path d="M 845,90 C 870,150 870,180 850,210" class="ar-static" stroke="#c43d3d" stroke-dasharray="4 4" marker-end="url(#msd)" />
+        <!-- rejected → pending_special_approval -->
+        <path d="M 730,225 L 660,225" class="ar-static" stroke="#c9941e" marker-end="url(#msw)" />
+        <!-- rejected → rejected_final -->
+        <path d="M 850,250 C 700,260 500,255 360,245" class="ar-static" stroke="#888" marker-end="url(#msf)" />
+
+        <!-- Labels -->
+        <text x="475" y="76" font-size="10" fill="#c9941e" font-weight="600">המסלול הראשי</text>
+        <text x="845" y="135" font-size="10" fill="#c43d3d">דחייה</text>
+        <text x="195" y="170" font-size="10" fill="#888">החזרה</text>
+      </svg>
+
+      <!-- Status pills positioned -->
+      <div class="stt awaiting_order"   style="left: 905px; top: 75px;">ממתין להזמנה</div>
+      <div class="stt awaiting_receipt" style="left: 750px; top: 75px;">ממתין לקבלה</div>
+      <div class="stt received"         style="left: 600px; top: 75px;">התקבל</div>
+      <div class="stt in_stock"         style="left: 442px; top: 75px;">במלאי</div>
+      <div class="stt delivered"        style="left: 290px; top: 75px;">נמסר לטכנאי</div>
+
+      <div class="stt not_consumed"     style="left: 110px; top: 195px;">לא נצרך</div>
+      <div class="stt rejected"         style="left: 800px; top: 210px;">נדחה</div>
+      <div class="stt pending_special_approval" style="left: 530px; top: 210px;">לאישור מיוחד</div>
+      <div class="stt rejected_final"   style="left: 290px; top: 233px;">נדחה סופית</div>
+    </div>
+
+    <div class="legend">
+      <span><span class="stroke flow"></span>זרימה ראשית</span>
+      <span><span class="stroke dashed" style="border-top-color:#c43d3d;"></span>דחייה</span>
+      <span><span class="stroke"></span>החזרה / סיום</span>
+    </div>
+  </div>
+</section>
+
+<!-- =========================================================== -->
+<section>
+  <h2>שלושת התפקידים</h2>
+  <div class="roles-grid">
+    <div class="role-card tech">
+      <h3>טכנאי</h3>
+      <div class="who"><code>permissions = 'technician'</code></div>
+      <ul>
+        <li>צופה בקריאות שלו לפי <code>profession_name</code></li>
+        <li>פותח קריאה חדשה לכלי</li>
+        <li>מבקש חלקים (מוסיף שורות ל-<code>call_required_parts</code>)</li>
+        <li>סוגר קריאה</li>
+        <li>ממלא טופס "דרישת כיתה"</li>
+        <li>מעדכן מיקום/מחלקה לכלי</li>
+        <li>מדווח שעות מנוע + ק"מ לטנק</li>
+      </ul>
+    </div>
+    <div class="role-card warehouse">
+      <h3>מחסנאי</h3>
+      <div class="who"><code>permissions = 'warehouse'</code></div>
+      <ul>
+        <li>מקדם פריטים בפייפליין (כל המעברים בין סטטוסים)</li>
+        <li>מנפק לטכנאי דרך <code>part_withdrawals</code></li>
+        <li>מנהל קטלוג חלקים</li>
+        <li>יוצר "הזמנת מחסן כללית"</li>
+        <li>מעדכן מספר דרישה / מק״ט</li>
+        <li>מטפל ב"לא נצרך" → "במלאי"</li>
+      </ul>
+    </div>
+    <div class="role-card manager">
+      <h3>מנהל</h3>
+      <div class="who"><code>permissions = 'manager'</code></div>
+      <ul>
+        <li>שליטה מלאה — שינוי <code>profession_name</code>, מחיקה, ביטול</li>
+        <li>תור חריגות (קריאות בלי כלי ידוע)</li>
+        <li>מנהל עובדים / כלים / מקצועות / זמינות</li>
+        <li>טבלת "דרישות כיתות" עם כפתור העתקה ל-WhatsApp</li>
+        <li>טבלת "שעות מנוע / קילומטר" + סימון שבוע חודשי לטנקים</li>
+        <li>דוח נוכחות יומי בלחיצה</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- =========================================================== -->
+<section>
+  <h2>המסכים</h2>
+  <div class="screens-table">
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 22%;">מסך</th>
+          <th style="width: 18%;">מי רואה</th>
+          <th>מה זה</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><code>LoginPage</code></td><td><span class="role-chip all">הכל</span></td><td>כניסה לפי מספר עובד</td></tr>
+        <tr><td><code>TechnicianHome</code></td><td><span class="role-chip t">טכנאי</span><span class="role-chip m">מנהל</span></td><td>רשימת הקריאות שלי</td></tr>
+        <tr><td><code>ManagerHomePage</code></td><td><span class="role-chip m">מנהל</span></td><td>פאנל מנהל — תור חריגות, עומסים, דוחות, הגדרות</td></tr>
+        <tr><td><code>WarehouseHomePage</code></td><td><span class="role-chip w">מחסנאי</span><span class="role-chip m">מנהל</span></td><td>טבלאות פעולות + קטלוג חלקים + הזמנת מחסן כללית</td></tr>
+        <tr><td><code>CallDetailPage</code></td><td><span class="role-chip all">הכל</span></td><td>כרטיסיית קריאה, הערות, חלקים נדרשים, פאנל "הזמן כיתה"</td></tr>
+        <tr><td><code>RequiredPartDetailPage</code></td><td><span class="role-chip w">מחסנאי</span><span class="role-chip m">מנהל</span></td><td>ניהול והנפקת פריט: סטטוס, מיקומים, מספר דרישה, עריכת מק״ט</td></tr>
+        <tr><td><code>AllCallsPage</code></td><td><span class="role-chip m">מנהל</span></td><td>כל הקריאות + סינון</td></tr>
+        <tr><td><code>AnomalyQueuePage</code></td><td><span class="role-chip m">מנהל</span></td><td>תור חריגות דחופות (קריאות חדשות שלא סווגו)</td></tr>
+        <tr><td><code>VehicleHistoryPage</code></td><td><span class="role-chip all">הכל</span></td><td>כרטיס הכלי: היסטוריית קריאות, מיקום, שעות מנוע, הערה חשובה</td></tr>
+        <tr><td><code>VehiclesBookPage</code></td><td><span class="role-chip all">הכל</span></td><td>ספר רק״ם/כלי: בחירת תחום → רשימת כלים</td></tr>
+        <tr><td><code>NotesPage</code></td><td><span class="role-chip all">הכל</span></td><td>לוג הערות פיתוח (NOTE-XXXX)</td></tr>
+        <tr><td><code>SettingsEmployeesPage</code></td><td><span class="role-chip m">מנהל</span></td><td>ניהול עובדים</td></tr>
+        <tr><td><code>SettingsVehiclesPage</code></td><td><span class="role-chip m">מנהל</span></td><td>ניהול כלים + הערה חשובה + שעת מנוע התחלתית</td></tr>
+        <tr><td><code>SettingsProfessionsPage</code></td><td><span class="role-chip m">מנהל</span></td><td>ניהול מקצועות</td></tr>
+        <tr><td><code>SettingsAvailabilityPage</code></td><td><span class="role-chip m">מנהל</span></td><td>זמינות עובדים (חופש/מילואים/מחלה)</td></tr>
+        <tr><td><code>SettingsCopyFormatPage</code></td><td><span class="role-chip m">מנהל</span></td><td>תוויות העתקה + ערך צק״ח</td></tr>
+        <tr><td><code>TankMaintenancePage</code></td><td><span class="role-chip m">מנהל</span></td><td>לוח שנה לסימון שבוע חודשי לטנק ספציפי</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- =========================================================== -->
+<section>
+  <h2>כפתורי העתקה מהירה ⧉</h2>
+  <p class="lead">המערכת מבוססת בכבדות על העתקה ל-WhatsApp/SMS. הכפתורים פזורים על פני הדפים.</p>
+  <div class="copy-list">
+    <div class="copy-card">
+      <h4>תפריט העתקה בכל שורת פריט</h4>
+      <div class="where"><code>CopyMenu</code> · בטבלאות פעולות פתוחות, נדחו, חסומים, נופקו, לא נצרך</div>
+      <p>סמליל ⧉ פותח תפריט עם שלוש אופציות: <strong>פורמט</strong> מלא ל-WhatsApp, רק ה-<strong>מק״ט</strong>, רק <strong>מספר הדרישה</strong>. אישור צף במרכז המסך ל-0.8 שניות.</p>
+    </div>
+    <div class="copy-card">
+      <h4>דוח נוכחות יומי</h4>
+      <div class="where"><code>AttendanceReportButton</code> · ManagerHomePage</div>
+      <p>בלחיצה — מועתק טקסט "*חימוש DD.MM*" + רשימת עובדים מקובצת לפי מקצוע עם "נוכח"/"בבית" לכל אחד.</p>
+    </div>
+    <div class="copy-card">
+      <h4>דרישת כיתה</h4>
+      <div class="where"><code>ClassOrdersTable</code> · ManagerHomePage</div>
+      <p>על כל שורת דרישת כיתה — כפתור "העתק טקסט" יוצר את הפורמט הקבוע של "דרישת כיתת אחזקה" מוכן ל-WhatsApp.</p>
+    </div>
+    <div class="copy-card">
+      <h4>פאנל "הזמן כיתה"</h4>
+      <div class="where"><code>OrderClassPanel</code> · CallDetailPage (מנהל) ו-NewCallForm</div>
+      <p>טכנאי שומר. מנהל רואה כפתור "העתק טקסט" שמפיק את אותו פורמט מתוך כרטיסיית הקריאה.</p>
+    </div>
+    <div class="copy-card">
+      <h4>תקציר קריאה</h4>
+      <div class="where"><code>CopyCallSummaryButton</code> · CallDetailPage</div>
+      <p>"היי, זה X, לגבי קריאה Y עבור כלי Z..." — להדבקה בשיחה עם המדווח.</p>
+    </div>
+    <div class="copy-card">
+      <h4>פורמט פרטים מלא לחלק</h4>
+      <div class="where"><code>buildCopyText</code> · משמש את CopyMenu</div>
+      <p>בונה את הטקסט הסטנדרטי של היחידה: *חטיבה:* X · *גדוד:* Y · *סוג הכלי:* ... · *מק״ט:* ... · *שם החלק:* ... · *כמות:* ...</p>
+    </div>
+    <div class="copy-card">
+      <h4>צ׳/פלאפון/לינק לקריאה</h4>
+      <div class="where">פזור בכרטיסי קריאה ושורות פעולות פתוחות</div>
+      <p>כפתורי טלפון (חיוג + WhatsApp) + לינקים לקריאות, חלקם עם אינדיקציית "✓ הועתק" צפה.</p>
+    </div>
+  </div>
+</section>
+
+<!-- =========================================================== -->
+<footer>
+  <div class="caveat">
+    <strong>קשרים "רכים" (טקסט, לא Foreign-Key) — שלושה במכוון:</strong>
+    <ul style="margin: 6px 0 0; padding-right: 16px;">
+      <li><code>vehicles.type_name</code> ↔ <code>professions.name</code> — סוג כלי = שם מקצוע, אבל הקישור הוא טקסט פתוח כדי לאפשר עריכה גמישה.</li>
+      <li><code>employees.profession_name</code> ↔ <code>professions.name</code> — אותו הדבר עבור התמחות העובד.</li>
+      <li><code>service_calls.vehicle_number</code> ↔ <code>vehicles.vehicle_number</code> — במכוון פתוח. קריאות מ-Base44 עם מספר כלי לא ידוע ייקלטו ותהיה לגביהן חריגה דחופה למנהל, במקום להידחות. זה העיקרון הבסיסי של המערכת: <strong>"אין שדות חוסמים"</strong>.</li>
+    </ul>
+  </div>
+</footer>
+
+</body>
+</html>
