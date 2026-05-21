@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'דף ניהול והנפקת פריט: עריכת מק״ט כותבת ישירות לקטלוג ומשפיעה על כל הקריאות שמשתמשות בפריט.'
+export const LATEST_NOTE = 'חדש: סטטוס "לא נצרך" וטבלה ייעודית עם כפתור "החזר למלאי". סמליל הריענון גדל. לחיצה על "APP 8130" מציגה את תאריך העדכון האחרון בטוסט.'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build

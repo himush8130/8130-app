@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { StatusBadgeMenu } from './StatusBadgeMenu'
 import { CopyMenu } from './CopyMenu'
@@ -31,6 +32,9 @@ interface Props {
   /** Returns the WhatsApp-format text for the row, or null when the
    *  data isn't ready yet (e.g. app_settings still loading). */
   copyFormatText?: () => string | null
+  /** Optional extra control rendered next to the status badge. The
+   *  not_consumed table uses it to host a "החזר למלאי" button. */
+  trailingAction?: ReactNode
 }
 
 function formatLoc(p: Withdrawal['parts']): string {
@@ -49,7 +53,7 @@ function formatDateShort(s: string): string {
   return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
-export function PendingActionRow({ row, highlight, showWithdrawal, copyFormatText }: Props) {
+export function PendingActionRow({ row, highlight, showWithdrawal, copyFormatText, trailingAction }: Props) {
   const navigate = useNavigate()
   const isBlocked = !!row.parts?.is_sku_blocked
   const wd = (row.part_withdrawals ?? [])[0]
@@ -95,6 +99,7 @@ export function PendingActionRow({ row, highlight, showWithdrawal, copyFormatTex
           isSkuBlocked={isBlocked}
         />
         <span className="text-muted">×{row.quantity}</span>
+        {trailingAction}
         <span className="ms-auto flex items-center gap-3">
           {showWithdrawal && wd ? (
             <>

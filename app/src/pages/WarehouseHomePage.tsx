@@ -35,6 +35,7 @@ export function WarehouseHomePage() {
           badgeId={4009}
           catalogHref="/warehouse?low_stock=1"
         />
+        <PendingPartActions variant="not_consumed" />
         <PendingPartActions variant="rejected_final" />
         <PendingPartActions variant="delivered" />
 

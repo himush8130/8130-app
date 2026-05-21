@@ -1,9 +1,11 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../store/auth'
 import { useFeedbackMode } from '../store/feedbackMode'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import { hardReload } from '../lib/hardReload'
+import { BUILD_TIME } from '../releaseNotes'
 
 type ViewKey = 'manager' | 'vehicles' | 'warehouse' | 'technician'
 
@@ -47,6 +49,19 @@ export function AppHeader({ subtitle }: { subtitle?: string }) {
     await hardReload()
   }
 
+  const [showBuildTime, setShowBuildTime] = useState(false)
+  const buildTimeLabel = new Date(BUILD_TIME).toLocaleString('he-IL', {
+    year:   'numeric',
+    month:  '2-digit',
+    day:    '2-digit',
+    hour:   '2-digit',
+    minute: '2-digit',
+  })
+  function handleTitleClick() {
+    setShowBuildTime(true)
+    setTimeout(() => setShowBuildTime(false), 800)
+  }
+
   const roleViews = employee
     ? VIEWS_BY_ROLE[employee.permissions]
         .map((k) => ALL_VIEWS.find((v) => v.key === k)!)
@@ -62,7 +77,14 @@ export function AppHeader({ subtitle }: { subtitle?: string }) {
           [name] [🔧] [📝 notes] [⟳ refresh] [יציאה] */}
       <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-2">
         <div className="min-w-0">
-          <h1 className="text-lg font-bold text-foreground">8130 APP</h1>
+          <button
+            type="button"
+            onClick={handleTitleClick}
+            className="text-lg font-bold text-foreground hover:opacity-90 active:opacity-75"
+            title="הצג תאריך עדכון אחרון"
+          >
+            8130 APP
+          </button>
           {subtitle && <p className="text-xs text-muted truncate">{subtitle}</p>}
         </div>
 
@@ -107,9 +129,9 @@ export function AppHeader({ subtitle }: { subtitle?: string }) {
                 disabled={refreshing}
                 aria-label="רענן נתונים ובדוק עדכון לאפליקציה"
                 title="רענן נתונים ובדוק עדכון לאפליקציה"
-                className={`${CHIP_BASE} ${CHIP_NEUTRAL} ${CHIP_ICON} text-base`}
+                className={`${CHIP_BASE} ${CHIP_NEUTRAL} ${CHIP_ICON}`}
               >
-                ⟳
+                <span className="text-xl leading-none">⟳</span>
               </button>
             </span>
 
@@ -126,6 +148,20 @@ export function AppHeader({ subtitle }: { subtitle?: string }) {
           </div>
         )}
       </div>
+
+      {/* Floating build-time toast — fires when the user taps the
+          title. Portal so it sits above everything else. */}
+      {showBuildTime && typeof document !== 'undefined' && createPortal(
+        <div
+          aria-live="polite"
+          className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
+        >
+          <div className="bg-foreground text-card px-4 py-2 rounded-md shadow-xl text-sm font-medium font-mono" dir="ltr">
+            {buildTimeLabel}
+          </div>
+        </div>,
+        document.body,
+      )}
 
       {/* Row 2: per-role view switcher. */}
       {roleViews.length > 0 && (

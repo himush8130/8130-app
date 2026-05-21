@@ -12,6 +12,7 @@ const ALL_LABELS: Record<RequiredPartStatus, string> = {
   rejected:                 'נדחה',
   pending_special_approval: 'לאישור מיוחד',
   rejected_final:           'נדחה סופית',
+  not_consumed:             'לא נצרך',
 }
 
 // Statuses we surface in the manual override menu. `delivered` is
@@ -25,6 +26,7 @@ const MENU_STATUSES: RequiredPartStatus[] = [
   'rejected',
   'pending_special_approval',
   'rejected_final',
+  'not_consumed',
 ]
 
 interface Props {

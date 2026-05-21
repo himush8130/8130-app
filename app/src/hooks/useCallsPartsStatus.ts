@@ -9,6 +9,7 @@ const PRIORITY: Record<RequiredPartStatus, number> = {
   awaiting_order:           5,
   awaiting_receipt:         4,
   received:                 3,
+  not_consumed:             3,
   in_stock:                 2,
   rejected_final:           1,
   delivered:                1,

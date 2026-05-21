@@ -15,6 +15,7 @@ const LABELS: Record<RequiredPartStatus, string> = {
   rejected:                 'נדחה',
   pending_special_approval: 'לאישור מיוחד',
   rejected_final:           'נדחה סופית',
+  not_consumed:             'לא נצרך',
 }
 const TONE: Record<RequiredPartStatus, 'info' | 'success' | 'warning' | 'danger' | 'neutral'> = {
   in_stock:                 'success',
@@ -25,6 +26,7 @@ const TONE: Record<RequiredPartStatus, 'info' | 'success' | 'warning' | 'danger'
   rejected:                 'danger',
   pending_special_approval: 'warning',
   rejected_final:           'neutral',
+  not_consumed:             'warning',
 }
 
 // `delivered` is intentionally NOT here. The proper way to mark a row
@@ -38,6 +40,7 @@ const MENU_STATUSES: RequiredPartStatus[] = [
   'rejected',
   'pending_special_approval',
   'rejected_final',
+  'not_consumed',
 ]
 
 interface Props {

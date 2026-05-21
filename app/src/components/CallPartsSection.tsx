@@ -26,6 +26,7 @@ const statusLabel: Record<RequiredPartStatus, string> = {
   rejected:                 'נדחה',
   pending_special_approval: 'לאישור מיוחד',
   rejected_final:           'נדחה סופית',
+  not_consumed:             'לא נצרך',
 }
 
 const statusTone: Record<RequiredPartStatus, 'info' | 'success' | 'warning' | 'danger' | 'neutral'> = {
@@ -37,6 +38,7 @@ const statusTone: Record<RequiredPartStatus, 'info' | 'success' | 'warning' | 'd
   rejected:                 'danger',
   pending_special_approval: 'warning',
   rejected_final:           'neutral',
+  not_consumed:             'warning',
 }
 
 interface Props {

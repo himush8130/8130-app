@@ -26,6 +26,7 @@ export type RequiredPartStatus =
   | 'rejected'
   | 'pending_special_approval'
   | 'rejected_final'
+  | 'not_consumed'
 
 export interface Profession {
   id: number

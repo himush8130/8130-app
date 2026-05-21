@@ -1,12 +1,16 @@
 import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useAppSettings } from '../hooks/useAppSettings'
 import { useVehiclesMap } from '../hooks/useVehicles'
 import { useVehicleCallStats } from '../hooks/useVehicleCallStats'
 import { usePendingActions } from '../hooks/usePendingActions'
+import { useAuthStore } from '../store/auth'
 import { CollapsibleSection } from './CollapsibleSection'
 import { PendingActionRow, type RowData } from './PendingActionRow'
+import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { buildCopyText } from '../lib/copyFormat'
+import { updateRequiredPartStatus } from '../lib/warehouseActions'
 import type { RequiredPartStatus } from '../types/db'
 
 const PENDING_REJECTED_SET: ReadonlySet<RequiredPartStatus> = new Set([
@@ -19,7 +23,7 @@ const ANY_REJECTED_SET: ReadonlySet<RequiredPartStatus> = new Set([
   ...PENDING_REJECTED_SET, ...FINAL_REJECTED_SET,
 ])
 
-type Variant = 'active' | 'rejected' | 'rejected_final' | 'blocked' | 'delivered'
+type Variant = 'active' | 'rejected' | 'rejected_final' | 'blocked' | 'delivered' | 'not_consumed'
 
 interface Props {
   variant?:      Variant
@@ -34,6 +38,20 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
   const vehiclesMap = useVehiclesMap()
   const { data: callStats } = useVehicleCallStats()
   const [skuFilter, setSkuFilter] = useState('')
+  const employee = useAuthStore((s) => s.employee)
+  const queryClient = useQueryClient()
+  const [busyId, setBusyId] = useState<string | null>(null)
+
+  async function returnToStock(row: RowData) {
+    if (!employee) return
+    setBusyId(row.id)
+    const res = await updateRequiredPartStatus(employee.employee_number, row.id, 'in_stock')
+    setBusyId(null)
+    if (res.ok) {
+      queryClient.invalidateQueries({ queryKey: ['pending_parts_actions'] })
+      queryClient.invalidateQueries({ queryKey: ['parts'] })
+    }
+  }
 
   function copyFormatText(row: RowData): string | null {
     if (!settings || !row.parts) return null
@@ -58,8 +76,9 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
     if (effective === 'blocked')        return blocked
     if (blocked) return false
     if (effective === 'delivered')      return r.status === 'delivered'
+    if (effective === 'not_consumed')   return r.status === 'not_consumed'
     if (effective === 'active') {
-      if (ANY_REJECTED_SET.has(r.status) || r.status === 'delivered') return false
+      if (ANY_REJECTED_SET.has(r.status) || r.status === 'delivered' || r.status === 'not_consumed') return false
       if (skuQuery && !(r.parts?.sku.toLowerCase().includes(skuQuery))) return false
       return true
     }
@@ -80,18 +99,21 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
     effective === 'rejected'       ? 'מק״טים שנדחו' :
     effective === 'blocked'        ? 'מק״טים חסומים' :
     effective === 'delivered'      ? 'פריטים שנופקו' :
+    effective === 'not_consumed'   ? 'פריטים שלא נצרכו' :
                                      'פעולות פתוחות'
   const badgeId =
     effective === 'rejected_final' ? 4011 :
     effective === 'rejected'       ? 4008 :
     effective === 'blocked'        ? 4010 :
     effective === 'delivered'      ? 4012 :
+    effective === 'not_consumed'   ? 4016 :
                                      4003
   const tone =
     effective === 'rejected'       ? 'text-danger' :
     effective === 'rejected_final' ? 'text-muted'  :
     effective === 'blocked'        ? 'text-warning' :
     effective === 'delivered'      ? 'text-success' :
+    effective === 'not_consumed'   ? 'text-warning' :
                                      undefined
   const highlightRows = effective === 'rejected' || effective === 'rejected_final' || effective === 'blocked'
 
@@ -121,6 +143,7 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
           : effective === 'rejected'      ? 'אין פריטים שנדחו'
           : effective === 'rejected_final'? 'אין פריטים שנדחו סופית'
           : effective === 'delivered'     ? 'אין פריטים שנופקו'
+          : effective === 'not_consumed'  ? 'אין פריטים בסטטוס "לא נצרך"'
                                           : 'אין מק״טים חסומים'}
         </p>
       )}
@@ -153,6 +176,18 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
                     highlight={highlightRows}
                     showWithdrawal={effective === 'delivered'}
                     copyFormatText={() => copyFormatText(row)}
+                    trailingAction={
+                      effective === 'not_consumed' ? (
+                        <Button
+                          variant="secondary"
+                          onClick={(e) => { e.stopPropagation(); void returnToStock(row) }}
+                          disabled={busyId === row.id}
+                          className="text-xs px-3 py-1"
+                        >
+                          {busyId === row.id ? '...' : 'החזר למלאי'}
+                        </Button>
+                      ) : null
+                    }
                   />
                 ))}
               </ul>
@@ -170,6 +205,18 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
                       highlight={highlightRows}
                       showWithdrawal={effective === 'delivered'}
                       copyFormatText={() => copyFormatText(row)}
+                      trailingAction={
+                        effective === 'not_consumed' ? (
+                          <Button
+                            variant="secondary"
+                            onClick={(e) => { e.stopPropagation(); void returnToStock(row) }}
+                            disabled={busyId === row.id}
+                            className="text-xs px-3 py-1"
+                          >
+                            {busyId === row.id ? '...' : 'החזר למלאי'}
+                          </Button>
+                        ) : null
+                      }
                     />
                   ))}
                 </ul>

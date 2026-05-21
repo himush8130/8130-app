@@ -155,6 +155,7 @@ async function updateRequiredPartStatus(params: any): Promise<Response> {
   const allowed = [
     'in_stock', 'awaiting_order', 'awaiting_receipt', 'received',
     'rejected', 'pending_special_approval', 'rejected_final',
+    'not_consumed',
   ]
   if (typeof required_part_id !== 'string' || !allowed.includes(status)) {
     return json(400, { ok: false, error: 'invalid_params' })
@@ -300,9 +301,35 @@ async function updateRequiredPartStatus(params: any): Promise<Response> {
       .from('parts').select('quantity').eq('id', before.part_id).maybeSingle()
     await admin.from('parts').update({ quantity: Math.max(0, (stockRow?.quantity ?? 0) - before.quantity) })
       .eq('id', before.part_id)
-  } else if (before.status === 'delivered' && status !== 'delivered' && status !== 'received') {
+  } else if (
+    before.status === 'delivered'
+    && status !== 'delivered'
+    && status !== 'received'
+    && status !== 'not_consumed'
+  ) {
     // Revert from delivered (without specifying a new destination):
     // refund the withdrawal source, delete the withdrawal row.
+    // The not_consumed branch is excluded — the part is still
+    // physically with the tech at that point, the refund happens
+    // only when the user later moves it to in_stock.
+    const { data: wd } = await admin
+      .from('part_withdrawals')
+      .select('id, quantity, part_id, is_external')
+      .eq('required_part_id', required_part_id)
+      .maybeSingle()
+    if (wd) {
+      if (!wd.is_external) {
+        const { data: stockRow } = await admin
+          .from('parts').select('quantity').eq('id', wd.part_id).maybeSingle()
+        await admin.from('parts').update({ quantity: (stockRow?.quantity ?? 0) + (wd.quantity ?? 0) })
+          .eq('id', wd.part_id)
+      }
+      await admin.from('part_withdrawals').delete().eq('id', wd.id)
+    }
+  } else if (before.status === 'not_consumed' && status === 'in_stock') {
+    // The tech returned the un-used part to the warehouse: refund
+    // the withdrawal source and drop the withdrawal row. The part
+    // is now back on the shelf.
     const { data: wd } = await admin
       .from('part_withdrawals')
       .select('id, quantity, part_id, is_external')
