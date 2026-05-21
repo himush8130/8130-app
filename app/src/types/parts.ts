@@ -18,6 +18,7 @@ export interface Part {
   is_exchange: boolean
   stock_count: number               // future: physical re-count
   is_sku_blocked: boolean
+  replacement_sku: string | null    // optional hint — UI shows "מק״ט חדש: X" when set
   created_at: string
 }
 

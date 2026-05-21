@@ -105,6 +105,7 @@ export interface PartUpdates {
   location?: string | null
   stock_count?: number
   is_sku_blocked?: boolean
+  replacement_sku?: string | null
 }
 
 export function updatePart(employeeNumber: number, partId: string, updates: PartUpdates) {

@@ -333,6 +333,23 @@ function DraftPartsEditor({
         <Input label="שם"   name="draft-name" value={nameQ} onChange={(e) => { setNameQ(e.target.value); setPicked(null) }} />
       </div>
 
+      {(() => {
+        // Soft hint: when the technician is about to add a part that
+        // has a replacement_sku recorded, surface the new SKU. Pure
+        // display — doesn't block anything, doesn't auto-substitute.
+        const replacementSku = picked?.replacement_sku?.trim()
+          || catalog.find((p) =>
+              p.sku.trim().toLowerCase() === skuQ.trim().toLowerCase()
+              && (p.replacement_sku ?? '').trim()
+            )?.replacement_sku?.trim()
+        if (!replacementSku) return null
+        return (
+          <div className="text-xs px-3 py-2 rounded-md border border-info/40 bg-info/10 text-info">
+            לפריט זה קיים מק״ט חדש: <span className="font-mono font-semibold">{replacementSku}</span>
+          </div>
+        )
+      })()}
+
       {matches.length > 0 && !picked && (
         <ul className="bg-card border border-border rounded-md max-h-32 overflow-y-auto">
           {matches.map((p) => (

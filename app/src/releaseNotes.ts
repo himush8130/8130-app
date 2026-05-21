@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'תיקון: הקטלוג טוען עכשיו את כל 1376 הפריטים (בעבר נחתך ל-1000 ראשונים). מק״טים שמיינו אחרי המקום 1000 כעת מופיעים בחיפוש.'
+export const LATEST_NOTE = 'חדש: שדה "מק״ט חליפי" אופציונלי לפריט בקטלוג. כשהטכנאי מזמין פריט עם חליף, מופיעה ההודעה "לפריט זה קיים מק״ט חדש: X". הזנה דרך דף ניהול והנפקת פריט.'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build
