@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'תיקון: "החזר למלאי" מחזיר את הכמות לקטלוג גם כאשר לא הייתה רשומת משיכה (כשהמעבר ל"לא נצרך" נעשה ידנית דרך תפריט הסטטוס).'
+export const LATEST_NOTE = 'בכרטיסיית קריאה — תווית הסטטוס של פריט נדרש הפכה לתפריט מלא למחסנאי/מנהל (כולל "לא נצרך"). טכנאי עדיין רואה אותו כתווית קריאה בלבד.'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build

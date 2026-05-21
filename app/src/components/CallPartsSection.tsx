@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Card, CardBody, CardHeader } from './ui/Card'
-import { Badge } from './ui/Badge'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
+import { StatusBadgeMenu } from './StatusBadgeMenu'
 import { useAuthStore } from '../store/auth'
 import { useParts } from '../hooks/useParts'
 import {
@@ -17,29 +17,6 @@ import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { CallRequiredPart, PartWithdrawal, Part } from '../types/parts'
 import type { RequiredPartStatus } from '../types/db'
 
-const statusLabel: Record<RequiredPartStatus, string> = {
-  in_stock:                 'במלאי',
-  awaiting_order:           'ממתין להזמנה',
-  awaiting_receipt:         'ממתין לקבלה',
-  received:                 'התקבל',
-  delivered:                'נמסר',
-  rejected:                 'נדחה',
-  pending_special_approval: 'לאישור מיוחד',
-  rejected_final:           'נדחה סופית',
-  not_consumed:             'לא נצרך',
-}
-
-const statusTone: Record<RequiredPartStatus, 'info' | 'success' | 'warning' | 'danger' | 'neutral'> = {
-  in_stock:                 'success',
-  awaiting_order:           'danger',
-  awaiting_receipt:         'warning',
-  received:                 'info',
-  delivered:                'neutral',
-  rejected:                 'danger',
-  pending_special_approval: 'warning',
-  rejected_final:           'neutral',
-  not_consumed:             'warning',
-}
 
 interface Props {
   callId: string
@@ -398,9 +375,13 @@ function RequiredPartRow({
             {row.parts?.sku ?? ''}
           </span>
           <span className="text-xs text-muted">×{row.quantity}</span>
-          {isBlocked
-            ? <Badge tone="warning">⚠ מק״ט חסום</Badge>
-            : <Badge tone={statusTone[row.status]}>{statusLabel[row.status]}</Badge>}
+          <StatusBadgeMenu
+            rowId={row.id}
+            partId={row.part_id}
+            currentStatus={row.status}
+            isSkuBlocked={isBlocked}
+            onChanged={onChange}
+          />
         </div>
 
         <div className="flex gap-1.5 items-center flex-wrap">
