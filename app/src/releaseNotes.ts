@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'חדש: שדה "מק״ט חליפי" אופציונלי לפריט בקטלוג. כשהטכנאי מזמין פריט עם חליף, מופיעה ההודעה "לפריט זה קיים מק״ט חדש: X". הזנה דרך דף ניהול והנפקת פריט.'
+export const LATEST_NOTE = 'מצב הערות הוסר. לוג הערות הפך לפלטפורמה לתקשורת בין מנהלים — מנהל יכול להוסיף הערה חדשה ויש צבע ייחודי לכל מנהל לזיהוי מהיר.'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build

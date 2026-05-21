@@ -7,7 +7,6 @@ import './index.css'
 import { LoginPage } from './pages/LoginPage'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { ErrorBoundary } from './components/ErrorBoundary'
-import { FeedbackBar } from './feedback/FeedbackBar'
 import { registerServiceWorker } from './lib/registerSW'
 
 // Lazy-loaded routes — keeps initial bundle small for faster mobile load.
@@ -152,7 +151,6 @@ createRoot(document.getElementById('root')!).render(
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
         </Suspense>
-        <FeedbackBar />
       </BrowserRouter>
     </QueryClientProvider>
   </StrictMode>,

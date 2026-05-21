@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../store/auth'
-import { useFeedbackMode } from '../store/feedbackMode'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import { hardReload } from '../lib/hardReload'
 import { BUILD_TIME } from '../releaseNotes'
@@ -32,8 +31,6 @@ const CHIP_ICON = 'w-7'
 export function AppHeader({ subtitle }: { subtitle?: string }) {
   const employee = useAuthStore((s) => s.employee)
   const logout = useAuthStore((s) => s.logout)
-  const feedbackEnabled = useFeedbackMode((s) => s.enabled)
-  const toggleFeedback = useFeedbackMode((s) => s.toggle)
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -91,23 +88,6 @@ export function AppHeader({ subtitle }: { subtitle?: string }) {
         {employee && (
           <div className="flex items-center gap-3">
             <span className="text-sm text-muted hidden sm:inline">{employee.name}</span>
-
-            <span className="inline-flex items-center">
-              <ComponentBadge id={1003} />
-              <button
-                type="button"
-                onClick={toggleFeedback}
-                title="הצג/הסתר תגי קומפוננטה ושדה הערות"
-                aria-pressed={feedbackEnabled}
-                className={`${CHIP_BASE} ${
-                  feedbackEnabled
-                    ? 'bg-primary text-primary-fg border-primary'
-                    : CHIP_NEUTRAL
-                } ${feedbackEnabled ? 'px-2' : CHIP_ICON}`}
-              >
-                {feedbackEnabled ? '🔧 מצב הערות' : '🔧'}
-              </button>
-            </span>
 
             <span className="inline-flex items-center">
               <ComponentBadge id={1004} />

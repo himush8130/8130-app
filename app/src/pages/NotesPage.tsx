@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
 import { useFeedbackNotes } from '../hooks/useFeedbackNotes'
 import { useAuthStore } from '../store/auth'
-import { useFeedbackMode } from '../store/feedbackMode'
 import {
+  addFeedbackNote,
   editFeedbackNote,
   deleteFeedbackNote,
   setFeedbackNoteStatus,
@@ -18,6 +17,24 @@ import { ComponentBadge } from '../feedback/ComponentBadge'
 import { RenderNoteText } from '../feedback/RenderNoteText'
 import type { FeedbackNote } from '../types/feedback'
 
+// Deterministic per-author tint. The same employee_number always
+// maps to the same swatch — so a manager glancing at the log can
+// tell at a glance who wrote what.
+const AUTHOR_PALETTE: Array<{ bg: string; border: string; text: string }> = [
+  { bg: '#fbe9df', border: '#c43d3d', text: '#7c2c06' }, // red
+  { bg: '#faf2d8', border: '#c9941e', text: '#7e6017' }, // gold
+  { bg: '#e0ebf5', border: '#4a7a9e', text: '#1f4a6e' }, // blue
+  { bg: '#eef4e9', border: '#4a7d3e', text: '#234d18' }, // green
+  { bg: '#f0e6f7', border: '#7a4d8c', text: '#46285a' }, // purple
+  { bg: '#fbeee0', border: '#c9a96e', text: '#6d5320' }, // sand
+  { bg: '#dde6f3', border: '#2c5282', text: '#1a3460' }, // navy
+  { bg: '#eef0e3', border: '#6b7e3e', text: '#3b4720' }, // olive
+]
+
+function tintForAuthor(employeeNumber: number): { bg: string; border: string; text: string } {
+  return AUTHOR_PALETTE[Math.abs(employeeNumber) % AUTHOR_PALETTE.length]
+}
+
 export function NotesPage() {
   const { data, isLoading, error } = useFeedbackNotes()
   const employee = useAuthStore((s) => s.employee)
@@ -28,6 +45,7 @@ export function NotesPage() {
 
   const notes = data ?? []
   const doneCount = notes.filter((n) => n.status === 'done').length
+  const isManager = employee?.permissions === 'manager'
 
   async function handleBulkDelete() {
     if (!employee) return
@@ -46,10 +64,12 @@ export function NotesPage() {
 
   return (
     <>
-      <AppHeader subtitle="לוג הערות UI" />
+      <AppHeader subtitle="לוג הערות בין מנהלים" />
 
       <main className="max-w-3xl mx-auto p-4 flex flex-col gap-3 pb-24">
         <ComponentBadge id={8002} />
+
+        {isManager && <AddNote />}
 
         {doneCount > 0 && (
           <Card>
@@ -58,12 +78,9 @@ export function NotesPage() {
                 {doneCount} הערות מסומנות כבוצעו
               </span>
               {!bulkConfirm ? (
-                <span className="contents">
-                  <ComponentBadge id={8005} />
-                  <Button variant="secondary" onClick={() => setBulkConfirm(true)}>
-                    מחק הערות שבוצעו
-                  </Button>
-                </span>
+                <Button variant="secondary" onClick={() => setBulkConfirm(true)}>
+                  מחק הערות שבוצעו
+                </Button>
               ) : (
                 <div className="flex gap-2">
                   <Button onClick={handleBulkDelete} disabled={bulkBusy}>
@@ -109,6 +126,64 @@ export function NotesPage() {
   )
 }
 
+// ---------- Add a new note (manager only) ----------
+
+function AddNote() {
+  const employee = useAuthStore((s) => s.employee)!
+  const queryClient = useQueryClient()
+  const [text, setText] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [savedId, setSavedId] = useState<string | null>(null)
+
+  async function send() {
+    setError(null)
+    if (text.trim().length === 0) return
+    setBusy(true)
+    const res = await addFeedbackNote(employee.employee_number, '/notes', text.trim())
+    setBusy(false)
+    if (!res.ok) { setError('שגיאה בשליחה'); return }
+    setText('')
+    setSavedId(res.note?.display_id ?? null)
+    setTimeout(() => setSavedId(null), 2500)
+    queryClient.invalidateQueries({ queryKey: ['feedback_notes'] })
+  }
+
+  const tint = tintForAuthor(employee.employee_number)
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <span className="text-sm font-semibold text-foreground">הערה חדשה</span>
+          <span
+            className="text-xs px-2 py-0.5 rounded-md font-medium border"
+            style={{ background: tint.bg, color: tint.text, borderColor: tint.border }}
+          >
+            {employee.name}
+          </span>
+        </div>
+      </CardHeader>
+      <CardBody className="flex flex-col gap-2">
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          rows={2}
+          placeholder="כתוב הערה למנהלים אחרים..."
+          className="w-full px-3 py-2 bg-card border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-y"
+        />
+        <div className="flex gap-2 items-center">
+          <Button onClick={send} disabled={busy || text.trim().length === 0}>
+            {busy ? 'שולח...' : 'שלח'}
+          </Button>
+          {savedId && <span className="text-xs text-success">✓ נשמרה: {savedId}</span>}
+          {error && <span className="text-xs text-danger">{error}</span>}
+        </div>
+      </CardBody>
+    </Card>
+  )
+}
+
 // ---------- Single note ----------
 
 function NoteItem({ note, isAuthor }: { note: FeedbackNote; isAuthor: boolean }) {
@@ -118,13 +193,12 @@ function NoteItem({ note, isAuthor }: { note: FeedbackNote; isAuthor: boolean })
   const [error, setError] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const employee = useAuthStore((s) => s.employee)
-  const setFeedbackMode = useFeedbackMode((s) => s.setEnabled)
   const queryClient = useQueryClient()
-  const navigate = useNavigate()
 
   const created = new Date(note.created_at).toLocaleString('he-IL')
   const wasEdited = note.updated_at !== note.created_at
   const isDone = note.status === 'done'
+  const tint = tintForAuthor(note.author_employee_number)
 
   function refresh() {
     queryClient.invalidateQueries({ queryKey: ['feedback_notes'] })
@@ -163,14 +237,11 @@ function NoteItem({ note, isAuthor }: { note: FeedbackNote; isAuthor: boolean })
     refresh()
   }
 
-  function jumpToPage() {
-    setFeedbackMode(true)
-    navigate(note.page_path)
-  }
-
   return (
-    <Card className={isDone ? 'opacity-60' : ''}>
-      <ComponentBadge id={8003} />
+    <Card
+      className={isDone ? 'opacity-60' : ''}
+      style={{ borderRightWidth: '4px', borderRightColor: tint.border }}
+    >
       <CardHeader>
         <div className="flex items-start justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2 flex-wrap">
@@ -178,19 +249,17 @@ function NoteItem({ note, isAuthor }: { note: FeedbackNote; isAuthor: boolean })
             <Badge tone={isDone ? 'success' : 'info'}>
               {isDone ? 'בוצע' : 'חדש'}
             </Badge>
+            <span
+              className="text-xs px-2 py-0.5 rounded-md font-medium border"
+              style={{ background: tint.bg, color: tint.text, borderColor: tint.border }}
+            >
+              {note.author_name}
+            </span>
             <span className="text-xs text-muted">
-              {note.author_name} ({note.author_employee_number}) · {created}
+              · {created}
               {wasEdited && <span className="text-faint italic ms-1">(נערך)</span>}
             </span>
           </div>
-          <button
-            type="button"
-            onClick={jumpToPage}
-            className="text-xs text-primary hover:underline"
-            title="עבור לדף בו ההערה נשלחה (מצב הערות יידלק אוטומטית)"
-          >
-            דף: {note.page_path} ↗
-          </button>
         </div>
       </CardHeader>
 
@@ -211,20 +280,11 @@ function NoteItem({ note, isAuthor }: { note: FeedbackNote; isAuthor: boolean })
           </div>
         )}
 
-        {note.component_ids.length > 0 && !editing && (
-          <div className="text-xs text-muted mt-2">
-            רכיבים מוזכרים: {note.component_ids.map((id) => `#${id}`).join(' · ')}
-          </div>
-        )}
-
         {!confirmDelete && !editing && (
           <div className="flex gap-2 mt-3 flex-wrap">
-            <span className="contents">
-              <ComponentBadge id={8004} />
-              <Button variant={isDone ? 'ghost' : 'primary'} onClick={toggleStatus} disabled={busy}>
-                {busy ? '...' : isDone ? 'החזר לחדש' : 'סמן כבוצע'}
-              </Button>
-            </span>
+            <Button variant={isDone ? 'ghost' : 'primary'} onClick={toggleStatus} disabled={busy}>
+              {busy ? '...' : isDone ? 'החזר לחדש' : 'סמן כבוצע'}
+            </Button>
             {isAuthor && (
               <>
                 <Button variant="secondary" onClick={() => { setEditing(true); setText(note.text) }}>
