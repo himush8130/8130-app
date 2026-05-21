@@ -328,8 +328,18 @@ async function updateRequiredPartStatus(params: any): Promise<Response> {
     }
   } else if (before.status === 'not_consumed' && status === 'in_stock') {
     // The tech returned the un-used part to the warehouse: refund
-    // the withdrawal source and drop the withdrawal row. The part
-    // is now back on the shelf.
+    // the stock and drop any withdrawal row that may exist.
+    //
+    // Two paths:
+    //  - There IS a real withdrawal record (the warehouse went
+    //    through "מסור לטכנאי"). Refund into its source part_id
+    //    (skip if external) and delete the withdrawal.
+    //  - There is NO withdrawal record because the row got to
+    //    delivered / not_consumed via a manual status change in the
+    //    badge menu. We still want the user-visible action to
+    //    actually return the units to the catalog row the
+    //    required-part points at — otherwise "החזר למלאי" is a
+    //    no-op as far as inventory is concerned, which is confusing.
     const { data: wd } = await admin
       .from('part_withdrawals')
       .select('id, quantity, part_id, is_external')
@@ -343,6 +353,12 @@ async function updateRequiredPartStatus(params: any): Promise<Response> {
           .eq('id', wd.part_id)
       }
       await admin.from('part_withdrawals').delete().eq('id', wd.id)
+    } else {
+      // No withdrawal — refund the required-part's own part_id.
+      const { data: stockRow } = await admin
+        .from('parts').select('quantity').eq('id', before.part_id).maybeSingle()
+      await admin.from('parts').update({ quantity: (stockRow?.quantity ?? 0) + before.quantity })
+        .eq('id', before.part_id)
     }
   }
 
