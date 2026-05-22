@@ -48,7 +48,7 @@ export function AddWarehouseOrderForm({
     if (!sku && !name) return []
     return (catalog ?? [])
       .filter((p) => (
-        (!sku  || p.sku.toLowerCase().includes(sku)) &&
+        (!sku  || p.sku.toLowerCase().startsWith(sku)) &&
         (!name || p.name.toLowerCase().includes(name))
       ))
       .slice(0, 6)

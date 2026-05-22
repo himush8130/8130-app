@@ -160,7 +160,7 @@ function AddPartForm({
     if (!sku && !name) return []
     return catalog
       .filter((p) => {
-        const skuOk  = !sku  || p.sku.toLowerCase().includes(sku)
+        const skuOk  = !sku  || p.sku.toLowerCase().startsWith(sku)
         const nameOk = !name || p.name.toLowerCase().includes(name)
         return skuOk && nameOk
       })
