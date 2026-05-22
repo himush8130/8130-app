@@ -249,14 +249,17 @@ function DraftPartsEditor({
   const [picked, setPicked] = useState<Part | null>(null)
 
   const matches = useMemo(() => {
-    const sku  = skuQ.trim().toLowerCase()
+    const sku  = skuQ.trim().replace(/\D/g, '')
     const name = nameQ.trim().toLowerCase()
     if (!sku && !name) return []
     return catalog
-      .filter((p) => (
-        (!sku  || p.sku.toLowerCase().startsWith(sku)) &&
-        (!name || p.name.toLowerCase().includes(name))
-      ))
+      .filter((p) => {
+        const partSku = (p.sku ?? '').replace(/\D/g, '')
+        return (
+          (!sku  || partSku.startsWith(sku)) &&
+          (!name || p.name.toLowerCase().includes(name))
+        )
+      })
       .slice(0, 6)
   }, [catalog, skuQ, nameQ])
 

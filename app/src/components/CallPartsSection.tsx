@@ -155,13 +155,18 @@ function AddPartForm({
   const [error, setError] = useState<string | null>(null)
 
   const matches = useMemo(() => {
-    const sku  = skuQuery.trim().toLowerCase()
-    const name = nameQuery.trim().toLowerCase()
+    // Normalize both sides to a digit-only string for the SKU compare
+    // so stray whitespace / zero-width chars in either the query or
+    // the DB row can't sneak past the prefix check.
+    const skuRaw = skuQuery.trim()
+    const sku    = skuRaw.replace(/\D/g, '')
+    const name   = nameQuery.trim().toLowerCase()
     if (!sku && !name) return []
     return catalog
       .filter((p) => {
-        const skuOk  = !sku  || p.sku.toLowerCase().startsWith(sku)
-        const nameOk = !name || p.name.toLowerCase().includes(name)
+        const partSku = (p.sku ?? '').replace(/\D/g, '')
+        const skuOk   = !sku  || partSku.startsWith(sku)
+        const nameOk  = !name || p.name.toLowerCase().includes(name)
         return skuOk && nameOk
       })
       .slice(0, 10)

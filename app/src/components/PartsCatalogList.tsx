@@ -108,13 +108,14 @@ export function PartsCatalogList({ parts }: { parts: Part[] }) {
 
   const filtered = useMemo(() => {
     if (!isActive(f)) return []
-    const sku   = f.sku.trim().toLowerCase()
+    const sku   = f.sku.trim().replace(/\D/g, '')
     const name  = f.name.trim().toLowerCase()
     const cab   = f.cabinet.trim()
     const stnum = f.storage_number.trim()
     const cell  = f.cell_number.trim()
     return parts.filter((p) => {
-      if (sku  && !p.sku.toLowerCase().startsWith(sku)) return false
+      const partSku = (p.sku ?? '').replace(/\D/g, '')
+      if (sku  && !partSku.startsWith(sku)) return false
       if (name && !p.name.toLowerCase().includes(name)) return false
       if (f.warehouse    && p.warehouse    !== f.warehouse)    return false
       if (f.storage_type && p.storage_type !== f.storage_type) return false
