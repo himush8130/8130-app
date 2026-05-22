@@ -409,22 +409,68 @@ async function recordWithdrawal(params: any, released_by: number): Promise<Respo
     }
   }
 
+  // Partial-dispense handling: if the caller passes a required_part_id
+  // and the dispensed quantity is less than that row's quantity, we
+  // split the row. The original keeps the remainder (status preserved
+  // so it stays in the pipeline), and a new sibling row is created
+  // with quantity = dispensed and status='delivered'. The withdrawal
+  // then links to the *new* row, so the 1:1 invariant between
+  // withdrawal ↔ delivered-required-part holds.
+  let linked_required_part_id: string | null =
+    typeof required_part_id === 'string' ? required_part_id : null
+
+  if (linked_required_part_id) {
+    const { data: rp } = await admin
+      .from('call_required_parts')
+      .select('id, call_id, part_id, quantity, status, requested_by, order_number')
+      .eq('id', linked_required_part_id)
+      .maybeSingle()
+    if (!rp) return json(404, { ok: false, error: 'required_part_not_found' })
+    if (quantity > rp.quantity) {
+      return json(400, { ok: false, error: 'exceeds_required_quantity', available: rp.quantity })
+    }
+    if (quantity < rp.quantity) {
+      const remainder = rp.quantity - quantity
+      // Shrink the original to the leftover quantity.
+      const { error: shrinkErr } = await admin
+        .from('call_required_parts')
+        .update({ quantity: remainder })
+        .eq('id', rp.id)
+      if (shrinkErr) return json(500, { ok: false, error: 'split_shrink_failed', detail: shrinkErr.message })
+      // Create the delivered sibling for the dispensed slice.
+      const { data: sibling, error: insErr } = await admin
+        .from('call_required_parts')
+        .insert({
+          call_id:      rp.call_id,
+          part_id:      rp.part_id,
+          quantity,
+          status:       'delivered',
+          requested_by: rp.requested_by,
+          order_number: rp.order_number,
+        })
+        .select('id')
+        .single()
+      if (insErr) return json(500, { ok: false, error: 'split_insert_failed', detail: insErr.message })
+      linked_required_part_id = sibling.id
+    }
+  }
+
   const { data, error } = await admin
     .from('part_withdrawals')
     .insert({
       call_id, part_id, quantity, withdrawn_by, released_by,
       is_external,
-      required_part_id: typeof required_part_id === 'string' ? required_part_id : null,
+      required_part_id: linked_required_part_id,
     })
     .select('id, withdrawn_at, quantity, is_external')
     .single()
   if (error) return json(500, { ok: false, error: 'insert_failed', detail: error.message })
 
-  if (typeof required_part_id === 'string') {
+  if (linked_required_part_id) {
     await admin
       .from('call_required_parts')
       .update({ status: 'delivered' })
-      .eq('id', required_part_id)
+      .eq('id', linked_required_part_id)
   }
 
   return json(200, { ok: true, withdrawal: data })

@@ -19,7 +19,7 @@ interface Withdrawal {
 
 export interface RowData extends CallRequiredPart {
   service_calls?: { display_id: string; vehicle_number?: string | null } | null
-  parts?: { name: string; sku: string; quantity: number; is_sku_blocked?: boolean } | null
+  parts?: { name: string; sku: string; quantity: number; is_sku_blocked?: boolean; replacement_sku?: string | null } | null
   rejection_reason: string | null
   part_withdrawals?: Withdrawal[] | null
 }
@@ -80,6 +80,11 @@ export function PendingActionRow({ row, highlight, showWithdrawal, copyFormatTex
       {/* Top row: name (right, generous width) + sku (left) + copy menu */}
       <div className="flex items-baseline gap-3">
         <span className="text-base text-foreground font-medium truncate flex-1 min-w-0">{row.parts?.name ?? '?'}</span>
+        {row.parts?.replacement_sku && row.parts.replacement_sku.trim() && isBlocked && (
+          <span className="text-[11px] text-success bg-success/10 border border-success/30 rounded px-1.5 py-0.5 whitespace-nowrap" title="נקבע מק״ט חליפי">
+            חליפי: <span className="font-mono">{row.parts.replacement_sku}</span>
+          </span>
+        )}
         <span className="font-mono text-xs text-muted shrink-0 whitespace-nowrap">{row.parts?.sku ?? ''}</span>
         <CopyMenu
           getText={{

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../store/auth'
+import { useFeedbackNotes } from '../hooks/useFeedbackNotes'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import { hardReload } from '../lib/hardReload'
 import { BUILD_TIME } from '../releaseNotes'
@@ -65,6 +66,18 @@ export function AppHeader({ subtitle }: { subtitle?: string }) {
         .filter(Boolean)
     : []
 
+  // Count open notes (status !== 'done') authored by *other* managers
+  // — own notes don't count as "unread for me". Used to paint the
+  // 📝 chip orange with a badge of the unread count.
+  const { data: notes } = useFeedbackNotes()
+  const openOthersCount = notes
+    ? notes.filter(
+        (n) =>
+          n.status !== 'done' &&
+          n.author_employee_number !== employee?.employee_number,
+      ).length
+    : 0
+
   return (
     <header className="bg-card border-b border-border">
       <ComponentBadge id={1001} />
@@ -89,16 +102,28 @@ export function AppHeader({ subtitle }: { subtitle?: string }) {
           <div className="flex items-center gap-3">
             <span className="text-sm text-muted hidden sm:inline">{employee.name}</span>
 
-            <span className="inline-flex items-center">
+            <span className="inline-flex items-center relative">
               <ComponentBadge id={1004} />
               <Link
                 to="/notes"
-                aria-label="לוג הערות"
-                title="לוג הערות"
-                className={`${CHIP_BASE} ${CHIP_NEUTRAL} ${CHIP_ICON} text-base`}
+                aria-label={openOthersCount > 0 ? `לוג הערות (${openOthersCount} פתוחות)` : 'לוג הערות'}
+                title={openOthersCount > 0 ? `לוג הערות (${openOthersCount} פתוחות)` : 'לוג הערות'}
+                className={`${CHIP_BASE} ${CHIP_ICON} text-base ${
+                  openOthersCount > 0
+                    ? 'bg-warning/15 text-warning border-warning hover:bg-warning/25'
+                    : CHIP_NEUTRAL
+                }`}
               >
                 📝
               </Link>
+              {openOthersCount > 0 && (
+                <span
+                  className="absolute -top-1 -start-1 min-w-[1.1rem] h-[1.1rem] px-1 inline-flex items-center justify-center rounded-full bg-warning text-white text-[10px] font-bold leading-none border border-card"
+                  aria-hidden
+                >
+                  {openOthersCount}
+                </span>
+              )}
             </span>
 
             <span className="inline-flex items-center">

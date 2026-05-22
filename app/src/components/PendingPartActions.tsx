@@ -33,6 +33,30 @@ interface Props {
   rejectedOnly?: boolean
 }
 
+// Local-only "snooze" for blocked-SKU rows that already have a
+// replacement_sku assigned. The list of part_ids the warehouse user
+// has chosen to hide is kept in localStorage — clearing browser data
+// brings them back. This is deliberately client-side: an unhide UI
+// would just add clutter.
+const HIDDEN_BLOCKED_KEY = 'blocked_hidden_part_ids'
+
+function loadHiddenBlocked(): Set<string> {
+  if (typeof localStorage === 'undefined') return new Set()
+  try {
+    const raw = localStorage.getItem(HIDDEN_BLOCKED_KEY)
+    if (!raw) return new Set()
+    const arr = JSON.parse(raw)
+    return new Set(Array.isArray(arr) ? arr.filter((v) => typeof v === 'string') : [])
+  } catch {
+    return new Set()
+  }
+}
+
+function saveHiddenBlocked(ids: Set<string>) {
+  if (typeof localStorage === 'undefined') return
+  try { localStorage.setItem(HIDDEN_BLOCKED_KEY, JSON.stringify([...ids])) } catch { /* ignore */ }
+}
+
 export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false }: Props) {
   const effective: Variant = variant ?? (rejectedOnly ? 'rejected' : 'active')
   const { data, isLoading } = usePendingActions()
@@ -46,6 +70,14 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
   const [toast, setToast] = useState<string | null>(null)
   /** Row currently waiting on the warehouse-picker dialog. */
   const [returnRow, setReturnRow] = useState<RowData | null>(null)
+  const [hiddenBlocked, setHiddenBlocked] = useState<Set<string>>(() => loadHiddenBlocked())
+
+  function hideBlockedPart(partId: string) {
+    const next = new Set(hiddenBlocked)
+    next.add(partId)
+    setHiddenBlocked(next)
+    saveHiddenBlocked(next)
+  }
 
   async function confirmReturnDestination(dest: ReceiveDestination) {
     if (!employee || !returnRow) return
@@ -93,7 +125,12 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
 
   const rows = (data ?? []).filter((r) => {
     const blocked = !!r.parts?.is_sku_blocked
-    if (effective === 'blocked')        return blocked
+    if (effective === 'blocked') {
+      if (!blocked) return false
+      const hasReplacement = !!(r.parts?.replacement_sku && r.parts.replacement_sku.trim())
+      if (hasReplacement && hiddenBlocked.has(r.part_id)) return false
+      return true
+    }
     if (blocked) return false
     if (effective === 'delivered')      return r.status === 'delivered'
     if (effective === 'not_consumed')   return r.status === 'not_consumed'
@@ -135,12 +172,26 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
     effective === 'delivered'      ? 'text-success' :
     effective === 'not_consumed'   ? 'text-warning' :
                                      undefined
-  const highlightRows = effective === 'rejected' || effective === 'rejected_final' || effective === 'blocked'
+  // Whether to paint a row red. For blocked: only rows still WITHOUT a
+  // replacement_sku — once a warehouse user assigns a replacement, the
+  // row turns neutral (and can be hidden via the per-row button).
+  function rowHighlight(row: typeof rows[number]): boolean {
+    if (effective === 'rejected' || effective === 'rejected_final') return true
+    if (effective === 'blocked') {
+      return !(row.parts?.replacement_sku && row.parts.replacement_sku.trim())
+    }
+    return false
+  }
+
+  const headerCount =
+    effective === 'blocked'
+      ? rows.filter((r) => !(r.parts?.replacement_sku && r.parts.replacement_sku.trim())).length
+      : rows.length
 
   return (
     <CollapsibleSection
       title={title}
-      count={rows.length}
+      count={headerCount}
       defaultOpen={defaultOpen}
       badgeId={badgeId}
       countTone={tone}
@@ -193,7 +244,7 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
                   <PendingActionRow
                     key={row.id}
                     row={row}
-                    highlight={highlightRows}
+                    highlight={rowHighlight(row)}
                     showWithdrawal={effective === 'delivered'}
                     copyFormatText={() => copyFormatText(row)}
                     trailingAction={
@@ -205,6 +256,15 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
                           className="text-xs px-3 py-1"
                         >
                           {busyId === row.id ? '...' : 'החזר למלאי'}
+                        </Button>
+                      ) : effective === 'blocked' && row.parts?.replacement_sku && row.parts.replacement_sku.trim() ? (
+                        <Button
+                          variant="ghost"
+                          onClick={(e) => { e.stopPropagation(); hideBlockedPart(row.part_id) }}
+                          className="text-xs px-3 py-1"
+                          title="הסתר מטבלה זו (מקומי בדפדפן)"
+                        >
+                          הסתר מטבלה זו
                         </Button>
                       ) : null
                     }
@@ -222,7 +282,7 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
                     <PendingActionRow
                       key={row.id}
                       row={row}
-                      highlight={highlightRows}
+                      highlight={rowHighlight(row)}
                       showWithdrawal={effective === 'delivered'}
                       copyFormatText={() => copyFormatText(row)}
                       trailingAction={
@@ -234,6 +294,15 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
                             className="text-xs px-3 py-1"
                           >
                             {busyId === row.id ? '...' : 'החזר למלאי'}
+                          </Button>
+                        ) : effective === 'blocked' && row.parts?.replacement_sku && row.parts.replacement_sku.trim() ? (
+                          <Button
+                            variant="ghost"
+                            onClick={(e) => { e.stopPropagation(); hideBlockedPart(row.part_id) }}
+                            className="text-xs px-3 py-1"
+                            title="הסתר מטבלה זו (מקומי בדפדפן)"
+                          >
+                            הסתר מטבלה זו
                           </Button>
                         ) : null
                       }

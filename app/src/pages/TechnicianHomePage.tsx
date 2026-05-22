@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '../store/auth'
 import { useTechnicianCalls } from '../hooks/useTechnicianCalls'
 import { useCallsPartsStatus } from '../hooks/useCallsPartsStatus'
+import { useCallsWithComments } from '../hooks/useCallsWithComments'
 import { useVehiclesMap } from '../hooks/useVehicles'
 import { supabase } from '../lib/supabase'
 import { AppHeader } from '../components/AppHeader'
@@ -41,6 +42,7 @@ export function TechnicianHomePage() {
 
   const { data: calls, isLoading, error } = isManager ? allActiveQuery : techQuery
   const { data: partsMap } = useCallsPartsStatus()
+  const { data: commentsSet } = useCallsWithComments()
   const vehiclesMap = useVehiclesMap()
 
   return (
@@ -97,6 +99,7 @@ export function TechnicianHomePage() {
                 call={call}
                 partsSummary={partsMap?.get(call.id) ?? null}
                 vehicle={call.vehicle_number ? vehiclesMap.get(call.vehicle_number) ?? null : null}
+                hasComments={commentsSet?.has(call.id) ?? false}
               />
             ))}
           </div>

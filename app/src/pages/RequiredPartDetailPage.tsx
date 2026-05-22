@@ -212,16 +212,17 @@ export function RequiredPartDetailPage() {
     queryClient.invalidateQueries({ queryKey: ['service_calls'] })
   }
 
-  async function dispense() {
+  async function dispense(qty?: number) {
     if (!data) return
     if (!pickedSource) { setActionError('בחר מיקום'); return }
     if (!data.row.call_id) { setActionError('פריט מהזמנת מחסן — אין הנפקה לטכנאי. עדכן סטטוס בלבד.'); return }
+    const requested = qty ?? data.row.quantity
     setBusy(true); setActionError(null)
     const res = await recordWithdrawal(
       employee.employee_number,
       data.row.call_id,
       pickedSource,
-      data.row.quantity,
+      requested,
       employee.employee_number,
       data.row.id,
       false,  // is_external retired — "מלאי חיצוני" is now a regular catalog row.
@@ -231,7 +232,9 @@ export function RequiredPartDetailPage() {
       setActionError(
         res.error === 'insufficient_stock'
           ? `אין מספיק במיקום הזה (נותר ${res.available})`
-          : 'הנפקה נכשלה',
+          : res.error === 'exceeds_required_quantity'
+            ? `מקסימום ${res.available}`
+            : 'הנפקה נכשלה',
       )
       return
     }
@@ -416,12 +419,13 @@ export function RequiredPartDetailPage() {
               )}
             </ul>
             {canDeliver && canChangeStatus && (
-              <div className="flex gap-2 items-center">
-                <Button onClick={dispense} disabled={busy || !pickedSource}>
-                  {busy ? '...' : `הנפק ${row.quantity}`}
-                </Button>
-                {actionError && <span className="text-xs text-danger">{actionError}</span>}
-              </div>
+              <PartialDispenseControls
+                requiredQty={row.quantity}
+                busy={busy}
+                pickedSource={pickedSource}
+                onDispense={(q) => dispense(q)}
+                actionError={actionError}
+              />
             )}
           </CardBody>
         </Card>
@@ -502,5 +506,71 @@ export function RequiredPartDetailPage() {
 
       </main>
     </>
+  )
+}
+
+// Standalone dispense controls: full button + an optional partial-qty
+// editor that the warehouse user opens when they want to hand over
+// fewer units than requested. The remainder stays on the call as a
+// fresh awaiting_* row.
+function PartialDispenseControls({
+  requiredQty, busy, pickedSource, onDispense, actionError,
+}: {
+  requiredQty:  number
+  busy:         boolean
+  pickedSource: string | null
+  onDispense:   (qty: number) => void
+  actionError:  string | null
+}) {
+  const [partialOpen, setPartialOpen] = useState(false)
+  const [qty, setQty] = useState(Math.max(1, requiredQty - 1))
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex gap-2 items-center flex-wrap">
+        <Button onClick={() => onDispense(requiredQty)} disabled={busy || !pickedSource}>
+          {busy ? '...' : `הנפק ${requiredQty}`}
+        </Button>
+        {requiredQty > 1 && (
+          <Button
+            variant="ghost"
+            onClick={() => { setPartialOpen((v) => !v); setQty(Math.max(1, requiredQty - 1)) }}
+            disabled={busy}
+            className="text-xs"
+          >
+            הנפקה חלקית
+          </Button>
+        )}
+        {actionError && <span className="text-xs text-danger">{actionError}</span>}
+      </div>
+      {partialOpen && (
+        <div className="flex flex-wrap items-center gap-2 bg-muted-surface/60 rounded-md p-2 text-xs">
+          <span className="text-muted">כמות (מתוך {requiredQty}):</span>
+          <input
+            type="number"
+            min={1}
+            max={requiredQty - 1}
+            value={qty}
+            onChange={(e) => {
+              const n = parseInt(e.target.value, 10)
+              if (!Number.isFinite(n)) return
+              setQty(Math.max(1, Math.min(requiredQty - 1, n)))
+            }}
+            className="w-20 px-2 py-1 bg-card border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+          <Button
+            onClick={() => onDispense(qty)}
+            disabled={busy || !pickedSource || qty < 1 || qty >= requiredQty}
+            className="text-xs px-3 py-1"
+          >
+            {busy ? '...' : `הנפק ${qty}`}
+          </Button>
+          <Button variant="ghost" onClick={() => setPartialOpen(false)} className="text-xs px-3 py-1">
+            ביטול
+          </Button>
+          <span className="text-muted">· יישארו {requiredQty - qty} ממתינים</span>
+        </div>
+      )}
+    </div>
   )
 }

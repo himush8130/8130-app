@@ -336,10 +336,16 @@ function RequiredPartRow({
     onChange()
   }
 
-  async function deliver() {
+  // Partial dispense — when the row has quantity > 1, the warehouse
+  // can choose to hand over only some of the units. The remainder
+  // stays as a separate awaiting row on the same call.
+  const [partialOpen, setPartialOpen] = useState(false)
+  const [partialQty, setPartialQty] = useState<number>(row.quantity)
+
+  async function deliver(qty: number) {
     setError(null); setBusy(true)
     const res = await recordWithdrawal(
-      employeeNumber, callId, row.part_id, row.quantity,
+      employeeNumber, callId, row.part_id, qty,
       row.requested_by ?? employeeNumber, row.id,
     )
     setBusy(false)
@@ -347,10 +353,14 @@ function RequiredPartRow({
       setError(
         res.error === 'insufficient_stock'
           ? `במלאי רק ${res.available}`
-          : 'שגיאה',
+          : res.error === 'exceeds_required_quantity'
+            ? `מקסימום ${res.available}`
+            : 'שגיאה',
       )
       return
     }
+    setPartialOpen(false)
+    setPartialQty(row.quantity)
     onChange()
   }
 
@@ -388,9 +398,19 @@ function RequiredPartRow({
           {canDeliver ? (
             <span className="contents">
               <ComponentBadge id={5007} />
-              <Button onClick={deliver} disabled={busy}>
+              <Button onClick={() => deliver(row.quantity)} disabled={busy}>
                 {busy ? '...' : `מסור לטכנאי (${row.quantity})`}
               </Button>
+              {row.quantity > 1 && (
+                <Button
+                  variant="ghost"
+                  onClick={() => { setPartialOpen((v) => !v); setPartialQty(Math.max(1, row.quantity - 1)) }}
+                  disabled={busy}
+                  className="text-xs"
+                >
+                  מסירה חלקית
+                </Button>
+              )}
             </span>
           ) : isWarehouse && action ? (
             <Button onClick={advance} disabled={busy}>
@@ -413,6 +433,38 @@ function RequiredPartRow({
       </div>
       {row.rejection_reason && (
         <div className="text-[11px] text-danger px-1">סיבת דחייה: {row.rejection_reason}</div>
+      )}
+      {partialOpen && canDeliver && (
+        <div className="flex flex-wrap items-center gap-2 bg-muted-surface/60 rounded-md p-2 text-xs">
+          <span className="text-muted">כמות למסירה (מתוך {row.quantity}):</span>
+          <input
+            type="number"
+            min={1}
+            max={row.quantity - 1}
+            value={partialQty}
+            onChange={(e) => {
+              const n = parseInt(e.target.value, 10)
+              if (!Number.isFinite(n)) return
+              setPartialQty(Math.max(1, Math.min(row.quantity - 1, n)))
+            }}
+            className="w-20 px-2 py-1 bg-card border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+          <Button
+            onClick={() => deliver(partialQty)}
+            disabled={busy || partialQty < 1 || partialQty >= row.quantity}
+            className="text-xs px-3 py-1"
+          >
+            {busy ? '...' : `מסור ${partialQty}`}
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => setPartialOpen(false)}
+            className="text-xs px-3 py-1"
+          >
+            ביטול
+          </Button>
+          <span className="text-muted">· יישארו {row.quantity - partialQty} ממתינים</span>
+        </div>
       )}
       {confirmDelete && (
         <div className="flex items-center gap-2 bg-danger/5 rounded-md p-2 text-xs">

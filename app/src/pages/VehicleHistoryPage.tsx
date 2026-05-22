@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useVehicleHistory } from '../hooks/useVehicleHistory'
 import { useCallsPartsStatus } from '../hooks/useCallsPartsStatus'
+import { useCallsWithComments } from '../hooks/useCallsWithComments'
 import { useAuthStore } from '../store/auth'
 import { AppHeader } from '../components/AppHeader'
 import { CallCard } from '../components/CallCard'
@@ -36,6 +37,7 @@ export function VehicleHistoryPage() {
   const queryClient = useQueryClient()
   const { data, isLoading, error } = useVehicleHistory(vehicleNumber)
   const { data: partsMap } = useCallsPartsStatus()
+  const { data: commentsSet } = useCallsWithComments()
   const [filter, setFilter] = useState<TankSpecialty | 'all'>('all')
   const [showNewCall, setShowNewCall] = useState(false)
 
@@ -176,6 +178,7 @@ export function VehicleHistoryPage() {
                   call={call}
                   partsSummary={partsMap?.get(call.id) ?? null}
                   vehicle={data?.vehicle ?? null}
+                  hasComments={commentsSet?.has(call.id) ?? false}
                   showSpecialty={!!isTank}
                   canEdit={!!isTank && isManager}
                   onToggle={handleToggleSpecialty}
@@ -198,6 +201,7 @@ export function VehicleHistoryPage() {
                   call={call}
                   partsSummary={partsMap?.get(call.id) ?? null}
                   vehicle={data?.vehicle ?? null}
+                  hasComments={commentsSet?.has(call.id) ?? false}
                   showSpecialty={!!isTank}
                   canEdit={!!isTank && isManager}
                   onToggle={handleToggleSpecialty}
@@ -217,6 +221,7 @@ export function VehicleHistoryPage() {
                 <CallWithSpecialty
                   key={call.id}
                   call={call}
+                  hasComments={commentsSet?.has(call.id) ?? false}
                   showSpecialty={!!isTank}
                   canEdit={false}
                   onToggle={handleToggleSpecialty}
@@ -261,11 +266,12 @@ function SpecialtyFilterBanner({
 }
 
 function CallWithSpecialty({
-  call, partsSummary, vehicle, showSpecialty, canEdit, onToggle,
+  call, partsSummary, vehicle, hasComments, showSpecialty, canEdit, onToggle,
 }: {
   call: ServiceCall
   partsSummary?: import('../hooks/useCallsPartsStatus').CallPartsSummary | null
   vehicle?: import('../types/db').Vehicle | null
+  hasComments?: boolean
   showSpecialty: boolean
   canEdit: boolean
   onToggle: (call: ServiceCall, specialty: TankSpecialty) => void
@@ -273,7 +279,7 @@ function CallWithSpecialty({
   const current = call.specialties ?? []
   return (
     <div className="flex flex-col gap-1.5">
-      <CallCard call={call} partsSummary={partsSummary} vehicle={vehicle} />
+      <CallCard call={call} partsSummary={partsSummary} vehicle={vehicle} hasComments={hasComments} />
       {showSpecialty && (
         <div className="flex items-center gap-1.5 flex-wrap px-1">
           <span className="text-[11px] text-muted">התמחות:</span>

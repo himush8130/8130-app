@@ -50,9 +50,11 @@ interface Props {
   /** New shape — preferred. */
   partsSummary?: CallPartsSummary | null
   vehicle?:      Vehicle | null
+  /** True when the call has at least one comment in call_comments. */
+  hasComments?:  boolean
 }
 
-export function CallCard({ call, partsSummary, vehicle }: Props) {
+export function CallCard({ call, partsSummary, vehicle, hasComments }: Props) {
   const date = new Date(call.created_at).toLocaleDateString('he-IL', {
     day:   '2-digit',
     month: '2-digit',
@@ -118,6 +120,15 @@ export function CallCard({ call, partsSummary, vehicle }: Props) {
                 )}
                 {(call.anomaly_flags?.length ?? 0) > 0 && (
                   <Badge tone="warning">{call.anomaly_flags!.length} חריגות</Badge>
+                )}
+                {hasComments && (
+                  <span
+                    title="לקריאה זו קיימות הערות"
+                    aria-label="לקריאה זו קיימות הערות"
+                    className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-warning text-white text-xs font-bold leading-none"
+                  >
+                    i
+                  </span>
                 )}
               </div>
 
