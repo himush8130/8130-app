@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../store/auth'
 import { updateRequiredPartStatus, updatePart, type ReceiveDestination } from '../lib/warehouseActions'
+import { showToast } from '../lib/toast'
 import { ReceiveDestinationDialog } from './ReceiveDestinationDialog'
 import { Badge } from './ui/Badge'
 import type { RequiredPartStatus } from '../types/db'
@@ -103,9 +104,12 @@ export function StatusBadgeMenu({
     if (isSkuBlocked) {
       await updatePart(employee.employee_number, partId, { is_sku_blocked: false })
     }
-    await updateRequiredPartStatus(employee.employee_number, rowId, s, reason, receive)
+    const res = await updateRequiredPartStatus(employee.employee_number, rowId, s, reason, receive)
     setOpen(false)
     setReceiveOpen(false)
+    if (!res.ok && res.error === 'order_number_required') {
+      showToast('יש להזין מספר דרישה', 'warning', 2000)
+    }
     await refreshAll()
     setBusy(false)
   }

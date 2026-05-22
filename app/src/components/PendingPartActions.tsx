@@ -148,6 +148,13 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
       const bw = b.part_withdrawals?.[0]?.withdrawn_at ?? b.requested_at ?? ''
       return bw.localeCompare(aw)
     }
+    if (effective === 'blocked') {
+      // Rows with a replacement_sku assigned sink to the bottom — the
+      // urgent ones (still without a replacement) stay on top.
+      const aHas = !!(a.parts?.replacement_sku && a.parts.replacement_sku.trim()) ? 1 : 0
+      const bHas = !!(b.parts?.replacement_sku && b.parts.replacement_sku.trim()) ? 1 : 0
+      if (aHas !== bHas) return aHas - bHas
+    }
     return 0
   })
 

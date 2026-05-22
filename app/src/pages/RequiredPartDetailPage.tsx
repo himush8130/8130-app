@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../store/auth'
 import { useRequiredPartDetail } from '../hooks/useRequiredPartDetail'
 import { recordWithdrawal, setRequiredPartOrderNumber, updateRequiredPartStatus, updatePart, type ReceiveDestination, type PartUpdates } from '../lib/warehouseActions'
+import { showToast } from '../lib/toast'
 import { AppHeader } from '../components/AppHeader'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
@@ -253,7 +254,14 @@ export function RequiredPartDetailPage() {
     setBusy(true); setActionError(null)
     const res = await updateRequiredPartStatus(employee.employee_number, data!.row.id, next, null, receive)
     setBusy(false)
-    if (!res.ok) { setActionError('שגיאה'); return }
+    if (!res.ok) {
+      if (res.error === 'order_number_required') {
+        showToast('יש להזין מספר דרישה', 'warning', 2000)
+      } else {
+        setActionError('שגיאה')
+      }
+      return
+    }
     refresh()
   }
 

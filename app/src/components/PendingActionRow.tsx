@@ -56,6 +56,8 @@ function formatDateShort(s: string): string {
 export function PendingActionRow({ row, highlight, showWithdrawal, copyFormatText, trailingAction }: Props) {
   const navigate = useNavigate()
   const isBlocked = !!row.parts?.is_sku_blocked
+  const replacementSku = row.parts?.replacement_sku?.trim() ?? ''
+  const isBlockedWithReplacement = isBlocked && !!replacementSku
   const wd = (row.part_withdrawals ?? [])[0]
   const requestedDate = formatDateShort(row.requested_at)
   const dispensedDate = wd ? formatDateShort(wd.withdrawn_at) : null
@@ -65,6 +67,44 @@ export function PendingActionRow({ row, highlight, showWithdrawal, copyFormatTex
 
   function openDetail() {
     navigate(detailHref)
+  }
+
+  // Compact layout for blocked rows that already have a replacement.
+  // The full pipeline UI (status menu, ×qty, copy menu, rejection
+  // reason, request date) is irrelevant once the SKU is "resolved" —
+  // it's only kept around as a redirection note. Keep just: name,
+  // old → new SKU, call link, and the hide button (passed in via
+  // trailingAction).
+  if (isBlockedWithReplacement) {
+    return (
+      <li
+        role="button"
+        tabIndex={0}
+        onClick={openDetail}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetail() }
+        }}
+        className="block px-4 py-2 border-b border-border last:border-0 cursor-pointer hover:bg-muted-surface"
+      >
+        <div className="flex items-center gap-3 flex-wrap text-xs">
+          <span className="text-sm text-foreground font-medium truncate min-w-0 flex-1">{row.parts?.name ?? '?'}</span>
+          <span className="font-mono text-muted whitespace-nowrap">{row.parts?.sku ?? ''}</span>
+          <span aria-hidden className="text-muted">→</span>
+          <span className="font-mono text-success whitespace-nowrap" title="מק״ט חליפי">{replacementSku}</span>
+          {row.service_calls?.display_id && row.call_id && (
+            <Link
+              to={`/call/${row.call_id}`}
+              onClick={(e) => e.stopPropagation()}
+              className="text-primary hover:underline whitespace-nowrap"
+              title={row.service_calls.display_id}
+            >
+              קריאה →
+            </Link>
+          )}
+          {trailingAction}
+        </div>
+      </li>
+    )
   }
 
   return (
@@ -80,11 +120,6 @@ export function PendingActionRow({ row, highlight, showWithdrawal, copyFormatTex
       {/* Top row: name (right, generous width) + sku (left) + copy menu */}
       <div className="flex items-baseline gap-3">
         <span className="text-base text-foreground font-medium truncate flex-1 min-w-0">{row.parts?.name ?? '?'}</span>
-        {row.parts?.replacement_sku && row.parts.replacement_sku.trim() && isBlocked && (
-          <span className="text-[11px] text-success bg-success/10 border border-success/30 rounded px-1.5 py-0.5 whitespace-nowrap" title="נקבע מק״ט חליפי">
-            חליפי: <span className="font-mono">{row.parts.replacement_sku}</span>
-          </span>
-        )}
         <span className="font-mono text-xs text-muted shrink-0 whitespace-nowrap">{row.parts?.sku ?? ''}</span>
         <CopyMenu
           getText={{

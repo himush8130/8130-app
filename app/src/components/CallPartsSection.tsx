@@ -13,6 +13,7 @@ import {
   createPart,
   deleteRequiredPart,
 } from '../lib/warehouseActions'
+import { showToast } from '../lib/toast'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { CallRequiredPart, PartWithdrawal, Part } from '../types/parts'
 import type { RequiredPartStatus } from '../types/db'
@@ -332,7 +333,14 @@ function RequiredPartRow({
     setBusy(true); setError(null)
     const res = await updateRequiredPartStatus(employeeNumber, row.id, action.next)
     setBusy(false)
-    if (!res.ok) { setError('שגיאה'); return }
+    if (!res.ok) {
+      if (res.error === 'order_number_required') {
+        showToast('יש להזין מספר דרישה', 'warning', 2000)
+      } else {
+        setError('שגיאה')
+      }
+      return
+    }
     onChange()
   }
 

@@ -7,6 +7,7 @@ import './index.css'
 import { LoginPage } from './pages/LoginPage'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { ToastHost } from './components/ToastHost'
 import { registerServiceWorker } from './lib/registerSW'
 
 // Lazy-loaded routes — keeps initial bundle small for faster mobile load.
@@ -55,6 +56,7 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <ToastHost />
         <Suspense fallback={<div className="flex items-center justify-center min-h-screen text-muted text-sm">טוען…</div>}>
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />

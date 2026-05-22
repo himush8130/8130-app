@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { updateRequiredPartStatus, updatePart } from '../lib/warehouseActions'
+import { showToast } from '../lib/toast'
 import type { RequiredPartStatus } from '../types/db'
 
 const ALL_LABELS: Record<RequiredPartStatus, string> = {
@@ -59,9 +60,12 @@ export function StatusChangeMenu({
     if (isSkuBlocked) {
       await updatePart(employeeNumber, partId, { is_sku_blocked: false })
     }
-    await updateRequiredPartStatus(employeeNumber, rowId, s, reason)
+    const res = await updateRequiredPartStatus(employeeNumber, rowId, s, reason)
     setBusy(false)
     setOpen(false)
+    if (!res.ok && res.error === 'order_number_required') {
+      showToast('יש להזין מספר דרישה', 'warning', 2000)
+    }
     if (isSkuBlocked) {
       await Promise.all([
         queryClient.refetchQueries({ queryKey: ['parts'] }),
