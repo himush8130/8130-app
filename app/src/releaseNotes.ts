@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'הסתרת מק״ט חסום מהטבלה עוברת עכשיו ל-DB — מק״ט שמסתירים נעלם לכל המשתמשים, לא רק בדפדפן של מי שלחץ.'
+export const LATEST_NOTE = 'חיפוש מק״ט בקטלוג עכשיו לפי תחילית (startsWith) במקום substring — חיפוש "1234567" לא יחזיר עוד "1234" / "12345".'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build

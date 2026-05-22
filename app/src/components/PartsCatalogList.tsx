@@ -114,7 +114,7 @@ export function PartsCatalogList({ parts }: { parts: Part[] }) {
     const stnum = f.storage_number.trim()
     const cell  = f.cell_number.trim()
     return parts.filter((p) => {
-      if (sku  && !p.sku.toLowerCase().includes(sku))   return false
+      if (sku  && !p.sku.toLowerCase().startsWith(sku)) return false
       if (name && !p.name.toLowerCase().includes(name)) return false
       if (f.warehouse    && p.warehouse    !== f.warehouse)    return false
       if (f.storage_type && p.storage_type !== f.storage_type) return false
