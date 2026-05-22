@@ -241,7 +241,7 @@ function AddPartForm({
       {matches.length > 0 && !selected && (
         <ul className="bg-card border border-border rounded-md max-h-40 overflow-y-auto">
           {matches.map((p) => (
-            <li key={p.sku}>
+            <li key={p.id}>
               <button
                 type="button"
                 onClick={() => pick(p)}
