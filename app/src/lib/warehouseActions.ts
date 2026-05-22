@@ -106,6 +106,7 @@ export interface PartUpdates {
   stock_count?: number
   is_sku_blocked?: boolean
   replacement_sku?: string | null
+  hide_from_blocked_table?: boolean
 }
 
 export function updatePart(employeeNumber: number, partId: string, updates: PartUpdates) {

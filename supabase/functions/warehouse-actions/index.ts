@@ -483,7 +483,7 @@ const ALLOWED_PART_FIELDS = new Set([
   'name', 'sku', 'quantity', 'min_threshold',
   'warehouse', 'cabinet', 'storage_type', 'storage_number', 'cell_number',
   'is_exchange', 'supplier', 'location', 'stock_count', 'is_sku_blocked',
-  'replacement_sku',
+  'replacement_sku', 'hide_from_blocked_table',
 ])
 
 async function createPart(params: any): Promise<Response> {

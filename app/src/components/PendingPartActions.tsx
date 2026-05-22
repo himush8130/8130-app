@@ -12,7 +12,7 @@ import { ReceiveDestinationDialog } from './ReceiveDestinationDialog'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { buildCopyText } from '../lib/copyFormat'
-import { updateRequiredPartStatus, type ReceiveDestination } from '../lib/warehouseActions'
+import { updatePart, updateRequiredPartStatus, type ReceiveDestination } from '../lib/warehouseActions'
 import type { RequiredPartStatus } from '../types/db'
 
 const PENDING_REJECTED_SET: ReadonlySet<RequiredPartStatus> = new Set([
@@ -33,30 +33,6 @@ interface Props {
   rejectedOnly?: boolean
 }
 
-// Local-only "snooze" for blocked-SKU rows that already have a
-// replacement_sku assigned. The list of part_ids the warehouse user
-// has chosen to hide is kept in localStorage — clearing browser data
-// brings them back. This is deliberately client-side: an unhide UI
-// would just add clutter.
-const HIDDEN_BLOCKED_KEY = 'blocked_hidden_part_ids'
-
-function loadHiddenBlocked(): Set<string> {
-  if (typeof localStorage === 'undefined') return new Set()
-  try {
-    const raw = localStorage.getItem(HIDDEN_BLOCKED_KEY)
-    if (!raw) return new Set()
-    const arr = JSON.parse(raw)
-    return new Set(Array.isArray(arr) ? arr.filter((v) => typeof v === 'string') : [])
-  } catch {
-    return new Set()
-  }
-}
-
-function saveHiddenBlocked(ids: Set<string>) {
-  if (typeof localStorage === 'undefined') return
-  try { localStorage.setItem(HIDDEN_BLOCKED_KEY, JSON.stringify([...ids])) } catch { /* ignore */ }
-}
-
 export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false }: Props) {
   const effective: Variant = variant ?? (rejectedOnly ? 'rejected' : 'active')
   const { data, isLoading } = usePendingActions()
@@ -70,13 +46,15 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
   const [toast, setToast] = useState<string | null>(null)
   /** Row currently waiting on the warehouse-picker dialog. */
   const [returnRow, setReturnRow] = useState<RowData | null>(null)
-  const [hiddenBlocked, setHiddenBlocked] = useState<Set<string>>(() => loadHiddenBlocked())
 
-  function hideBlockedPart(partId: string) {
-    const next = new Set(hiddenBlocked)
-    next.add(partId)
-    setHiddenBlocked(next)
-    saveHiddenBlocked(next)
+  // "הסתר מטבלה זו" — flips the parts.hide_from_blocked_table flag
+  // on the catalog row, so the hide takes effect for every warehouse
+  // user (not just the one who clicked).
+  async function hideBlockedPart(partId: string) {
+    if (!employee) return
+    await updatePart(employee.employee_number, partId, { hide_from_blocked_table: true })
+    queryClient.invalidateQueries({ queryKey: ['pending_parts_actions'] })
+    queryClient.invalidateQueries({ queryKey: ['parts'] })
   }
 
   async function confirmReturnDestination(dest: ReceiveDestination) {
@@ -127,8 +105,7 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
     const blocked = !!r.parts?.is_sku_blocked
     if (effective === 'blocked') {
       if (!blocked) return false
-      const hasReplacement = !!(r.parts?.replacement_sku && r.parts.replacement_sku.trim())
-      if (hasReplacement && hiddenBlocked.has(r.part_id)) return false
+      if (r.parts?.hide_from_blocked_table) return false
       return true
     }
     if (blocked) return false
@@ -269,7 +246,7 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
                           variant="ghost"
                           onClick={(e) => { e.stopPropagation(); hideBlockedPart(row.part_id) }}
                           className="text-xs px-3 py-1"
-                          title="הסתר מטבלה זו (מקומי בדפדפן)"
+                          title="הסתר מטבלה זו (לכל המשתמשים)"
                         >
                           הסתר מטבלה זו
                         </Button>
@@ -307,7 +284,7 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
                             variant="ghost"
                             onClick={(e) => { e.stopPropagation(); hideBlockedPart(row.part_id) }}
                             className="text-xs px-3 py-1"
-                            title="הסתר מטבלה זו (מקומי בדפדפן)"
+                            title="הסתר מטבלה זו (לכל המשתמשים)"
                           >
                             הסתר מטבלה זו
                           </Button>
