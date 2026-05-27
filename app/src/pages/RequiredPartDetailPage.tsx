@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../store/auth'
 import { useRequiredPartDetail } from '../hooks/useRequiredPartDetail'
-import { recordWithdrawal, setRequiredPartOrderNumber, updateRequiredPartStatus, updatePart, type ReceiveDestination, type PartUpdates } from '../lib/warehouseActions'
+import { recordWithdrawal, setRequiredPartOrderNumber, updateRequiredPartStatus, updatePart, deleteRequiredPart, type ReceiveDestination, type PartUpdates } from '../lib/warehouseActions'
 import { showToast } from '../lib/toast'
 import { AppHeader } from '../components/AppHeader'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
@@ -201,6 +201,7 @@ export function RequiredPartDetailPage() {
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [receiveOpen, setReceiveOpen] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const canChangeStatus = employee.permissions === 'warehouse' || employee.permissions === 'manager'
 
@@ -265,6 +266,17 @@ export function RequiredPartDetailPage() {
     refresh()
   }
 
+  async function remove() {
+    if (!data) return
+    setBusy(true); setActionError(null)
+    const res = await deleteRequiredPart(employee.employee_number, data.row.id)
+    setBusy(false)
+    if (!res.ok) { setActionError('שגיאה במחיקה'); return }
+    refresh()
+    if (window.history.length > 1) navigate(-1)
+    else navigate('/warehouse')
+  }
+
   if (isLoading) {
     return <><AppHeader subtitle="פריט נדרש" /><main className="max-w-3xl mx-auto p-4 text-sm text-muted">טוען...</main></>
   }
@@ -276,6 +288,10 @@ export function RequiredPartDetailPage() {
   const part = (row as any).parts as Part | null
   const isBlocked = !!part?.is_sku_blocked
   const canDeliver = !isBlocked && (row.status === 'in_stock' || row.status === 'received')
+  // Deletion is unsafe once the row has triggered a withdrawal or is
+  // about to be returned to stock — those paths need to be unwound
+  // through "החזר למלאי" first.
+  const canDelete = canChangeStatus && row.status !== 'delivered' && row.status !== 'not_consumed'
 
   return (
     <>
@@ -495,6 +511,43 @@ export function RequiredPartDetailPage() {
                     : data.withdrawal?.source ? locationLabel(data.withdrawal.source) : '—'}
                 </span>
               </div>
+            </CardBody>
+          </Card>
+        )}
+
+        {canDelete && (
+          <Card>
+            <CardBody className="flex flex-col gap-3">
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">מחיקת הפריט</h3>
+                <p className="text-xs text-muted mt-1">
+                  מסיר את שורת הפריט הזו לגמרי. שימושי כשפריט הוזמן בטעות.
+                  לא ניתן לבטל את הפעולה.
+                </p>
+              </div>
+              {!confirmDelete ? (
+                <div>
+                  <Button
+                    variant="ghost"
+                    onClick={() => setConfirmDelete(true)}
+                    disabled={busy}
+                    className="text-danger hover:bg-danger/10 text-xs px-3 py-1"
+                  >
+                    מחק פריט
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 bg-danger/5 rounded-md p-2 text-sm">
+                  <span className="text-foreground">למחוק את {part?.name ?? 'הפריט'}?</span>
+                  <Button onClick={remove} disabled={busy} className="text-xs px-3 py-1">
+                    {busy ? 'מוחק...' : 'אשר מחיקה'}
+                  </Button>
+                  <Button variant="ghost" onClick={() => setConfirmDelete(false)} className="text-xs px-3 py-1">
+                    ביטול
+                  </Button>
+                </div>
+              )}
+              {actionError && <span className="text-xs text-danger">{actionError}</span>}
             </CardBody>
           </Card>
         )}
