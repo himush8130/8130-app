@@ -308,7 +308,36 @@ export function RequiredPartDetailPage() {
 
         <Card>
           <CardHeader>
-            <h2 className="text-lg font-semibold text-foreground">{part?.name ?? '?'}</h2>
+            <div className="flex items-start justify-between gap-2">
+              <h2 className="text-lg font-semibold text-foreground flex-1 min-w-0">{part?.name ?? '?'}</h2>
+              {canDelete && (
+                <button
+                  type="button"
+                  onClick={() => setConfirmDelete(true)}
+                  disabled={busy}
+                  aria-label="מחק פריט"
+                  title="מחק פריט"
+                  className="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-md text-danger hover:bg-danger/10 disabled:opacity-50"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="w-5 h-5"
+                  >
+                    <path d="M3 6h18" />
+                    <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
+                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                    <path d="M10 11v6" />
+                    <path d="M14 11v6" />
+                  </svg>
+                </button>
+              )}
+            </div>
             {canChangeStatus && part?.sku
               ? <PartSkuEditor
                   partId={part.id}
@@ -515,41 +544,37 @@ export function RequiredPartDetailPage() {
           </Card>
         )}
 
-        {canDelete && (
-          <Card>
-            <CardBody className="flex flex-col gap-3">
-              <div>
-                <h3 className="text-sm font-semibold text-foreground">מחיקת הפריט</h3>
-                <p className="text-xs text-muted mt-1">
-                  מסיר את שורת הפריט הזו לגמרי. שימושי כשפריט הוזמן בטעות.
-                  לא ניתן לבטל את הפעולה.
-                </p>
-              </div>
-              {!confirmDelete ? (
-                <div>
-                  <Button
-                    variant="ghost"
-                    onClick={() => setConfirmDelete(true)}
-                    disabled={busy}
-                    className="text-danger hover:bg-danger/10 text-xs px-3 py-1"
-                  >
-                    מחק פריט
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 bg-danger/5 rounded-md p-2 text-sm">
-                  <span className="text-foreground">למחוק את {part?.name ?? 'הפריט'}?</span>
-                  <Button onClick={remove} disabled={busy} className="text-xs px-3 py-1">
-                    {busy ? 'מוחק...' : 'אשר מחיקה'}
-                  </Button>
-                  <Button variant="ghost" onClick={() => setConfirmDelete(false)} className="text-xs px-3 py-1">
-                    ביטול
-                  </Button>
-                </div>
-              )}
+        {confirmDelete && canDelete && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+            onClick={() => { if (!busy) setConfirmDelete(false) }}
+          >
+            <div
+              className="bg-card border border-border rounded-md shadow-xl max-w-sm w-full p-4 flex flex-col gap-3"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-base font-semibold text-foreground">מחיקת פריט</h3>
+              <p className="text-sm text-foreground">
+                למחוק את <span className="font-medium">{part?.name ?? 'הפריט'}</span>?
+              </p>
+              <p className="text-xs text-danger">פעולה זו אינה הפיכה.</p>
               {actionError && <span className="text-xs text-danger">{actionError}</span>}
-            </CardBody>
-          </Card>
+              <div className="flex gap-2 justify-end">
+                <Button variant="ghost" onClick={() => setConfirmDelete(false)} disabled={busy}>
+                  בטל
+                </Button>
+                <Button
+                  onClick={remove}
+                  disabled={busy}
+                  className="bg-danger hover:bg-danger/90 text-white"
+                >
+                  {busy ? 'מוחק...' : 'מחק פריט'}
+                </Button>
+              </div>
+            </div>
+          </div>
         )}
 
         {receiveOpen && (
