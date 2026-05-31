@@ -38,7 +38,7 @@ export interface CallRequiredPart {
   /** Embedded via PostgREST. is_sku_blocked is optional (some queries
    *  don't request it) but when present the UI treats blocked parts
    *  as having a single status: blocked. */
-  parts?: { name: string; sku: string; quantity: number; is_sku_blocked?: boolean } | null
+  parts?: { name: string; sku: string; quantity: number; is_sku_blocked?: boolean; is_exchange?: boolean } | null
 }
 
 export interface WarehouseOrder {
@@ -58,6 +58,6 @@ export interface PartWithdrawal {
   released_by: number
   withdrawn_at: string
   is_external: boolean
-  /** Embedded via PostgREST: select('*, parts(name, sku)') */
-  parts?: { name: string; sku: string } | null
+  /** Embedded via PostgREST: select('*, parts(name, sku, is_exchange)') */
+  parts?: { name: string; sku: string; is_exchange?: boolean } | null
 }

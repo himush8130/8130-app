@@ -6,6 +6,7 @@ import { useRequiredPartDetail } from '../hooks/useRequiredPartDetail'
 import { recordWithdrawal, setRequiredPartOrderNumber, updateRequiredPartStatus, updatePart, deleteRequiredPart, type ReceiveDestination, type PartUpdates } from '../lib/warehouseActions'
 import { showToast } from '../lib/toast'
 import { AppHeader } from '../components/AppHeader'
+import { ExchangeBadge } from '../components/ExchangeBadge'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
@@ -309,7 +310,10 @@ export function RequiredPartDetailPage() {
         <Card>
           <CardHeader>
             <div className="flex items-start justify-between gap-2">
-              <h2 className="text-lg font-semibold text-foreground flex-1 min-w-0">{part?.name ?? '?'}</h2>
+              <div className="flex items-center gap-2 flex-1 min-w-0 flex-wrap">
+                <h2 className="text-lg font-semibold text-foreground">{part?.name ?? '?'}</h2>
+                <ExchangeBadge active={part?.is_exchange} />
+              </div>
               {canDelete && (
                 <button
                   type="button"

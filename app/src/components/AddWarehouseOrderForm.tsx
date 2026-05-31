@@ -5,6 +5,7 @@ import { useAuthStore } from '../store/auth'
 import { createWarehouseOrder } from '../lib/warehouseActions'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
+import { ExchangeBadge } from './ExchangeBadge'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { Part } from '../types/parts'
 
@@ -107,10 +108,11 @@ export function AddWarehouseOrderForm({
         <ul className="flex flex-col gap-1">
           {drafts.map((d) => (
             <li key={d.key} className="flex items-center justify-between gap-2 text-xs bg-card border border-border rounded px-2 py-1">
-              <div className="truncate">
-                <span className="text-foreground">{d.name}</span>
-                <span className="font-mono text-muted ms-2">{d.sku}</span>
-                <span className="text-muted ms-2">×{d.quantity}</span>
+              <div className="truncate flex items-center gap-2 min-w-0">
+                <span className="text-foreground truncate">{d.name}</span>
+                <ExchangeBadge active={(catalog ?? []).find((p) => p.id === d.partId)?.is_exchange} />
+                <span className="font-mono text-muted">{d.sku}</span>
+                <span className="text-muted">×{d.quantity}</span>
               </div>
               <button type="button" onClick={() => remove(d.key)} className="text-danger hover:underline">
                 הסר
@@ -132,10 +134,13 @@ export function AddWarehouseOrderForm({
               <button
                 type="button"
                 onClick={() => pick(p)}
-                className="w-full text-start px-2 py-1.5 text-xs hover:bg-muted-surface flex items-center justify-between"
+                className="w-full text-start px-2 py-1.5 text-xs hover:bg-muted-surface flex items-center justify-between gap-2"
               >
-                <span className="text-foreground">{p.name}</span>
-                <span className="font-mono text-muted">{p.sku} · במלאי {p.quantity}</span>
+                <span className="flex items-center gap-2 min-w-0">
+                  <span className="text-foreground truncate">{p.name}</span>
+                  <ExchangeBadge active={p.is_exchange} />
+                </span>
+                <span className="font-mono text-muted whitespace-nowrap">{p.sku} · במלאי {p.quantity}</span>
               </button>
             </li>
           ))}

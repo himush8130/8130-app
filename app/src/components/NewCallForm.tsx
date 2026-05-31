@@ -8,6 +8,7 @@ import { createCall } from '../lib/managerActions'
 import { addRequiredPart, createPart } from '../lib/warehouseActions'
 import { Card, CardBody, CardHeader } from './ui/Card'
 import { Button } from './ui/Button'
+import { ExchangeBadge } from './ExchangeBadge'
 import { Input } from './ui/Input'
 import { SpecialtiesPicker } from './SpecialtiesPicker'
 import { OrderClassPanel, type OrderClassPanelHandle } from './OrderClassPanel'
@@ -243,6 +244,9 @@ function DraftPartsEditor({
   drafts:  DraftPart[]
   onChange: (next: DraftPart[]) => void
 }) {
+  // Lookup so a draft pointing at a catalog row can surface flags
+  // like is_exchange in the rendered list below.
+  const catalogById = new Map(catalog.map((p) => [p.id, p]))
   const [skuQ, setSkuQ]   = useState('')
   const [nameQ, setNameQ] = useState('')
   const [qty, setQty]     = useState('1')
@@ -315,11 +319,12 @@ function DraftPartsEditor({
         <ul className="flex flex-col gap-1">
           {drafts.map((d) => (
             <li key={d.key} className="flex items-center justify-between gap-2 text-xs bg-card border border-border rounded px-2 py-1">
-              <div className="truncate">
-                <span className="text-foreground">{d.name}</span>
-                <span className="font-mono text-muted ms-2">{d.sku}</span>
-                <span className="text-muted ms-2">×{d.quantity}</span>
-                {d.partId == null && <span className="text-info ms-2">(מק״ט חדש)</span>}
+              <div className="truncate flex items-center gap-2 min-w-0">
+                <span className="text-foreground truncate">{d.name}</span>
+                <ExchangeBadge active={d.partId ? catalogById.get(d.partId)?.is_exchange : false} />
+                <span className="font-mono text-muted">{d.sku}</span>
+                <span className="text-muted">×{d.quantity}</span>
+                {d.partId == null && <span className="text-info">(מק״ט חדש)</span>}
               </div>
               <button
                 type="button"
@@ -360,10 +365,13 @@ function DraftPartsEditor({
               <button
                 type="button"
                 onClick={() => pick(p)}
-                className="w-full text-start px-2 py-1.5 text-xs hover:bg-muted-surface flex items-center justify-between"
+                className="w-full text-start px-2 py-1.5 text-xs hover:bg-muted-surface flex items-center justify-between gap-2"
               >
-                <span className="text-foreground">{p.name}</span>
-                <span className="font-mono text-muted">{p.sku} · במלאי {p.quantity}</span>
+                <span className="flex items-center gap-2 min-w-0">
+                  <span className="text-foreground truncate">{p.name}</span>
+                  <ExchangeBadge active={p.is_exchange} />
+                </span>
+                <span className="font-mono text-muted whitespace-nowrap">{p.sku} · במלאי {p.quantity}</span>
               </button>
             </li>
           ))}

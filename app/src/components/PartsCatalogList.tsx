@@ -6,6 +6,7 @@ import { Card, CardBody, CardHeader } from './ui/Card'
 import { Badge } from './ui/Badge'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
+import { ExchangeBadge } from './ExchangeBadge'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import { useAuthStore } from '../store/auth'
 import { updatePart, setPartQuantity, createPart, type PartUpdates, type NewPartPayload } from '../lib/warehouseActions'
@@ -316,7 +317,12 @@ function PartRow({ part, canEdit, employeeNumber }: RowProps) {
             <div className="mt-1"><Badge tone="warning">⚠ חסום</Badge></div>
           )}
         </td>
-        <td className="px-2 py-1.5 text-foreground align-top break-words">{part.name}</td>
+        <td className="px-2 py-1.5 text-foreground align-top break-words">
+          <span className="inline-flex items-center gap-1.5 flex-wrap">
+            <span>{part.name}</span>
+            <ExchangeBadge active={part.is_exchange} />
+          </span>
+        </td>
         <td className="px-2 py-1.5 align-top whitespace-nowrap">
           {canEdit && employeeNumber != null
             ? <StockCell part={part} employeeNumber={employeeNumber} low={low} onChange={refresh} />

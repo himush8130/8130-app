@@ -4,6 +4,7 @@ import { Card, CardBody, CardHeader } from './ui/Card'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { StatusBadgeMenu } from './StatusBadgeMenu'
+import { ExchangeBadge } from './ExchangeBadge'
 import { useAuthStore } from '../store/auth'
 import { useParts } from '../hooks/useParts'
 import {
@@ -114,6 +115,7 @@ export function CallPartsSection({ callId, requiredParts, withdrawals }: Props) 
                 >
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-foreground">{w.parts?.name ?? '?'}</span>
+                    <ExchangeBadge active={w.parts?.is_exchange} />
                     <span className="font-mono text-[11px] text-muted">
                       {w.parts?.sku ?? ''}
                     </span>
@@ -247,8 +249,11 @@ function AddPartForm({
                 onClick={() => pick(p)}
                 className="w-full text-start px-3 py-2 hover:bg-muted-surface text-sm flex items-center justify-between gap-2"
               >
-                <span className="text-foreground">{p.name}</span>
-                <span className="font-mono text-[11px] text-muted">
+                <span className="flex items-center gap-2 min-w-0">
+                  <span className="text-foreground truncate">{p.name}</span>
+                  <ExchangeBadge active={p.is_exchange} />
+                </span>
+                <span className="font-mono text-[11px] text-muted whitespace-nowrap">
                   {p.sku} · במלאי: {p.quantity}
                 </span>
               </button>
@@ -394,6 +399,7 @@ function RequiredPartRow({
           <span className="text-sm text-foreground truncate">
             {row.parts?.name ?? '?'}
           </span>
+          <ExchangeBadge active={row.parts?.is_exchange} />
           <span className="font-mono text-[11px] text-muted">
             {row.parts?.sku ?? ''}
           </span>

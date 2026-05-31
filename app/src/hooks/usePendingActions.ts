@@ -14,7 +14,7 @@ export interface PendingPart extends CallRequiredPart {
   awaiting_receipt_since: string | null
   service_calls?: { display_id: string; vehicle_number: string | null } | null
   warehouse_orders?: { display_id: string } | null
-  parts?: { name: string; sku: string; quantity: number; is_sku_blocked?: boolean; replacement_sku?: string | null; hide_from_blocked_table?: boolean } | null
+  parts?: { name: string; sku: string; quantity: number; is_sku_blocked?: boolean; replacement_sku?: string | null; hide_from_blocked_table?: boolean; is_exchange?: boolean } | null
   /** Embedded withdrawal (1:1 via required_part_id). Useful only for
    *  the 'delivered' variant where the table needs location + date. */
   part_withdrawals?: Array<{
@@ -37,7 +37,7 @@ export function usePendingActions() {
         .from('call_required_parts')
         .select(`
           *,
-          parts(name, quantity, sku, is_sku_blocked, replacement_sku, hide_from_blocked_table),
+          parts(name, quantity, sku, is_sku_blocked, replacement_sku, hide_from_blocked_table, is_exchange),
           service_calls(display_id, vehicle_number),
           warehouse_orders(display_id),
           part_withdrawals(
