@@ -252,6 +252,15 @@ export function RequiredPartDetailPage() {
     refresh()
   }
 
+  async function toggleExchange() {
+    if (!data?.row.part_id) return
+    const next = !((data.row as any).parts?.is_exchange)
+    setBusy(true)
+    await updatePart(employee.employee_number, data.row.part_id, { is_exchange: next })
+    setBusy(false)
+    refresh()
+  }
+
   async function advance(next: RequiredPartStatus, receive?: ReceiveDestination) {
     setBusy(true); setActionError(null)
     const res = await updateRequiredPartStatus(employee.employee_number, data!.row.id, next, null, receive)
@@ -406,6 +415,24 @@ export function RequiredPartDetailPage() {
                   initial={(row as any).order_number ?? null}
                   onSaved={refresh}
                 />
+              </div>
+            )}
+            {canChangeStatus && (
+              <div className="col-span-2">
+                <div className="text-xs text-muted mb-1">סימון פריט בתמורה</div>
+                <button
+                  type="button"
+                  onClick={toggleExchange}
+                  disabled={busy}
+                  aria-pressed={!!part?.is_exchange}
+                  className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-md border transition-colors disabled:opacity-60"
+                  style={part?.is_exchange
+                    ? { background: '#f3e8ff', color: '#5b21b6', borderColor: '#a78bfa' }
+                    : { background: '#ffffff', color: '#374151', borderColor: '#d1d5db' }}
+                  title={part?.is_exchange ? 'בטל סימון בתמורה' : 'סמן כפריט בתמורה'}
+                >
+                  בתמורה
+                </button>
               </div>
             )}
           </CardBody>
