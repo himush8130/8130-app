@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '../store/auth'
 import { useTechnicianCalls } from '../hooks/useTechnicianCalls'
 import { useVehiclesMap } from '../hooks/useVehicles'
+import { useVehicleCallStats } from '../hooks/useVehicleCallStats'
 import { useCallsPartsStatus } from '../hooks/useCallsPartsStatus'
 import { useCallsWithComments } from '../hooks/useCallsWithComments'
 import { supabase } from '../lib/supabase'
@@ -62,6 +63,7 @@ export function TechnicianByCompanyPage() {
   const { data: calls, isLoading, error } = isManager ? allActiveQuery : techQuery
 
   const vehiclesMap = useVehiclesMap()
+  const { data: vehicleStats } = useVehicleCallStats()
   const { data: partsMap } = useCallsPartsStatus()
   const { data: commentsSet } = useCallsWithComments()
 
@@ -248,6 +250,7 @@ export function TechnicianByCompanyPage() {
                       {vehiclesForCompany.map(({ vehicleNumber, count }) => {
                         const v = vehiclesMap.get(vehicleNumber)
                         const active = selectedVehicle === vehicleNumber
+                        const disabled = !!vehicleStats?.get(vehicleNumber)?.disabled
                         return (
                           <button
                             key={vehicleNumber}
@@ -257,13 +260,22 @@ export function TechnicianByCompanyPage() {
                             className={`rounded-md px-3 py-3 transition-colors text-start flex items-center justify-between gap-3 ${
                               active
                                 ? 'bg-primary/10 border-2 border-primary'
-                                : 'bg-card border border-border hover:bg-muted-surface'
+                                : disabled
+                                  ? 'bg-danger/5 border border-danger/70 ring-1 ring-danger/40 hover:bg-danger/10'
+                                  : 'bg-card border border-border hover:bg-muted-surface'
                             }`}
                           >
                             <div className="flex flex-col min-w-0">
-                              <span className="text-base font-semibold text-foreground truncate">
-                                {vehicleNumber}
-                              </span>
+                              <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                                <span className="text-base font-semibold text-foreground truncate">
+                                  {vehicleNumber}
+                                </span>
+                                {disabled && (
+                                  <span className="text-[10px] font-bold text-danger bg-danger/10 border border-danger/40 px-1.5 py-0.5 rounded whitespace-nowrap">
+                                    ⛔ מושבת
+                                  </span>
+                                )}
+                              </div>
                               {v?.type_name && (
                                 <span className="text-xs text-muted truncate">{v.type_name}</span>
                               )}

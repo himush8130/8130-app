@@ -60,44 +60,42 @@ export function VehiclePicker() {
     <Card>
       <ComponentBadge id={3022} />
       <CardHeader>
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <h3 className="text-sm font-semibold text-foreground">
-            {category
-              ? `${CATEGORIES.find((c) => c.key === category)?.label} · ${filtered.length}`
-              : 'בחר תחום'}
-          </h3>
-          {category && (
-            <button
-              type="button"
-              onClick={() => { setCategory(null); setFilter('') }}
-              className="text-xs text-primary hover:underline"
-            >
-              ← חזור לתחומים
-            </button>
-          )}
-        </div>
+        <h3 className="text-sm font-semibold text-foreground">
+          {category
+            ? `${CATEGORIES.find((c) => c.key === category)?.label} · ${filtered.length}`
+            : 'בחר תחום'}
+        </h3>
       </CardHeader>
 
-      {!category && (
-        <CardBody>
-          <div className="grid grid-cols-2 gap-2">
-            {CATEGORIES.map((c) => (
+      {/* Category buttons stay visible at all times. Clicking the
+          active category collapses the list back to the
+          category-only view. */}
+      <CardBody>
+        <div className="grid grid-cols-2 gap-2">
+          {CATEGORIES.map((c) => {
+            const active = category === c.key
+            return (
               <button
                 key={c.key}
                 type="button"
-                onClick={() => setCategory(c.key)}
-                className="flex flex-col items-center justify-center px-4 py-6 rounded-md border border-border bg-card hover:bg-muted-surface transition-colors"
+                onClick={() => { setCategory(active ? null : c.key); setFilter('') }}
+                aria-expanded={active}
+                className={`flex flex-col items-center justify-center px-4 py-6 rounded-md transition-colors ${
+                  active
+                    ? 'bg-primary/10 border-2 border-primary text-foreground'
+                    : 'bg-card border border-border text-foreground hover:bg-muted-surface'
+                }`}
               >
-                <span className="text-base font-semibold text-foreground">{c.label}</span>
+                <span className="text-base font-semibold">{c.label}</span>
                 <span className="text-xs text-muted mt-1">{counts[c.key] ?? 0} כלים</span>
               </button>
-            ))}
-          </div>
-        </CardBody>
-      )}
+            )
+          })}
+        </div>
+      </CardBody>
 
       {category && (
-        <CardBody className="flex flex-col gap-3">
+        <CardBody className="flex flex-col gap-3 pt-0">
           <Input
             name="vehicle_search"
             label="חיפוש (מספר / סוג / פלוגה)"
