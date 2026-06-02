@@ -112,8 +112,6 @@ export function TechnicianByCompanyPage() {
     }
     setSearchParams(sp, { replace: true })
   }
-  function setSelectedCompany(next: string | null) { updateParams({ company: next, vehicle: null }) }
-  function setSelectedVehicle(next: string | null) { updateParams({ vehicle: next }) }
 
   // Group calls by sub_department. NO_COMPANY catches both
   // "vehicle_number is null" and "vehicle exists but sub_department
@@ -356,7 +354,7 @@ export function TechnicianByCompanyPage() {
                   </span>
                   <button
                     type="button"
-                    onClick={() => setSelectedVehicle(null)}
+                    onClick={() => updateParams({ vehicle: null })}
                     className="text-xs text-primary hover:underline"
                   >
                     חזרה לטנקים
