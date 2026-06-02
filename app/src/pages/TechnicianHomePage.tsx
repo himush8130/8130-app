@@ -21,20 +21,17 @@ export function TechnicianHomePage() {
   const isManager = employee.permissions === 'manager'
   const [showForm, setShowForm] = useState(false)
 
-  // The rule is: whoever has a profession assigned sees only that
-  // profession's calls — even a manager-permission user who carries
-  // a profession (e.g. lead electrician). The wide "see everything"
-  // view is reserved for managers without a profession.
-  // This closes the bug where employee 8451889 (electrician with
-  // manager permissions) saw מכונאות calls in the technician view.
-  const hasProfession = !!employee.profession_name
+  // Permission-driven: managers always see every active call (they're
+  // a contact on every call per useCallContacts). Technicians see only
+  // calls in their own profession + specialty. Warehouse users land
+  // here rarely; they get the wide view too.
   const techQuery = useTechnicianCalls(
-    hasProfession ? employee.profession_name : null,
+    !isManager ? employee.profession_name : null,
     employee.specialty ?? null,
   )
   const allActiveQuery = useQuery({
     queryKey: ['service_calls', 'active'],
-    enabled: isManager && !hasProfession,
+    enabled: isManager,
     queryFn: async (): Promise<ServiceCall[]> => {
       const { data, error } = await supabase
         .from('service_calls')
@@ -46,19 +43,19 @@ export function TechnicianHomePage() {
     },
   })
 
-  const { data: calls, isLoading, error } = hasProfession ? techQuery : allActiveQuery
+  const { data: calls, isLoading, error } = isManager ? allActiveQuery : techQuery
   const { data: partsMap } = useCallsPartsStatus()
   const { data: commentsSet } = useCallsWithComments()
   const vehiclesMap = useVehiclesMap()
 
   return (
     <>
-      <AppHeader subtitle={!hasProfession ? 'תצוגת טכנאי — כל הקריאות הפעילות' : 'הקריאות שלי'} />
+      <AppHeader subtitle={isManager ? 'תצוגת טכנאי — כל הקריאות הפעילות' : 'הקריאות שלי'} />
 
       <main className="max-w-3xl mx-auto p-4">
         <ComponentBadge id={6001} />
 
-        {isManager && !hasProfession && (
+        {isManager && (
           <p className="text-xs text-muted mb-3">
             אתה צופה במצב טכנאי. מוצגות כל הקריאות הפעילות בכל המקצועות.
           </p>

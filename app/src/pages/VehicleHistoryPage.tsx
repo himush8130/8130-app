@@ -44,18 +44,16 @@ export function VehicleHistoryPage() {
   const isTank = data?.vehicle?.type_name === 'טנק'
   const isManager = employee?.permissions === 'manager'
 
-  // An employee with a profession assigned only ever sees calls in
-  // that profession — regardless of their permissions level. For tank
-  // calls (profession='טנק') the call's specialties list is checked
-  // against the employee's specialty (mirrors useCallContacts so a
-  // tech only sees calls they'd be a contact on). Managers without
-  // a profession keep the full cross-profession view.
+  // Technicians see only calls in their own profession; for tank calls
+  // their specialty also has to match (mirrors useCallContacts).
+  // Managers and warehouse keep the full cross-profession view —
+  // they're considered a contact on every call.
   const visibleCalls = useMemo(() => {
     const all = data?.calls ?? []
     let list = all
-    const empProf = employee?.profession_name ?? null
-    const empSpec = employee?.specialty ?? null
-    if (empProf) {
+    if (employee?.permissions === 'technician' && employee.profession_name) {
+      const empProf = employee.profession_name
+      const empSpec = employee.specialty ?? null
       list = list.filter((c) => {
         if (c.profession_name !== empProf) return false
         if (empProf === 'טנק' && empSpec) {
@@ -69,7 +67,7 @@ export function VehicleHistoryPage() {
       list = list.filter((c) => (c.specialties ?? []).includes(filter))
     }
     return list
-  }, [data?.calls, isTank, filter, employee?.profession_name, employee?.specialty])
+  }, [data?.calls, isTank, filter, employee?.permissions, employee?.profession_name, employee?.specialty])
 
   // Calls already arrive sorted newest-first; partition into 3 buckets.
   const buckets = useMemo(() => {

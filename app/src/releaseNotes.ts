@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'תוקן באג: טכנאי טנק התמחות חשמל ראה קריאות עם specialties=מכונאות. הסינון הורחב: בקריאות טנק עם specialties — נדרשת התאמה של specialty של הטכנאי (כמו ב-useCallContacts). בדף "טכנאי - חדש": צבע ייחודי לכל פלוגה (אינדקס סדור על פלטה של 16 גוונים במקום hash שהתנגש). מצב הניווט (פלוגה+טנק נבחרים) נשמר ב-URL כך שלחיצה על "חזור" מקריאה משחזרת בדיוק את המסך שממנו יצאת.'
+export const LATEST_NOTE = 'תיקון נסיגה: מנהל חזר לראות את כל הקריאות הפעילות בדפי הטכנאי. הסינון לפי profession+specialty חל רק על משתמשים עם הרשאת technician — מנהל ומחסנאי תמיד רואים הכל (כמו ב-useCallContacts).'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build

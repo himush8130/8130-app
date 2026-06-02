@@ -63,19 +63,14 @@ const COMPANY_PALETTE: Array<{ bg: string; border: string; text: string }> = [
 export function TechnicianByCompanyPage() {
   const employee = useAuthStore((s) => s.employee)!
   const isManager = employee.permissions === 'manager'
-  // Filter calls by profession whenever the employee has one — even
-  // a manager-permission user who carries a profession only sees that
-  // profession's calls here. The "view everything" fallback applies
-  // to managers with no profession set.
-  const hasProfession = !!employee.profession_name
 
   const techQuery = useTechnicianCalls(
-    hasProfession ? employee.profession_name : null,
+    !isManager ? employee.profession_name : null,
     employee.specialty ?? null,
   )
   const allActiveQuery = useQuery({
     queryKey: ['service_calls', 'active'],
-    enabled: isManager && !hasProfession,
+    enabled: isManager,
     queryFn: async (): Promise<ServiceCall[]> => {
       const { data, error } = await supabase
         .from('service_calls')
@@ -86,7 +81,7 @@ export function TechnicianByCompanyPage() {
       return (data ?? []) as ServiceCall[]
     },
   })
-  const { data: calls, isLoading, error } = hasProfession ? techQuery : allActiveQuery
+  const { data: calls, isLoading, error } = isManager ? allActiveQuery : techQuery
 
   const vehiclesMap = useVehiclesMap()
   const { data: vehicleStats } = useVehicleCallStats()
@@ -181,7 +176,7 @@ export function TechnicianByCompanyPage() {
 
   return (
     <>
-      <AppHeader subtitle={!hasProfession ? 'תצוגת טכנאי לפי פלוגה — כל המקצועות' : 'תצוגה לפי פלוגה'} />
+      <AppHeader subtitle={isManager ? 'תצוגת טכנאי לפי פלוגה — כל המקצועות' : 'תצוגה לפי פלוגה'} />
       <main className="max-w-3xl mx-auto p-4 flex flex-col gap-4 pb-24">
         <ComponentBadge id={6020} />
 
@@ -205,7 +200,7 @@ export function TechnicianByCompanyPage() {
               <CardBody className="flex flex-col gap-3">
                 <div className="flex items-baseline justify-between gap-3">
                   <span className="text-sm text-muted">
-                    {hasProfession ? `סה״כ קריאות פעילות ב${employee.profession_name}` : 'סה״כ קריאות פעילות'}
+                    {!isManager && employee.profession_name ? `סה״כ קריאות פעילות ב${employee.profession_name}` : 'סה״כ קריאות פעילות'}
                   </span>
                   <span className="text-3xl font-bold text-foreground leading-none">{totalCalls}</span>
                 </div>
