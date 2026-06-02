@@ -20,14 +20,16 @@ export function VehiclePicker() {
   const [filter, setFilter] = useState('')
   // Domain selection is mirrored to ?domain= so the browser back button
   // from /vehicle/<n> lands on the list of that domain rather than
-  // skipping it.
+  // skipping it. Default landing is "tanks" — that's the lookup users
+  // start with most of the time. Explicit collapse uses ?domain=none.
   const [searchParams, setSearchParams] = useSearchParams()
   const domainParam = searchParams.get('domain')
-  const category = domainParam && CATEGORY_KEYS.has(domainParam) ? domainParam : null
+  const category = domainParam === 'none'
+    ? null
+    : (domainParam && CATEGORY_KEYS.has(domainParam) ? domainParam : 'tanks')
   function setCategory(next: string | null) {
     const sp = new URLSearchParams(searchParams)
-    if (next) sp.set('domain', next)
-    else      sp.delete('domain')
+    sp.set('domain', next ?? 'none')
     setSearchParams(sp)
   }
 
