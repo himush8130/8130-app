@@ -168,43 +168,55 @@ export function TechnicianByCompanyPage() {
                   <p className="text-sm text-muted text-center py-4">אין כרגע קריאות פעילות.</p>
                 )}
 
-                {(companies.length > 0 || hasOrphans) && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {companies.map((name) => {
-                      const count = groupedByCompany.get(name)?.length ?? 0
-                      const active = selectedCompany === name
-                      return (
+                {(companies.length > 0 || hasOrphans) && (() => {
+                  // Force every tile onto a single row, no matter how
+                  // many companies exist — each column shrinks to fit.
+                  // minmax(0, 1fr) is what stops long labels from
+                  // pushing the row wider than the container.
+                  const tileCount = companies.length + (hasOrphans ? 1 : 0)
+                  return (
+                    <div
+                      className="grid gap-1.5"
+                      style={{ gridTemplateColumns: `repeat(${tileCount}, minmax(0, 1fr))` }}
+                    >
+                      {companies.map((name) => {
+                        const count = groupedByCompany.get(name)?.length ?? 0
+                        const active = selectedCompany === name
+                        return (
+                          <button
+                            key={name}
+                            type="button"
+                            onClick={() => pickCompany(name)}
+                            aria-expanded={active}
+                            title={name}
+                            className={`min-w-0 rounded-md transition-colors flex flex-col items-center justify-center gap-0.5 px-1 py-2 text-center bg-info/10 text-info border-info hover:bg-info/15 ${
+                              active ? 'border-[3px] font-semibold' : 'border'
+                            }`}
+                          >
+                            <span className="text-[11px] leading-tight truncate w-full">{name}</span>
+                            <span className="text-lg font-bold leading-none">{count}</span>
+                          </button>
+                        )
+                      })}
+                      {hasOrphans && (
                         <button
-                          key={name}
                           type="button"
-                          onClick={() => pickCompany(name)}
-                          aria-expanded={active}
-                          className={`aspect-square rounded-md transition-colors flex flex-col items-center justify-center gap-1 px-2 text-center bg-info/10 text-info border-info hover:bg-info/15 ${
-                            active ? 'border-[3px] font-semibold' : 'border'
+                          onClick={() => pickCompany(NO_COMPANY)}
+                          aria-expanded={selectedCompany === NO_COMPANY}
+                          title="ללא שיוך פלוגה"
+                          className={`min-w-0 rounded-md transition-colors flex flex-col items-center justify-center gap-0.5 px-1 py-2 text-center bg-muted-surface text-muted border-border hover:bg-muted-surface/80 ${
+                            selectedCompany === NO_COMPANY ? 'border-[3px] font-semibold' : 'border'
                           }`}
                         >
-                          <span className="text-sm leading-tight">{name}</span>
-                          <span className="text-2xl font-bold leading-none">{count}</span>
+                          <span className="text-[10px] leading-tight truncate w-full">ללא שיוך</span>
+                          <span className="text-lg font-bold leading-none">
+                            {groupedByCompany.get(NO_COMPANY)?.length ?? 0}
+                          </span>
                         </button>
-                      )
-                    })}
-                    {hasOrphans && (
-                      <button
-                        type="button"
-                        onClick={() => pickCompany(NO_COMPANY)}
-                        aria-expanded={selectedCompany === NO_COMPANY}
-                        className={`aspect-square rounded-md transition-colors flex flex-col items-center justify-center gap-1 px-2 text-center bg-muted-surface text-muted border-border hover:bg-muted-surface/80 ${
-                          selectedCompany === NO_COMPANY ? 'border-[3px] font-semibold' : 'border'
-                        }`}
-                      >
-                        <span className="text-xs leading-tight">ללא שיוך פלוגה</span>
-                        <span className="text-2xl font-bold leading-none">
-                          {groupedByCompany.get(NO_COMPANY)?.length ?? 0}
-                        </span>
-                      </button>
-                    )}
-                  </div>
-                )}
+                      )}
+                    </div>
+                  )
+                })()}
               </CardBody>
             </Card>
 

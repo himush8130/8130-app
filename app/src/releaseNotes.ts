@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'הקישור לתצוגה לפי פלוגה עבר ל-tab "טכנאי - חדש" בשורת תצוגות ההדר (לצד מנהל/מחסנאי/טכנאי). תוקן באג שבו מנהל שנכנס לדף ראה 0 קריאות פעילות — עכשיו מנהל רואה את כל הקריאות הפעילות בכל המקצועות.'
+export const LATEST_NOTE = 'בדף "טכנאי - חדש" כפתורי הפלוגות נכנסים כולם לשורה אחת ומתכווצים אוטומטית לפי המספר שלהם (במקום grid של 2-3 עמודות עם aspect-square).'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build
