@@ -64,16 +64,16 @@ function tintForCompany(name: string) {
 export function TechnicianByCompanyPage() {
   const employee = useAuthStore((s) => s.employee)!
   const isManager = employee.permissions === 'manager'
+  // Filter calls by profession whenever the employee has one — even
+  // a manager-permission user who carries a profession only sees that
+  // profession's calls here. The "view everything" fallback applies
+  // to managers with no profession set.
+  const hasProfession = !!employee.profession_name
 
-  // Manager visiting this view sees all active calls across every
-  // profession. useTechnicianCalls is gated on a non-null profession,
-  // so a manager would otherwise see an empty list (the bug that
-  // surfaced 0 active calls). Mirror TechnicianHomePage and run a
-  // wide query for managers.
-  const techQuery = useTechnicianCalls(isManager ? null : employee.profession_name)
+  const techQuery = useTechnicianCalls(hasProfession ? employee.profession_name : null)
   const allActiveQuery = useQuery({
     queryKey: ['service_calls', 'active'],
-    enabled: isManager,
+    enabled: isManager && !hasProfession,
     queryFn: async (): Promise<ServiceCall[]> => {
       const { data, error } = await supabase
         .from('service_calls')
@@ -84,7 +84,7 @@ export function TechnicianByCompanyPage() {
       return (data ?? []) as ServiceCall[]
     },
   })
-  const { data: calls, isLoading, error } = isManager ? allActiveQuery : techQuery
+  const { data: calls, isLoading, error } = hasProfession ? techQuery : allActiveQuery
 
   const vehiclesMap = useVehiclesMap()
   const { data: vehicleStats } = useVehicleCallStats()
@@ -161,7 +161,7 @@ export function TechnicianByCompanyPage() {
 
   return (
     <>
-      <AppHeader subtitle={isManager ? 'תצוגת טכנאי לפי פלוגה — כל המקצועות' : 'תצוגה לפי פלוגה'} />
+      <AppHeader subtitle={!hasProfession ? 'תצוגת טכנאי לפי פלוגה — כל המקצועות' : 'תצוגה לפי פלוגה'} />
       <main className="max-w-3xl mx-auto p-4 flex flex-col gap-4 pb-24">
         <ComponentBadge id={6020} />
 
@@ -185,7 +185,7 @@ export function TechnicianByCompanyPage() {
               <CardBody className="flex flex-col gap-3">
                 <div className="flex items-baseline justify-between gap-3">
                   <span className="text-sm text-muted">
-                    {isManager ? 'סה״כ קריאות פעילות' : `סה״כ קריאות פעילות ב${employee.profession_name ?? 'מקצוע שלך'}`}
+                    {hasProfession ? `סה״כ קריאות פעילות ב${employee.profession_name}` : 'סה״כ קריאות פעילות'}
                   </span>
                   <span className="text-3xl font-bold text-foreground leading-none">{totalCalls}</span>
                 </div>
@@ -308,6 +308,9 @@ export function TechnicianByCompanyPage() {
                               </div>
                               {v?.type_name && (
                                 <span className="text-xs text-muted truncate">{v.type_name}</span>
+                              )}
+                              {v?.location && (
+                                <span className="text-xs text-muted truncate">📍 {v.location}</span>
                               )}
                             </div>
                             <span className="text-xs text-muted whitespace-nowrap">
