@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '../store/auth'
 import { useTechnicianCalls } from '../hooks/useTechnicianCalls'
@@ -58,12 +59,20 @@ export function TechnicianHomePage() {
           </p>
         )}
 
-        <div className="mb-3">
+        <div className="mb-3 flex gap-2 flex-wrap items-center">
           {!showForm ? (
-            <Button onClick={() => setShowForm(true)}>
-              <ComponentBadge id={6011} />
-              + פתח תקלה חדשה
-            </Button>
+            <>
+              <Button onClick={() => setShowForm(true)}>
+                <ComponentBadge id={6011} />
+                + פתח תקלה חדשה
+              </Button>
+              <Link
+                to="/technician/by-company"
+                className="text-xs px-3 py-1.5 rounded-md border border-border bg-card text-foreground hover:bg-muted-surface"
+              >
+                תצוגה לפי פלוגה →
+              </Link>
+            </>
           ) : (
             <NewCallForm onCancel={() => setShowForm(false)} onCreated={() => setShowForm(false)} />
           )}

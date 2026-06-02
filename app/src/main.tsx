@@ -12,6 +12,7 @@ import { registerServiceWorker } from './lib/registerSW'
 
 // Lazy-loaded routes — keeps initial bundle small for faster mobile load.
 const TechnicianHomePage      = lazy(() => import('./pages/TechnicianHomePage').then(m => ({ default: m.TechnicianHomePage })))
+const TechnicianByCompanyPage = lazy(() => import('./pages/TechnicianByCompanyPage').then(m => ({ default: m.TechnicianByCompanyPage })))
 const CallDetailPage          = lazy(() => import('./pages/CallDetailPage').then(m => ({ default: m.CallDetailPage })))
 const ManagerHomePage         = lazy(() => import('./pages/ManagerHomePage').then(m => ({ default: m.ManagerHomePage })))
 const AnomalyQueuePage        = lazy(() => import('./pages/AnomalyQueuePage').then(m => ({ default: m.AnomalyQueuePage })))
@@ -66,6 +67,13 @@ createRoot(document.getElementById('root')!).render(
             <Resilient scope="technician">
               <ProtectedRoute allow={['technician', 'manager']}>
                 <TechnicianHomePage />
+              </ProtectedRoute>
+            </Resilient>
+          } />
+          <Route path="/technician/by-company" element={
+            <Resilient scope="technician-by-company">
+              <ProtectedRoute allow={['technician', 'manager']}>
+                <TechnicianByCompanyPage />
               </ProtectedRoute>
             </Resilient>
           } />
