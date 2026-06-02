@@ -20,6 +20,30 @@ const ACTIVE_STATUSES = ['in_treatment', 'waiting_for_parts']
 // Kept as a real value so React keys stay stable; users never see it.
 const NO_COMPANY = '__no_company__'
 
+// Deterministic per-company tint. Same palette pattern used for
+// note authors — the company name hashes to a fixed swatch, so a
+// glance gives the user a stable visual anchor per פלוגה.
+const COMPANY_PALETTE: Array<{ bg: string; border: string; text: string }> = [
+  { bg: '#fbe9df', border: '#c43d3d', text: '#7c2c06' }, // red
+  { bg: '#faf2d8', border: '#c9941e', text: '#7e6017' }, // gold
+  { bg: '#e0ebf5', border: '#4a7a9e', text: '#1f4a6e' }, // blue
+  { bg: '#eef4e9', border: '#4a7d3e', text: '#234d18' }, // green
+  { bg: '#f0e6f7', border: '#7a4d8c', text: '#46285a' }, // purple
+  { bg: '#fbeee0', border: '#c9a96e', text: '#6d5320' }, // sand
+  { bg: '#dde6f3', border: '#2c5282', text: '#1a3460' }, // navy
+  { bg: '#eef0e3', border: '#6b7e3e', text: '#3b4720' }, // olive
+]
+
+function hashStr(s: string): number {
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0
+  return Math.abs(h)
+}
+
+function tintForCompany(name: string) {
+  return COMPANY_PALETTE[hashStr(name) % COMPANY_PALETTE.length]
+}
+
 /**
  * Technician drill-down by company → vehicle → call.
  *
@@ -184,6 +208,7 @@ export function TechnicianByCompanyPage() {
                       {companies.map((name) => {
                         const count = groupedByCompany.get(name)?.length ?? 0
                         const active = selectedCompany === name
+                        const tint = tintForCompany(name)
                         return (
                           <button
                             key={name}
@@ -191,9 +216,14 @@ export function TechnicianByCompanyPage() {
                             onClick={() => pickCompany(name)}
                             aria-expanded={active}
                             title={name}
-                            className={`min-w-0 rounded-md transition-colors flex flex-col items-center justify-center gap-0.5 px-1 py-2 text-center bg-info/10 text-info border-info hover:bg-info/15 ${
+                            className={`min-w-0 rounded-md transition-colors flex flex-col items-center justify-center gap-0.5 px-1 py-2 text-center ${
                               active ? 'border-[3px] font-semibold' : 'border'
                             }`}
+                            style={{
+                              background:   tint.bg,
+                              color:        tint.text,
+                              borderColor:  tint.border,
+                            }}
                           >
                             <span className="text-[11px] leading-tight truncate w-full">{name}</span>
                             <span className="text-lg font-bold leading-none">{count}</span>

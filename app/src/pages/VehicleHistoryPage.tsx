@@ -44,12 +44,20 @@ export function VehicleHistoryPage() {
   const isTank = data?.vehicle?.type_name === 'טנק'
   const isManager = employee?.permissions === 'manager'
 
-  // For tanks, allow filtering by specialty banner.
+  // A technician should only ever see calls in their own profession,
+  // even when drilling into a vehicle through ספר הרק״ם. Manager and
+  // warehouse keep the full cross-profession view.
   const visibleCalls = useMemo(() => {
     const all = data?.calls ?? []
-    if (!isTank || filter === 'all') return all
-    return all.filter((c) => (c.specialties ?? []).includes(filter))
-  }, [data?.calls, isTank, filter])
+    let list = all
+    if (employee?.permissions === 'technician' && employee?.profession_name) {
+      list = list.filter((c) => c.profession_name === employee.profession_name)
+    }
+    if (isTank && filter !== 'all') {
+      list = list.filter((c) => (c.specialties ?? []).includes(filter))
+    }
+    return list
+  }, [data?.calls, isTank, filter, employee?.permissions, employee?.profession_name])
 
   // Calls already arrive sorted newest-first; partition into 3 buckets.
   const buckets = useMemo(() => {
