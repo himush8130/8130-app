@@ -1,15 +1,19 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '../store/auth'
 import { useTechnicianCalls } from '../hooks/useTechnicianCalls'
 import { useVehiclesMap } from '../hooks/useVehicles'
 import { useCallsPartsStatus } from '../hooks/useCallsPartsStatus'
 import { useCallsWithComments } from '../hooks/useCallsWithComments'
+import { supabase } from '../lib/supabase'
 import { AppHeader } from '../components/AppHeader'
 import { CallCard } from '../components/CallCard'
 import { Card, CardBody } from '../components/ui/Card'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { ServiceCall } from '../types/db'
+
+const ACTIVE_STATUSES = ['in_treatment', 'waiting_for_parts']
 
 // Sentinel for vehicles that aren't tagged with a sub_department.
 // Kept as a real value so React keys stay stable; users never see it.
@@ -36,11 +40,26 @@ export function TechnicianByCompanyPage() {
   const employee = useAuthStore((s) => s.employee)!
   const isManager = employee.permissions === 'manager'
 
-  // Manager visiting this view sees all active professions — same
-  // convention the technician home page already uses.
-  const { data: calls, isLoading, error } = useTechnicianCalls(
-    isManager ? null : employee.profession_name,
-  )
+  // Manager visiting this view sees all active calls across every
+  // profession. useTechnicianCalls is gated on a non-null profession,
+  // so a manager would otherwise see an empty list (the bug that
+  // surfaced 0 active calls). Mirror TechnicianHomePage and run a
+  // wide query for managers.
+  const techQuery = useTechnicianCalls(isManager ? null : employee.profession_name)
+  const allActiveQuery = useQuery({
+    queryKey: ['service_calls', 'active'],
+    enabled: isManager,
+    queryFn: async (): Promise<ServiceCall[]> => {
+      const { data, error } = await supabase
+        .from('service_calls')
+        .select('*')
+        .in('status', ACTIVE_STATUSES)
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return (data ?? []) as ServiceCall[]
+    },
+  })
+  const { data: calls, isLoading, error } = isManager ? allActiveQuery : techQuery
 
   const vehiclesMap = useVehiclesMap()
   const { data: partsMap } = useCallsPartsStatus()

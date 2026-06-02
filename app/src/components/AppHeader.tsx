@@ -7,19 +7,20 @@ import { ComponentBadge } from '../feedback/ComponentBadge'
 import { hardReload } from '../lib/hardReload'
 import { BUILD_TIME } from '../releaseNotes'
 
-type ViewKey = 'manager' | 'vehicles' | 'warehouse' | 'technician'
+type ViewKey = 'manager' | 'vehicles' | 'warehouse' | 'technician' | 'technician_new'
 
 const ALL_VIEWS: Array<{ key: ViewKey; to: string; label: string; matches: (p: string) => boolean }> = [
-  { key: 'manager',    to: '/manager',          label: 'מנהל',          matches: (p) => p.startsWith('/manager') && !p.startsWith('/manager/vehicles') },
-  { key: 'vehicles',   to: '/manager/vehicles', label: 'ספר רק״ם/כלי',  matches: (p) => p.startsWith('/manager/vehicles') },
-  { key: 'warehouse',  to: '/warehouse',        label: 'מחסנאי',        matches: (p) => p.startsWith('/warehouse') },
-  { key: 'technician', to: '/technician',       label: 'טכנאי',         matches: (p) => p.startsWith('/technician') },
+  { key: 'manager',        to: '/manager',                 label: 'מנהל',           matches: (p) => p.startsWith('/manager') && !p.startsWith('/manager/vehicles') },
+  { key: 'vehicles',       to: '/manager/vehicles',        label: 'ספר רק״ם/כלי',   matches: (p) => p.startsWith('/manager/vehicles') },
+  { key: 'warehouse',      to: '/warehouse',               label: 'מחסנאי',         matches: (p) => p.startsWith('/warehouse') },
+  { key: 'technician',     to: '/technician',              label: 'טכנאי',          matches: (p) => p === '/technician' || (p.startsWith('/technician') && !p.startsWith('/technician/by-company')) },
+  { key: 'technician_new', to: '/technician/by-company',   label: 'טכנאי - חדש',    matches: (p) => p.startsWith('/technician/by-company') },
 ]
 
 const VIEWS_BY_ROLE: Record<'manager' | 'warehouse' | 'technician', ViewKey[]> = {
-  manager:    ['manager', 'vehicles', 'warehouse', 'technician'],
+  manager:    ['manager', 'vehicles', 'warehouse', 'technician', 'technician_new'],
   warehouse:  ['warehouse', 'vehicles'],
-  technician: ['vehicles', 'technician'],
+  technician: ['vehicles', 'technician', 'technician_new'],
 }
 
 // Shared button styling so every chip in the header row (יציאה,
