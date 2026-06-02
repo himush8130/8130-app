@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useMemo } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '../store/auth'
 import { useTechnicianCalls } from '../hooks/useTechnicianCalls'
@@ -20,9 +20,10 @@ const ACTIVE_STATUSES = ['in_treatment', 'waiting_for_parts']
 // Kept as a real value so React keys stay stable; users never see it.
 const NO_COMPANY = '__no_company__'
 
-// Deterministic per-company tint. Same palette pattern used for
-// note authors — the company name hashes to a fixed swatch, so a
-// glance gives the user a stable visual anchor per פלוגה.
+// Per-company tint. Earlier this used a hash modulo palette length,
+// which collided for similar names. We now lay the palette over the
+// sorted-companies list by index — every company up to the palette
+// size gets a unique colour. Palette is intentionally large.
 const COMPANY_PALETTE: Array<{ bg: string; border: string; text: string }> = [
   { bg: '#fbe9df', border: '#c43d3d', text: '#7c2c06' }, // red
   { bg: '#faf2d8', border: '#c9941e', text: '#7e6017' }, // gold
@@ -32,17 +33,15 @@ const COMPANY_PALETTE: Array<{ bg: string; border: string; text: string }> = [
   { bg: '#fbeee0', border: '#c9a96e', text: '#6d5320' }, // sand
   { bg: '#dde6f3', border: '#2c5282', text: '#1a3460' }, // navy
   { bg: '#eef0e3', border: '#6b7e3e', text: '#3b4720' }, // olive
+  { bg: '#fde2e4', border: '#b94a78', text: '#7d2350' }, // pink
+  { bg: '#e0f2f1', border: '#2c7a7b', text: '#134e4a' }, // teal
+  { bg: '#fef3c7', border: '#b45309', text: '#78350f' }, // amber
+  { bg: '#ede9fe', border: '#5b21b6', text: '#3b1380' }, // violet
+  { bg: '#dcfce7', border: '#15803d', text: '#14532d' }, // emerald
+  { bg: '#fee2e2', border: '#b91c1c', text: '#7f1d1d' }, // rose
+  { bg: '#dbeafe', border: '#1d4ed8', text: '#1e3a8a' }, // sky
+  { bg: '#e2e8f0', border: '#475569', text: '#1e293b' }, // slate
 ]
-
-function hashStr(s: string): number {
-  let h = 0
-  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0
-  return Math.abs(h)
-}
-
-function tintForCompany(name: string) {
-  return COMPANY_PALETTE[hashStr(name) % COMPANY_PALETTE.length]
-}
 
 /**
  * Technician drill-down by company → vehicle → call.
@@ -70,7 +69,10 @@ export function TechnicianByCompanyPage() {
   // to managers with no profession set.
   const hasProfession = !!employee.profession_name
 
-  const techQuery = useTechnicianCalls(hasProfession ? employee.profession_name : null)
+  const techQuery = useTechnicianCalls(
+    hasProfession ? employee.profession_name : null,
+    employee.specialty ?? null,
+  )
   const allActiveQuery = useQuery({
     queryKey: ['service_calls', 'active'],
     enabled: isManager && !hasProfession,
@@ -91,8 +93,27 @@ export function TechnicianByCompanyPage() {
   const { data: partsMap } = useCallsPartsStatus()
   const { data: commentsSet } = useCallsWithComments()
 
-  const [selectedCompany, setSelectedCompany] = useState<string | null>(null)
-  const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null)
+  // Drill-down state lives in the URL so navigating into /call/:id
+  // and clicking "back" lands the user on the same company+vehicle
+  // they were on, with the right tiles highlighted.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const selectedCompany = searchParams.get('company')
+  const selectedVehicle = searchParams.get('vehicle')
+
+  function updateParams(updates: { company?: string | null; vehicle?: string | null }) {
+    const sp = new URLSearchParams(searchParams)
+    if ('company' in updates) {
+      if (updates.company) sp.set('company', updates.company)
+      else                 sp.delete('company')
+    }
+    if ('vehicle' in updates) {
+      if (updates.vehicle) sp.set('vehicle', updates.vehicle)
+      else                 sp.delete('vehicle')
+    }
+    setSearchParams(sp, { replace: true })
+  }
+  function setSelectedCompany(next: string | null) { updateParams({ company: next, vehicle: null }) }
+  function setSelectedVehicle(next: string | null) { updateParams({ vehicle: next }) }
 
   // Group calls by sub_department. NO_COMPANY catches both
   // "vehicle_number is null" and "vehicle exists but sub_department
@@ -114,6 +135,14 @@ export function TechnicianByCompanyPage() {
       .filter((k) => k !== NO_COMPANY)
       .sort((a, b) => a.localeCompare(b, 'he'))
   }, [groupedByCompany])
+
+  // Stable colour assignment by sorted-index. Companies past the
+  // palette wrap, which is the only case where duplicates can occur.
+  const companyTints = useMemo(() => {
+    const m = new Map<string, { bg: string; border: string; text: string }>()
+    companies.forEach((name, i) => m.set(name, COMPANY_PALETTE[i % COMPANY_PALETTE.length]))
+    return m
+  }, [companies])
 
   const hasOrphans = groupedByCompany.has(NO_COMPANY)
   const totalCalls = (calls ?? []).length
@@ -145,18 +174,11 @@ export function TechnicianByCompanyPage() {
   }, [groupedByCompany, selectedCompany, selectedVehicle])
 
   function pickCompany(name: string) {
-    if (selectedCompany === name) {
-      // toggle off
-      setSelectedCompany(null)
-      setSelectedVehicle(null)
-      return
-    }
-    setSelectedCompany(name)
-    setSelectedVehicle(null)
+    updateParams({ company: selectedCompany === name ? null : name, vehicle: null })
   }
 
   function pickVehicle(vehicleNumber: string) {
-    setSelectedVehicle((cur) => (cur === vehicleNumber ? null : vehicleNumber))
+    updateParams({ vehicle: selectedVehicle === vehicleNumber ? null : vehicleNumber })
   }
 
   return (
@@ -208,7 +230,7 @@ export function TechnicianByCompanyPage() {
                       {companies.map((name) => {
                         const count = groupedByCompany.get(name)?.length ?? 0
                         const active = selectedCompany === name
-                        const tint = tintForCompany(name)
+                        const tint = companyTints.get(name) ?? COMPANY_PALETTE[0]
                         return (
                           <button
                             key={name}
@@ -264,7 +286,7 @@ export function TechnicianByCompanyPage() {
                     </span>
                     <button
                       type="button"
-                      onClick={() => { setSelectedCompany(null); setSelectedVehicle(null) }}
+                      onClick={() => updateParams({ company: null, vehicle: null })}
                       className="text-xs text-primary hover:underline"
                     >
                       נקה בחירה

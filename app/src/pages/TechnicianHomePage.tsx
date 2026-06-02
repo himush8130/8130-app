@@ -28,7 +28,10 @@ export function TechnicianHomePage() {
   // This closes the bug where employee 8451889 (electrician with
   // manager permissions) saw מכונאות calls in the technician view.
   const hasProfession = !!employee.profession_name
-  const techQuery = useTechnicianCalls(hasProfession ? employee.profession_name : null)
+  const techQuery = useTechnicianCalls(
+    hasProfession ? employee.profession_name : null,
+    employee.specialty ?? null,
+  )
   const allActiveQuery = useQuery({
     queryKey: ['service_calls', 'active'],
     enabled: isManager && !hasProfession,
