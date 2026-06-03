@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '../store/auth'
 import { useTechnicianCalls } from '../hooks/useTechnicianCalls'
@@ -189,10 +189,6 @@ export function TechnicianByCompanyPage() {
       <AppHeader subtitle={isManager ? 'תצוגת טכנאי לפי פלוגה — כל המקצועות' : 'תצוגה לפי פלוגה'} />
       <main className="max-w-3xl mx-auto p-4 flex flex-col gap-4 pb-24">
         <ComponentBadge id={6020} />
-
-        <Link to="/technician" className="self-start text-sm text-primary hover:underline">
-          → חזור לדף הטכנאי
-        </Link>
 
         {isLoading && <p className="text-sm text-muted text-center py-8">טוען...</p>}
         {error && (

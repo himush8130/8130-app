@@ -11,7 +11,6 @@ import { ToastHost } from './components/ToastHost'
 import { registerServiceWorker } from './lib/registerSW'
 
 // Lazy-loaded routes — keeps initial bundle small for faster mobile load.
-const TechnicianHomePage      = lazy(() => import('./pages/TechnicianHomePage').then(m => ({ default: m.TechnicianHomePage })))
 const TechnicianByCompanyPage = lazy(() => import('./pages/TechnicianByCompanyPage').then(m => ({ default: m.TechnicianByCompanyPage })))
 const CallDetailPage          = lazy(() => import('./pages/CallDetailPage').then(m => ({ default: m.CallDetailPage })))
 const ManagerHomePage         = lazy(() => import('./pages/ManagerHomePage').then(m => ({ default: m.ManagerHomePage })))
@@ -67,17 +66,11 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/technician" element={
             <Resilient scope="technician">
               <ProtectedRoute allow={['technician', 'manager']}>
-                <TechnicianHomePage />
-              </ProtectedRoute>
-            </Resilient>
-          } />
-          <Route path="/technician/by-company" element={
-            <Resilient scope="technician-by-company">
-              <ProtectedRoute allow={['technician', 'manager']}>
                 <TechnicianByCompanyPage />
               </ProtectedRoute>
             </Resilient>
           } />
+          <Route path="/technician/by-company" element={<Navigate to="/technician" replace />} />
 
           <Route path="/manager" element={
             <Resilient scope="manager">
