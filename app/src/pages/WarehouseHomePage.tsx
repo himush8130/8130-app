@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import { useParts } from '../hooks/useParts'
 import { AppHeader } from '../components/AppHeader'
 import { PartsCatalogList } from '../components/PartsCatalogList'
@@ -22,6 +23,13 @@ export function WarehouseHomePage() {
 
       <main className="max-w-3xl mx-auto p-4 flex flex-col gap-4">
         <ComponentBadge id={4001} />
+
+        <Link
+          to="/warehouse/inventory-count"
+          className="self-start text-xs px-3 py-1.5 rounded-md border border-border bg-card text-foreground hover:bg-muted-surface"
+        >
+          📋 ספירת מלאי
+        </Link>
 
         {/* Collapsible tables. The active-actions table opens by
             default since it's the day-to-day work surface. */}

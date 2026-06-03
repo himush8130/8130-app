@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'תיקון נסיגה: מנהל חזר לראות את כל הקריאות הפעילות בדפי הטכנאי. הסינון לפי profession+specialty חל רק על משתמשים עם הרשאת technician — מנהל ומחסנאי תמיד רואים הכל (כמו ב-useCallContacts).'
+export const LATEST_NOTE = 'דף ספירת מלאי חדש (מצב פיתוח — localStorage בלבד, לא משפיע על הקטלוג). ספירה לפי מיקום, חיפוש מהיר לפי מק״ט, דוח חי עם פערים, ולוג הערות ספירה. כפתור "📋 ספירת מלאי" בראש דף המחסנאי.'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build
