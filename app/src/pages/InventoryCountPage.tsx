@@ -164,7 +164,7 @@ export function InventoryCountPage() {
   const skuMatches = useMemo(() => {
     const q = skuSearch.trim().replace(/\D/g, '')
     if (!q || q.length < 2) return []
-    return (allParts ?? []).filter((p) => p.sku.replace(/\D/g, '').startsWith(q)).slice(0, 20)
+    return (allParts ?? []).filter((p) => p.quantity > 0 && p.sku.replace(/\D/g, '').startsWith(q)).slice(0, 20)
   }, [allParts, skuSearch])
 
   // session actions
@@ -468,9 +468,7 @@ function CountRow({
         <span className="text-xs text-muted shrink-0">רשום: {part.quantity}</span>
       </div>
 
-      {locParts.length > 0 && (
-        <div className="text-[11px] text-muted mt-0.5">{locParts.join(' · ')}</div>
-      )}
+      <div className="text-[11px] text-muted mt-0.5">{locParts.length > 0 ? locParts.join(' · ') : 'ללא מיקום'}</div>
 
       {sessionOpen && (
         <div className="flex items-center gap-2 mt-1.5 flex-wrap">
