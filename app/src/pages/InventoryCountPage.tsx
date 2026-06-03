@@ -289,7 +289,7 @@ export function InventoryCountPage() {
                   placeholder="הקלד מק״ט..."
                 />
                 {skuMatches.length > 0 && (
-                  <ul className="bg-card border border-border rounded-md max-h-48 overflow-y-auto">
+                  <ul className="bg-card border border-border rounded-md max-h-80 overflow-y-auto">
                     {skuMatches.map((p) => (
                       <CountRow
                         key={p.id}
