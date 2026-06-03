@@ -138,14 +138,16 @@ export function InventoryCountPage() {
     setEntries(new Map())
   }
 
-  function closeSession() {
+  function toggleSessionStatus() {
     if (!session) return
-    setSession({ ...session, status: 'closed' })
+    setSession({ ...session, status: session.status === 'open' ? 'closed' : 'open' })
   }
 
+  const [confirmReset, setConfirmReset] = useState(false)
   function resetSession() {
     setSession(null)
     setEntries(new Map())
+    setConfirmReset(false)
   }
 
   // entry actions
@@ -220,14 +222,24 @@ export function InventoryCountPage() {
                   )}
                 </div>
                 <div className="flex gap-2">
-                  {session.status === 'open' && (
-                    <Button variant="secondary" onClick={closeSession} className="text-xs px-3 py-1">
-                      סגור ספירה
-                    </Button>
-                  )}
-                  <Button variant="ghost" onClick={resetSession} className="text-xs px-3 py-1 text-danger">
-                    אפס הכל
+                  <Button variant="secondary" onClick={toggleSessionStatus} className="text-xs px-3 py-1">
+                    {session.status === 'open' ? 'סגור ספירה' : 'פתח מחדש'}
                   </Button>
+                  {!confirmReset ? (
+                    <Button variant="ghost" onClick={() => setConfirmReset(true)} className="text-xs px-3 py-1 text-danger">
+                      אפס הכל
+                    </Button>
+                  ) : (
+                    <div className="flex items-center gap-2 bg-danger/5 rounded-md px-2 py-1">
+                      <span className="text-[11px] text-danger">פעולה זו אינה הפיכה</span>
+                      <Button onClick={resetSession} className="text-[11px] px-2 py-0.5 bg-danger hover:bg-danger/90 text-white">
+                        אשר
+                      </Button>
+                      <Button variant="ghost" onClick={() => setConfirmReset(false)} className="text-[11px] px-2 py-0.5">
+                        בטל
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </CardBody>
             </Card>
@@ -362,6 +374,15 @@ export function InventoryCountPage() {
             </Card>
           </>
         )}
+
+        {/* Scroll-to-top */}
+        <button
+          type="button"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="self-center text-xs px-4 py-2 rounded-md border border-border bg-card text-muted hover:bg-muted-surface"
+        >
+          ↑ חזרה לראש הדף
+        </button>
       </main>
     </>
   )
