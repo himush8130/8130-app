@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '../store/auth'
@@ -10,9 +10,12 @@ import { useCallsWithComments } from '../hooks/useCallsWithComments'
 import { supabase } from '../lib/supabase'
 import { AppHeader } from '../components/AppHeader'
 import { CallCard } from '../components/CallCard'
+import { NewCallForm } from '../components/NewCallForm'
 import { Card, CardBody } from '../components/ui/Card'
+import { Button } from '../components/ui/Button'
 import { ComponentBadge } from '../feedback/ComponentBadge'
-import type { ServiceCall } from '../types/db'
+import type { ServiceCall, Vehicle } from '../types/db'
+import type { CallPartsSummary } from '../hooks/useCallsPartsStatus'
 
 const ACTIVE_STATUSES = ['in_treatment', 'waiting_for_parts']
 
@@ -151,8 +154,15 @@ export function TechnicianByCompanyPage() {
     }
     return [...counts.entries()]
       .map(([vehicleNumber, count]) => ({ vehicleNumber, count }))
-      .sort((a, b) => a.vehicleNumber.localeCompare(b.vehicleNumber, 'he'))
-  }, [groupedByCompany, selectedCompany])
+      .sort((a, b) => {
+        const aDisabled = !!vehicleStats?.get(a.vehicleNumber)?.disabled
+        const bDisabled = !!vehicleStats?.get(b.vehicleNumber)?.disabled
+        if (aDisabled !== bDisabled) return aDisabled ? -1 : 1
+        const aLoc = vehiclesMap.get(a.vehicleNumber)?.location ?? ''
+        const bLoc = vehiclesMap.get(b.vehicleNumber)?.location ?? ''
+        return aLoc.localeCompare(bLoc, 'he')
+      })
+  }, [groupedByCompany, selectedCompany, vehicleStats, vehiclesMap])
 
   // Calls for the picked vehicle, sorted with disabling first.
   const callsForVehicle = useMemo(() => {
@@ -342,37 +352,76 @@ export function TechnicianByCompanyPage() {
 
             {/* Layer 3 — calls list for the picked vehicle */}
             {selectedCompany && selectedVehicle && (
-              <div className="flex flex-col gap-3">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-semibold text-foreground">
-                    קריאות בכלי {selectedVehicle}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => updateParams({ vehicle: null })}
-                    className="text-xs text-primary hover:underline"
-                  >
-                    חזרה לטנקים
-                  </button>
-                </div>
-                {callsForVehicle.length === 0 && (
-                  <Card><CardBody><p className="text-sm text-muted text-center py-3">אין קריאות פעילות לכלי הזה.</p></CardBody></Card>
-                )}
-                {callsForVehicle.map((c) => (
-                  <CallCard
-                    key={c.id}
-                    call={c}
-                    partsSummary={partsMap?.get(c.id) ?? null}
-                    vehicle={c.vehicle_number ? vehiclesMap.get(c.vehicle_number) ?? null : null}
-                    hasComments={commentsSet?.has(c.id) ?? false}
-                  />
-                ))}
-              </div>
+              <VehicleCallsLayer
+                vehicleNumber={selectedVehicle}
+                calls={callsForVehicle}
+                partsMap={partsMap}
+                vehiclesMap={vehiclesMap}
+                commentsSet={commentsSet}
+                onBack={() => updateParams({ vehicle: null })}
+              />
             )}
           </>
         )}
 
       </main>
     </>
+  )
+}
+
+function VehicleCallsLayer({
+  vehicleNumber, calls, partsMap, vehiclesMap, commentsSet, onBack,
+}: {
+  vehicleNumber: string
+  calls: ServiceCall[]
+  partsMap: Map<string, CallPartsSummary> | undefined
+  vehiclesMap: Map<string, Vehicle>
+  commentsSet: Set<string> | undefined
+  onBack: () => void
+}) {
+  const [showNewCall, setShowNewCall] = useState(false)
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-sm font-semibold text-foreground">
+          קריאות בכלי {vehicleNumber}
+        </span>
+        <button
+          type="button"
+          onClick={onBack}
+          className="text-xs text-primary hover:underline"
+        >
+          חזרה לטנקים
+        </button>
+      </div>
+
+      {!showNewCall ? (
+        <Button onClick={() => setShowNewCall(true)} className="self-start">+ פתח תקלה חדשה</Button>
+      ) : (
+        <Card>
+          <CardBody>
+            <NewCallForm
+              initialVehicleNumber={vehicleNumber}
+              onCancel={() => setShowNewCall(false)}
+              onCreated={() => setShowNewCall(false)}
+            />
+          </CardBody>
+        </Card>
+      )}
+
+      {calls.length === 0 && (
+        <Card><CardBody><p className="text-sm text-muted text-center py-3">אין קריאות פעילות לכלי הזה.</p></CardBody></Card>
+      )}
+      {calls.map((c) => (
+        <CallCard
+          key={c.id}
+          call={c}
+          partsSummary={partsMap?.get(c.id) ?? null}
+          vehicle={c.vehicle_number ? vehiclesMap.get(c.vehicle_number) ?? null : null}
+          hasComments={commentsSet?.has(c.id) ?? false}
+        />
+      ))}
+    </div>
   )
 }
