@@ -11,6 +11,7 @@ import { supabase } from '../lib/supabase'
 import { AppHeader } from '../components/AppHeader'
 import { CallCard } from '../components/CallCard'
 import { NewCallForm } from '../components/NewCallForm'
+import { TankReadingEditor } from '../components/TankReadingEditor'
 import { Card, CardBody } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { ComponentBadge } from '../feedback/ComponentBadge'
@@ -376,6 +377,9 @@ function VehicleCallsLayer({
   onBack: () => void
 }) {
   const [showNewCall, setShowNewCall] = useState(false)
+  const [showReading, setShowReading] = useState(false)
+  const vehicle = vehiclesMap.get(vehicleNumber)
+  const isTank = vehicle?.type_name === 'טנק'
 
   return (
     <div className="flex flex-col gap-3">
@@ -392,9 +396,22 @@ function VehicleCallsLayer({
         </button>
       </div>
 
-      {!showNewCall ? (
-        <Button onClick={() => setShowNewCall(true)} className="self-start">+ פתח תקלה חדשה</Button>
-      ) : (
+      <div className="flex gap-2 flex-wrap">
+        {!showNewCall && (
+          <Button onClick={() => { setShowNewCall(true); setShowReading(false) }} className="self-start">+ פתח תקלה חדשה</Button>
+        )}
+        {isTank && !showReading && (
+          <Button
+            variant="secondary"
+            onClick={() => { setShowReading(true); setShowNewCall(false) }}
+            className="self-start bg-info/10 border-info text-info hover:bg-info/20"
+          >
+            עדכן שעמ/קמ
+          </Button>
+        )}
+      </div>
+
+      {showNewCall && (
         <Card>
           <CardBody>
             <NewCallForm
@@ -402,6 +419,18 @@ function VehicleCallsLayer({
               onCancel={() => setShowNewCall(false)}
               onCreated={() => setShowNewCall(false)}
             />
+          </CardBody>
+        </Card>
+      )}
+
+      {showReading && vehicle && (
+        <Card>
+          <CardBody>
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <span className="text-sm font-semibold text-foreground">עדכון שעמ/קמ — {vehicleNumber}</span>
+              <button type="button" onClick={() => setShowReading(false)} className="text-xs text-primary hover:underline">סגור</button>
+            </div>
+            <TankReadingEditor vehicle={vehicle} onSaved={() => setShowReading(false)} />
           </CardBody>
         </Card>
       )}
