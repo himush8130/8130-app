@@ -146,7 +146,14 @@ export function CallCard({ call, partsSummary, vehicle, hasComments }: Props) {
               )}
             </div>
 
-            <span className="text-xs text-faint shrink-0">{date}</span>
+            <div className="flex flex-col items-end shrink-0 gap-0.5">
+              <span className="text-xs text-faint">{date}</span>
+              {call.closed_at && (call.status === 'closed' || call.status === 'cancelled') && (
+                <span className="text-[11px] text-muted">
+                  נסגרה {new Date(call.closed_at).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                </span>
+              )}
+            </div>
           </div>
         </CardBody>
       </Card>

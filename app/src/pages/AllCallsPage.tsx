@@ -116,7 +116,9 @@ export function AllCallsPage() {
 
         {(() => {
           if (!data) return null
-          const closed = data.calls.filter((c) => c.status === 'closed' || c.status === 'cancelled')
+          const closed = data.calls
+            .filter((c) => c.status === 'closed' || c.status === 'cancelled')
+            .sort((a, b) => (b.closed_at ?? '').localeCompare(a.closed_at ?? ''))
           const active = data.calls.filter((c) => c.status !== 'closed' && c.status !== 'cancelled')
           // If the user explicitly filtered for closed/cancelled, open the closed
           // section by default — no point in hiding what they asked for.
