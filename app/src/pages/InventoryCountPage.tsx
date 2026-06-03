@@ -13,7 +13,6 @@ import type { Part } from '../types/parts'
 
 const LS_SESSION   = 'ic_session'
 const LS_ENTRIES   = 'ic_entries'
-const LS_NOTES     = 'ic_notes'
 
 interface IcSession {
   id: string
@@ -29,13 +28,6 @@ interface IcEntry {
   countedBy:      number
   countedAt:      string
   note:           string
-}
-
-interface IcNote {
-  id:        string
-  text:      string
-  author:    string
-  createdAt: string
 }
 
 function loadSession(): IcSession | null {
@@ -58,13 +50,6 @@ function saveEntries(m: Map<string, IcEntry>) {
   localStorage.setItem(LS_ENTRIES, JSON.stringify([...m.entries()]))
 }
 
-function loadNotes(): IcNote[] {
-  try { const r = localStorage.getItem(LS_NOTES); return r ? JSON.parse(r) : [] } catch { return [] }
-}
-function saveNotes(n: IcNote[]) {
-  localStorage.setItem(LS_NOTES, JSON.stringify(n))
-}
-
 // --------------- location helpers ---------------
 
 // --------------- page ---------------
@@ -75,11 +60,9 @@ export function InventoryCountPage() {
 
   const [session, setSessionState] = useState<IcSession | null>(() => loadSession())
   const [entries, setEntriesState] = useState<Map<string, IcEntry>>(() => loadEntries())
-  const [notes, setNotesState]     = useState<IcNote[]>(() => loadNotes())
 
   function setSession(s: IcSession | null) { setSessionState(s); saveSession(s) }
   function setEntries(m: Map<string, IcEntry>) { setEntriesState(m); saveEntries(m) }
-  function setNotes(n: IcNote[]) { setNotesState(n); saveNotes(n) }
 
   // cascading location filter state
   const [fWarehouse, setFWarehouse]       = useState<string | null>(null)
@@ -206,7 +189,7 @@ export function InventoryCountPage() {
   }
 
   // entry actions
-  const upsertEntry = useCallback((part: Part, countedQty: number, note: string) => {
+  const upsertEntry = useCallback((part: Part, countedQty: number) => {
     const next = new Map(entries)
     next.set(part.id, {
       partId:      part.id,
@@ -214,24 +197,17 @@ export function InventoryCountPage() {
       expectedQty: part.quantity,
       countedBy:   employee.employee_number,
       countedAt:   new Date().toISOString(),
-      note,
+      note:        '',
     })
     setEntries(next)
   }, [entries, employee.employee_number, setEntries])
 
-  // notes
-  const [noteText, setNoteText] = useState('')
-  function addNote() {
-    if (!noteText.trim()) return
-    const n: IcNote = {
-      id: `n-${Date.now()}`,
-      text: noteText.trim(),
-      author: employee.name,
-      createdAt: new Date().toISOString(),
-    }
-    setNotes([n, ...notes])
-    setNoteText('')
-  }
+  const removeEntry = useCallback((partId: string) => {
+    const next = new Map(entries)
+    next.delete(partId)
+    setEntries(next)
+  }, [entries, setEntries])
+
 
   // stats
   const totalParts = (allParts ?? []).length
@@ -318,6 +294,7 @@ export function InventoryCountPage() {
                         entry={entries.get(p.id)}
                         sessionOpen={session.status === 'open'}
                         onSave={upsertEntry}
+                        onRemove={removeEntry}
                       />
                     ))}
                   </ul>
@@ -406,6 +383,7 @@ export function InventoryCountPage() {
                         entry={entries.get(p.id)}
                         sessionOpen={session.status === 'open'}
                         onSave={upsertEntry}
+                        onRemove={removeEntry}
                       />
                     ))}
                   </ul>
@@ -418,39 +396,7 @@ export function InventoryCountPage() {
               <ReportSummary allParts={allParts ?? []} entries={entries} />
             )}
 
-            {/* Notes */}
-            <Card>
-              <CardHeader>
-                <h3 className="text-sm font-semibold text-foreground">הערות ספירה</h3>
-              </CardHeader>
-              <CardBody className="flex flex-col gap-2">
-                <div className="flex gap-2">
-                  <textarea
-                    value={noteText}
-                    onChange={(e) => setNoteText(e.target.value)}
-                    rows={2}
-                    placeholder="הערה לגבי הספירה..."
-                    className="flex-1 px-3 py-2 bg-card border border-border rounded-md text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-y"
-                  />
-                  <Button onClick={addNote} disabled={!noteText.trim()} className="self-end">
-                    הוסף
-                  </Button>
-                </div>
-                {notes.length > 0 && (
-                  <ul className="flex flex-col gap-1.5 mt-2">
-                    {notes.map((n) => (
-                      <li key={n.id} className="text-xs bg-muted-surface rounded px-2 py-1.5">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-medium text-foreground">{n.author}</span>
-                          <span className="text-muted">{new Date(n.createdAt).toLocaleString('he-IL')}</span>
-                        </div>
-                        <p className="text-foreground mt-0.5 whitespace-pre-wrap">{n.text}</p>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </CardBody>
-            </Card>
+            {/* Notes UI removed per user request */}
           </>
         )}
 
@@ -470,16 +416,16 @@ export function InventoryCountPage() {
 // --------------- count row ---------------
 
 function CountRow({
-  part, entry, sessionOpen, onSave,
+  part, entry, sessionOpen, onSave, onRemove,
 }: {
   part:        Part
   entry:       IcEntry | undefined
   sessionOpen: boolean
-  onSave:      (part: Part, qty: number, note: string) => void
+  onSave:      (part: Part, qty: number) => void
+  onRemove:    (partId: string) => void
 }) {
-  const [editing, setEditing] = useState(false)
-  const [qty, setQty]     = useState(entry?.countedQty?.toString() ?? '')
-  const [note, setNote]   = useState(entry?.note ?? '')
+  const [qty, setQty] = useState(entry?.countedQty?.toString() ?? '')
+  const [confirmRemove, setConfirmRemove] = useState(false)
 
   const counted = entry != null
   const hasDelta = counted && entry!.countedQty !== entry!.expectedQty
@@ -488,14 +434,19 @@ function CountRow({
   function save() {
     const n = parseInt(qty, 10)
     if (!Number.isFinite(n) || n < 0) return
-    onSave(part, n, note.trim())
-    setEditing(false)
+    onSave(part, n)
   }
 
-  function startEdit() {
-    setQty(entry?.countedQty?.toString() ?? part.quantity.toString())
-    setNote(entry?.note ?? '')
-    setEditing(true)
+  function handleRemove() {
+    onRemove(part.id)
+    setConfirmRemove(false)
+    setQty('')
+  }
+
+  // Sync from props when entry changes externally (e.g. after save)
+  const entryQtyStr = entry?.countedQty?.toString() ?? ''
+  if (counted && qty === '' && entryQtyStr !== '') {
+    setQty(entryQtyStr)
   }
 
   return (
@@ -506,60 +457,68 @@ function CountRow({
           <ExchangeBadge active={part.is_exchange} />
           <span className="font-mono text-[11px] text-muted">{part.sku}</span>
         </div>
-        <div className="flex items-center gap-2 shrink-0 text-xs">
-          <span className="text-muted">רשום: {part.quantity}</span>
+        <span className="text-xs text-muted shrink-0">רשום: {part.quantity}</span>
+      </div>
+
+      {sessionOpen && (
+        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            value={qty}
+            onChange={(e) => setQty(e.target.value)}
+            placeholder="כמות"
+            className="w-20 px-2 py-1 bg-card border border-border rounded-md text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+          <Button
+            onClick={save}
+            disabled={qty === '' || qty === entryQtyStr}
+            className="text-xs px-3 py-1"
+          >
+            שמור
+          </Button>
+          {qty !== '' && qty !== entryQtyStr && (
+            <Button variant="ghost" onClick={() => setQty(entryQtyStr)} className="text-xs px-3 py-1">
+              בטל
+            </Button>
+          )}
           {counted && (
-            <span className={hasDelta ? 'font-semibold text-warning' : 'text-success'}>
+            <span className={`text-xs ${hasDelta ? 'font-semibold text-warning' : 'text-success'}`}>
               נספר: {entry!.countedQty}
               {hasDelta && ` (${delta > 0 ? '+' : ''}${delta})`}
             </span>
           )}
-        </div>
-      </div>
-
-      {!editing && sessionOpen && (
-        <div className="mt-1">
-          <button
-            type="button"
-            onClick={startEdit}
-            className="text-xs text-primary hover:underline"
-          >
-            {counted ? 'ערוך ספירה' : 'ספור'}
-          </button>
-        </div>
-      )}
-
-      {editing && (
-        <div className="flex items-end gap-2 mt-2 flex-wrap">
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] text-muted">כמות שנספרה</label>
-            <input
-              type="number"
-              inputMode="numeric"
-              min={0}
-              value={qty}
-              onChange={(e) => setQty(e.target.value)}
-              className="w-20 px-2 py-1 bg-card border border-border rounded-md text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              autoFocus
-            />
-          </div>
-          <div className="flex flex-col gap-1 flex-1 min-w-[8rem]">
-            <label className="text-[11px] text-muted">הערה (אופציונלי)</label>
-            <input
-              type="text"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              className="w-full px-2 py-1 bg-card border border-border rounded-md text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="הערה..."
-            />
-          </div>
-          <Button onClick={save} className="text-xs px-3 py-1">שמור</Button>
-          <Button variant="ghost" onClick={() => setEditing(false)} className="text-xs px-3 py-1">בטל</Button>
+          {counted && !confirmRemove && (
+            <button
+              type="button"
+              onClick={() => setConfirmRemove(true)}
+              className="text-[11px] text-danger hover:underline ms-auto"
+            >
+              בטל ספירה
+            </button>
+          )}
+          {confirmRemove && (
+            <div className="flex items-center gap-2 bg-danger/5 rounded px-2 py-1 ms-auto">
+              <span className="text-[11px] text-danger">בטוח?</span>
+              <Button onClick={handleRemove} className="text-[11px] px-2 py-0.5 bg-danger hover:bg-danger/90 text-white">
+                אשר
+              </Button>
+              <Button variant="ghost" onClick={() => setConfirmRemove(false)} className="text-[11px] px-2 py-0.5">
+                לא
+              </Button>
+            </div>
+          )}
         </div>
       )}
 
-      {counted && entry!.note && !editing && (
-        <div className="text-[11px] text-muted mt-1">📝 {entry!.note}</div>
+      {!sessionOpen && counted && (
+        <div className="mt-1 text-xs">
+          <span className={hasDelta ? 'font-semibold text-warning' : 'text-success'}>
+            נספר: {entry!.countedQty}
+            {hasDelta && ` (${delta > 0 ? '+' : ''}${delta})`}
+          </span>
+        </div>
       )}
     </li>
   )
