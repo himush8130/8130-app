@@ -1,5 +1,6 @@
 import { useMemo, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { useParts } from '../hooks/useParts'
 import { useAuthStore } from '../store/auth'
 import { AppHeader } from '../components/AppHeader'
@@ -7,6 +8,7 @@ import { ExchangeBadge } from '../components/ExchangeBadge'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
+import { createPart } from '../lib/warehouseActions'
 import type { Part } from '../types/parts'
 
 // --------------- localStorage persistence ---------------
@@ -392,8 +394,8 @@ export function InventoryCountPage() {
               </Card>
             )}
 
-            {/* Add new part (dev mode — localStorage only) */}
-            {session.status === 'open' && <AddNewPartForm />}
+            {/* Add new part */}
+            {session.status === 'open' && <AddNewPartForm employeeNumber={employee.employee_number} />}
 
             {/* Report summary (live) */}
             {countedCount > 0 && (
@@ -445,7 +447,15 @@ function CountRow({
     setQty(part.quantity.toString())
   }
 
-  const entryQtyStr = entry?.countedQty?.toString() ?? part.quantity.toString()
+  const locParts: string[] = []
+  if (part.warehouse) locParts.push(part.warehouse)
+  if (part.cabinet != null && part.cabinet !== 0) locParts.push(`ארון ${part.cabinet}`)
+  if (part.storage_type) locParts.push(part.storage_type)
+  if (part.storage_number != null && part.storage_number !== 0) locParts.push(`#${part.storage_number}`)
+  if (part.cell_number != null && part.cell_number !== 0) locParts.push(`תא ${part.cell_number}`)
+
+  const savedQtyStr = counted ? entry!.countedQty.toString() : null
+  const canSave = qty !== '' && (savedQtyStr === null || qty !== savedQtyStr)
 
   return (
     <li className={`px-3 py-2 border-b border-border last:border-0 ${hasDelta ? 'bg-warning/5' : counted ? 'bg-success/5' : ''}`}>
@@ -457,6 +467,10 @@ function CountRow({
         </div>
         <span className="text-xs text-muted shrink-0">רשום: {part.quantity}</span>
       </div>
+
+      {locParts.length > 0 && (
+        <div className="text-[11px] text-muted mt-0.5">{locParts.join(' · ')}</div>
+      )}
 
       {sessionOpen && (
         <div className="flex items-center gap-2 mt-1.5 flex-wrap">
@@ -471,13 +485,13 @@ function CountRow({
           />
           <Button
             onClick={save}
-            disabled={qty === '' || qty === entryQtyStr}
+            disabled={!canSave}
             className="text-xs px-3 py-1"
           >
             שמור
           </Button>
-          {qty !== '' && qty !== entryQtyStr && (
-            <Button variant="ghost" onClick={() => setQty(entryQtyStr)} className="text-xs px-3 py-1">
+          {counted && qty !== savedQtyStr && (
+            <Button variant="ghost" onClick={() => setQty(savedQtyStr!)} className="text-xs px-3 py-1">
               בטל
             </Button>
           )}
@@ -698,28 +712,70 @@ function FilterRow({
   )
 }
 
-// --------------- add new part (dev mode) ---------------
+// --------------- add new part ---------------
 
-function AddNewPartForm() {
-  const [open, setOpen]       = useState(false)
-  const [sku, setSku]         = useState('')
-  const [name, setName]       = useState('')
-  const [qty, setQty]         = useState('1')
-  const [saved, setSaved]     = useState<string | null>(null)
+function AddNewPartForm({ employeeNumber }: { employeeNumber: number }) {
+  const queryClient = useQueryClient()
+  const [open, setOpen] = useState(false)
+  const [draft, setDraft] = useState({
+    sku: '', name: '', quantity: '0', min_threshold: '0',
+    supplier: '', is_exchange: false, is_sku_blocked: false,
+    warehouse: '', cabinet: '', storage_type: '',
+    storage_number: '', cell_number: '',
+  })
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  function handleAdd() {
-    if (!sku.trim() || !name.trim()) return
-    const q = parseInt(qty, 10)
-    if (!Number.isFinite(q) || q < 0) return
-    const existing: Array<{ sku: string; name: string; qty: number }> =
-      JSON.parse(localStorage.getItem('ic_new_parts') ?? '[]')
-    existing.push({ sku: sku.trim(), name: name.trim(), qty: q })
-    localStorage.setItem('ic_new_parts', JSON.stringify(existing))
-    setSaved(`${name.trim()} (${sku.trim()}) × ${q}`)
-    setSku('')
-    setName('')
-    setQty('1')
-    setTimeout(() => setSaved(null), 3000)
+  function set<K extends keyof typeof draft>(k: K, v: (typeof draft)[K]) {
+    setDraft((d) => ({ ...d, [k]: v }))
+  }
+
+  function nullableInt(s: string): number | null {
+    const t = s.trim()
+    if (!t) return null
+    const n = parseInt(t, 10)
+    return Number.isNaN(n) ? null : n
+  }
+
+  function resetForm() {
+    setDraft({
+      sku: '', name: '', quantity: '0', min_threshold: '0',
+      supplier: '', is_exchange: false, is_sku_blocked: false,
+      warehouse: '', cabinet: '', storage_type: '',
+      storage_number: '', cell_number: '',
+    })
+    setError(null)
+  }
+
+  async function save() {
+    setError(null)
+    if (!draft.sku.trim())  { setError('מק״ט חובה'); return }
+    if (!draft.name.trim()) { setError('שם חובה'); return }
+    const q = parseInt(draft.quantity, 10)
+    if (Number.isNaN(q) || q < 0) { setError('כמות לא תקינה'); return }
+    const m = parseInt(draft.min_threshold, 10)
+    if (Number.isNaN(m) || m < 0) { setError('סף מינימום לא תקין'); return }
+
+    setBusy(true)
+    const res = await createPart(employeeNumber, {
+      sku:            draft.sku.trim(),
+      name:           draft.name.trim(),
+      quantity:       q,
+      min_threshold:  m,
+      supplier:       draft.supplier.trim() || null,
+      is_exchange:    draft.is_exchange,
+      is_sku_blocked: draft.is_sku_blocked,
+      warehouse:      draft.warehouse.trim()    || null,
+      cabinet:        nullableInt(draft.cabinet),
+      storage_type:   draft.storage_type.trim() || null,
+      storage_number: nullableInt(draft.storage_number),
+      cell_number:    nullableInt(draft.cell_number),
+    })
+    setBusy(false)
+    if (!res.ok) { setError('שגיאה ביצירת פריט'); return }
+    queryClient.invalidateQueries({ queryKey: ['parts'] })
+    resetForm()
+    setOpen(false)
   }
 
   if (!open) {
@@ -739,24 +795,57 @@ function AddNewPartForm() {
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between gap-2">
-          <h3 className="text-sm font-semibold text-foreground">הוסף פריט חדש (מצב פיתוח)</h3>
-          <button type="button" onClick={() => setOpen(false)} className="text-xs text-primary hover:underline">
+          <h3 className="text-sm font-semibold text-foreground">הוסף פריט חדש</h3>
+          <button type="button" onClick={() => { setOpen(false); resetForm() }} className="text-xs text-primary hover:underline">
             סגור
           </button>
         </div>
       </CardHeader>
-      <CardBody className="flex flex-col gap-2">
-        <div className="bg-warning/10 border border-warning/30 rounded px-2 py-1 text-[11px] text-warning">
-          הפריט יישמר בדפדפן בלבד — לא יתווסף לקטלוג האמיתי
+      <CardBody className="flex flex-col gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Input label="מק״ט" name="ic-new-sku" value={draft.sku} onChange={(e) => set('sku', e.target.value)} autoFocus />
+          <Input label="שם פריט" name="ic-new-name" value={draft.name} onChange={(e) => set('name', e.target.value)} />
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          <Input label="מק״ט" name="ic-new-sku" value={sku} onChange={(e) => setSku(e.target.value)} />
-          <Input label="שם" name="ic-new-name" value={name} onChange={(e) => setName(e.target.value)} />
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <Input label="כמות" name="ic-new-qty" type="number" value={draft.quantity} onChange={(e) => set('quantity', e.target.value)} />
+          <Input label="סף מינימום" name="ic-new-min" type="number" value={draft.min_threshold} onChange={(e) => set('min_threshold', e.target.value)} />
+          <Input label="ספק" name="ic-new-supplier" value={draft.supplier} onChange={(e) => set('supplier', e.target.value)} />
+          <label className="flex flex-col gap-1">
+            <span className="text-sm font-medium text-foreground">פריט בתמורה</span>
+            <select
+              value={draft.is_exchange ? 'yes' : 'no'}
+              onChange={(e) => set('is_exchange', e.target.value === 'yes')}
+              className="px-3 py-2 bg-card border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="no">לא</option>
+              <option value="yes">כן</option>
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-sm font-medium text-foreground">מק״ט חסום</span>
+            <select
+              value={draft.is_sku_blocked ? 'yes' : 'no'}
+              onChange={(e) => set('is_sku_blocked', e.target.value === 'yes')}
+              className="px-3 py-2 bg-card border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="no">לא</option>
+              <option value="yes">כן (יש לעדכן מק״ט חדש)</option>
+            </select>
+          </label>
         </div>
-        <Input label="כמות שנספרה" name="ic-new-qty" type="number" value={qty} onChange={(e) => setQty(e.target.value)} className="max-w-[8rem]" />
-        <div className="flex items-center gap-2">
-          <Button onClick={handleAdd} disabled={!sku.trim() || !name.trim()}>הוסף</Button>
-          {saved && <span className="text-xs text-success">✓ נשמר: {saved}</span>}
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <Input label="מחסן" name="ic-new-wh" value={draft.warehouse} onChange={(e) => set('warehouse', e.target.value)} />
+          <Input label="ארון" name="ic-new-cab" type="number" value={draft.cabinet} onChange={(e) => set('cabinet', e.target.value)} />
+          <Input label="סוג מאחסן" name="ic-new-stype" value={draft.storage_type} onChange={(e) => set('storage_type', e.target.value)} />
+          <Input label="מספר מאחסן" name="ic-new-snum" type="number" value={draft.storage_number} onChange={(e) => set('storage_number', e.target.value)} />
+          <Input label="מספר תא" name="ic-new-cell" type="number" value={draft.cell_number} onChange={(e) => set('cell_number', e.target.value)} />
+        </div>
+        <div className="flex gap-2 items-center">
+          <Button onClick={save} disabled={busy || !draft.sku.trim() || !draft.name.trim()}>
+            {busy ? 'שומר...' : 'הוסף'}
+          </Button>
+          <Button variant="ghost" onClick={() => { setOpen(false); resetForm() }}>ביטול</Button>
+          {error && <span className="text-xs text-danger">{error}</span>}
         </div>
       </CardBody>
     </Card>
