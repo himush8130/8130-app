@@ -675,8 +675,10 @@ function FilterRow({
 
   if (options.size === 0) return null
 
-  // If only one option, auto-select it and don't show a dropdown
-  if (options.size === 1 && !selected) {
+  const singleOption = options.size === 1
+
+  // Auto-select if only one option and nothing chosen yet
+  if (singleOption && !selected) {
     const only = sorted[0][0]
     onSelect(only)
     return null
@@ -699,15 +701,27 @@ function FilterRow({
           ))}
         </div>
       ) : (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             type="button"
-            onClick={() => setOpen((v) => !v)}
-            className="text-xs px-2.5 py-1.5 rounded-md border-2 border-primary bg-primary/10 text-foreground font-semibold"
+            onClick={() => { if (!singleOption) setOpen((v) => !v) }}
+            className={`text-xs px-2.5 py-1.5 rounded-md font-semibold ${
+              singleOption
+                ? 'border border-border bg-muted-surface/50 text-muted cursor-default'
+                : 'border-2 border-primary bg-primary/10 text-foreground'
+            }`}
           >
-            {selected} <span className="text-muted">({options.get(selected) ?? 0})</span> ▾
+            {selected} <span className="text-muted">({options.get(selected) ?? 0})</span>
+            {!singleOption && ' ▾'}
           </button>
-          {open && (
+          <button
+            type="button"
+            onClick={() => { onSelect(null); setOpen(false) }}
+            className="text-[11px] text-primary hover:underline"
+          >
+            נקה
+          </button>
+          {open && !singleOption && (
             <div className="flex flex-wrap gap-1.5">
               {sorted.filter(([v]) => v !== selected).map(([value, count]) => (
                 <button
