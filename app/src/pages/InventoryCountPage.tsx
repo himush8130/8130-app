@@ -75,9 +75,10 @@ export function InventoryCountPage() {
 
   // Cascading filter: each level narrows the pool for the next.
   // Options at each level are computed from the parts that passed
-  // all previous filters, with counts.
+  // all previous filters, with counts. Parts with quantity=0 are
+  // excluded — nothing to count on the shelf.
   const filterLevels = useMemo(() => {
-    const all = allParts ?? []
+    const all = (allParts ?? []).filter((p) => p.quantity > 0)
 
     // Level 1: warehouse
     const warehouseOpts = new Map<string, number>()
@@ -137,7 +138,7 @@ export function InventoryCountPage() {
 
   // The parts that match ALL selected filters (the "deepest" active level)
   const filteredParts = useMemo(() => {
-    let list = allParts ?? []
+    let list = (allParts ?? []).filter((p) => p.quantity > 0)
     if (fWarehouse)   list = list.filter((p) => (p.warehouse || 'ללא מחסן') === fWarehouse)
     if (fCabinet)     list = list.filter((p) => {
       const k = p.cabinet != null && p.cabinet !== 0 ? `ארון ${p.cabinet}` : 'ללא ארון'
@@ -391,12 +392,13 @@ export function InventoryCountPage() {
               </Card>
             )}
 
+            {/* Add new part (dev mode — localStorage only) */}
+            {session.status === 'open' && <AddNewPartForm />}
+
             {/* Report summary (live) */}
             {countedCount > 0 && (
               <ReportSummary allParts={allParts ?? []} entries={entries} />
             )}
-
-            {/* Notes UI removed per user request */}
           </>
         )}
 
@@ -424,7 +426,7 @@ function CountRow({
   onSave:      (part: Part, qty: number) => void
   onRemove:    (partId: string) => void
 }) {
-  const [qty, setQty] = useState(entry?.countedQty?.toString() ?? '')
+  const [qty, setQty] = useState(entry?.countedQty?.toString() ?? part.quantity.toString())
   const [confirmRemove, setConfirmRemove] = useState(false)
 
   const counted = entry != null
@@ -440,14 +442,10 @@ function CountRow({
   function handleRemove() {
     onRemove(part.id)
     setConfirmRemove(false)
-    setQty('')
+    setQty(part.quantity.toString())
   }
 
-  // Sync from props when entry changes externally (e.g. after save)
-  const entryQtyStr = entry?.countedQty?.toString() ?? ''
-  if (counted && qty === '' && entryQtyStr !== '') {
-    setQty(entryQtyStr)
-  }
+  const entryQtyStr = entry?.countedQty?.toString() ?? part.quantity.toString()
 
   return (
     <li className={`px-3 py-2 border-b border-border last:border-0 ${hasDelta ? 'bg-warning/5' : counted ? 'bg-success/5' : ''}`}>
@@ -697,5 +695,70 @@ function FilterRow({
         </div>
       )}
     </div>
+  )
+}
+
+// --------------- add new part (dev mode) ---------------
+
+function AddNewPartForm() {
+  const [open, setOpen]       = useState(false)
+  const [sku, setSku]         = useState('')
+  const [name, setName]       = useState('')
+  const [qty, setQty]         = useState('1')
+  const [saved, setSaved]     = useState<string | null>(null)
+
+  function handleAdd() {
+    if (!sku.trim() || !name.trim()) return
+    const q = parseInt(qty, 10)
+    if (!Number.isFinite(q) || q < 0) return
+    const existing: Array<{ sku: string; name: string; qty: number }> =
+      JSON.parse(localStorage.getItem('ic_new_parts') ?? '[]')
+    existing.push({ sku: sku.trim(), name: name.trim(), qty: q })
+    localStorage.setItem('ic_new_parts', JSON.stringify(existing))
+    setSaved(`${name.trim()} (${sku.trim()}) × ${q}`)
+    setSku('')
+    setName('')
+    setQty('1')
+    setTimeout(() => setSaved(null), 3000)
+  }
+
+  if (!open) {
+    return (
+      <Card>
+        <CardBody className="flex items-center justify-between gap-2">
+          <span className="text-sm text-muted">נמצא פריט שלא בקטלוג?</span>
+          <Button variant="secondary" onClick={() => setOpen(true)} className="text-xs px-3 py-1">
+            + הוסף פריט חדש
+          </Button>
+        </CardBody>
+      </Card>
+    )
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold text-foreground">הוסף פריט חדש (מצב פיתוח)</h3>
+          <button type="button" onClick={() => setOpen(false)} className="text-xs text-primary hover:underline">
+            סגור
+          </button>
+        </div>
+      </CardHeader>
+      <CardBody className="flex flex-col gap-2">
+        <div className="bg-warning/10 border border-warning/30 rounded px-2 py-1 text-[11px] text-warning">
+          הפריט יישמר בדפדפן בלבד — לא יתווסף לקטלוג האמיתי
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <Input label="מק״ט" name="ic-new-sku" value={sku} onChange={(e) => setSku(e.target.value)} />
+          <Input label="שם" name="ic-new-name" value={name} onChange={(e) => setName(e.target.value)} />
+        </div>
+        <Input label="כמות שנספרה" name="ic-new-qty" type="number" value={qty} onChange={(e) => setQty(e.target.value)} className="max-w-[8rem]" />
+        <div className="flex items-center gap-2">
+          <Button onClick={handleAdd} disabled={!sku.trim() || !name.trim()}>הוסף</Button>
+          {saved && <span className="text-xs text-success">✓ נשמר: {saved}</span>}
+        </div>
+      </CardBody>
+    </Card>
   )
 }
