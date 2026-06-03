@@ -136,7 +136,6 @@ export function InventoryCountPage() {
     }
     setSession(s)
     setEntries(new Map())
-    setNotes([])
   }
 
   function closeSession() {
@@ -147,7 +146,6 @@ export function InventoryCountPage() {
   function resetSession() {
     setSession(null)
     setEntries(new Map())
-    setNotes([])
   }
 
   // entry actions
