@@ -67,26 +67,6 @@ function saveNotes(n: IcNote[]) {
 
 // --------------- location helpers ---------------
 
-function locKey(p: Part): string {
-  return [p.warehouse ?? '', p.cabinet ?? '', p.storage_type ?? '', p.storage_number ?? '', p.cell_number ?? ''].join('|')
-}
-
-function locLabel(p: Part): string {
-  const parts: string[] = []
-  if (p.warehouse)                                     parts.push(p.warehouse)
-  if (p.cabinet != null && p.cabinet !== 0)            parts.push(`ארון ${p.cabinet}`)
-  if (p.storage_type)                                  parts.push(p.storage_type)
-  if (p.storage_number != null && p.storage_number !== 0) parts.push(`#${p.storage_number}`)
-  if (p.cell_number != null && p.cell_number !== 0)    parts.push(`תא ${p.cell_number}`)
-  return parts.length > 0 ? parts.join(' · ') : 'ללא מיקום'
-}
-
-interface LocGroup {
-  key:    string
-  label:  string
-  parts:  Part[]
-}
-
 // --------------- page ---------------
 
 export function InventoryCountPage() {
@@ -101,23 +81,98 @@ export function InventoryCountPage() {
   function setEntries(m: Map<string, IcEntry>) { setEntriesState(m); saveEntries(m) }
   function setNotes(n: IcNote[]) { setNotesState(n); saveNotes(n) }
 
-  // drill-down state
-  const [selectedLoc, setSelectedLoc] = useState<string | null>(null)
-  const [skuSearch, setSkuSearch]     = useState('')
+  // cascading location filter state
+  const [fWarehouse, setFWarehouse]       = useState<string | null>(null)
+  const [fCabinet, setFCabinet]           = useState<string | null>(null)
+  const [fStorageType, setFStorageType]   = useState<string | null>(null)
+  const [fStorageNum, setFStorageNum]     = useState<string | null>(null)
+  const [fCell, setFCell]                 = useState<string | null>(null)
 
-  // group parts by location
-  const locations: LocGroup[] = useMemo(() => {
-    const map = new Map<string, LocGroup>()
-    for (const p of allParts ?? []) {
-      const k = locKey(p)
-      const existing = map.get(k)
-      if (existing) { existing.parts.push(p); continue }
-      map.set(k, { key: k, label: locLabel(p), parts: [p] })
+  const [skuSearch, setSkuSearch]         = useState('')
+
+  // Cascading filter: each level narrows the pool for the next.
+  // Options at each level are computed from the parts that passed
+  // all previous filters, with counts.
+  const filterLevels = useMemo(() => {
+    const all = allParts ?? []
+
+    // Level 1: warehouse
+    const warehouseOpts = new Map<string, number>()
+    for (const p of all) {
+      const k = p.warehouse || 'ללא מחסן'
+      warehouseOpts.set(k, (warehouseOpts.get(k) ?? 0) + 1)
     }
-    return [...map.values()].sort((a, b) => a.label.localeCompare(b.label, 'he'))
-  }, [allParts])
 
-  const selectedGroup = selectedLoc ? locations.find((g) => g.key === selectedLoc) ?? null : null
+    // Level 2: cabinet (filtered by warehouse selection)
+    const afterWarehouse = fWarehouse
+      ? all.filter((p) => (p.warehouse || 'ללא מחסן') === fWarehouse)
+      : []
+    const cabinetOpts = new Map<string, number>()
+    for (const p of afterWarehouse) {
+      const k = p.cabinet != null && p.cabinet !== 0 ? `ארון ${p.cabinet}` : 'ללא ארון'
+      cabinetOpts.set(k, (cabinetOpts.get(k) ?? 0) + 1)
+    }
+
+    // Level 3: storage_type (filtered by warehouse + cabinet)
+    const afterCabinet = fCabinet
+      ? afterWarehouse.filter((p) => {
+          const k = p.cabinet != null && p.cabinet !== 0 ? `ארון ${p.cabinet}` : 'ללא ארון'
+          return k === fCabinet
+        })
+      : []
+    const storageTypeOpts = new Map<string, number>()
+    for (const p of afterCabinet) {
+      const k = p.storage_type || 'ללא סוג מאחסן'
+      storageTypeOpts.set(k, (storageTypeOpts.get(k) ?? 0) + 1)
+    }
+
+    // Level 4: storage_number
+    const afterStorageType = fStorageType
+      ? afterCabinet.filter((p) => (p.storage_type || 'ללא סוג מאחסן') === fStorageType)
+      : []
+    const storageNumOpts = new Map<string, number>()
+    for (const p of afterStorageType) {
+      const k = p.storage_number != null && p.storage_number !== 0 ? `#${p.storage_number}` : 'ללא מספר'
+      storageNumOpts.set(k, (storageNumOpts.get(k) ?? 0) + 1)
+    }
+
+    // Level 5: cell_number
+    const afterStorageNum = fStorageNum
+      ? afterStorageType.filter((p) => {
+          const k = p.storage_number != null && p.storage_number !== 0 ? `#${p.storage_number}` : 'ללא מספר'
+          return k === fStorageNum
+        })
+      : []
+    const cellOpts = new Map<string, number>()
+    for (const p of afterStorageNum) {
+      const k = p.cell_number != null && p.cell_number !== 0 ? `תא ${p.cell_number}` : 'ללא תא'
+      cellOpts.set(k, (cellOpts.get(k) ?? 0) + 1)
+    }
+
+    return { warehouseOpts, cabinetOpts, storageTypeOpts, storageNumOpts, cellOpts }
+  }, [allParts, fWarehouse, fCabinet, fStorageType, fStorageNum])
+
+  // The parts that match ALL selected filters (the "deepest" active level)
+  const filteredParts = useMemo(() => {
+    let list = allParts ?? []
+    if (fWarehouse)   list = list.filter((p) => (p.warehouse || 'ללא מחסן') === fWarehouse)
+    if (fCabinet)     list = list.filter((p) => {
+      const k = p.cabinet != null && p.cabinet !== 0 ? `ארון ${p.cabinet}` : 'ללא ארון'
+      return k === fCabinet
+    })
+    if (fStorageType) list = list.filter((p) => (p.storage_type || 'ללא סוג מאחסן') === fStorageType)
+    if (fStorageNum)  list = list.filter((p) => {
+      const k = p.storage_number != null && p.storage_number !== 0 ? `#${p.storage_number}` : 'ללא מספר'
+      return k === fStorageNum
+    })
+    if (fCell)        list = list.filter((p) => {
+      const k = p.cell_number != null && p.cell_number !== 0 ? `תא ${p.cell_number}` : 'ללא תא'
+      return k === fCell
+    })
+    return list.sort((a, b) => a.name.localeCompare(b.name, 'he'))
+  }, [allParts, fWarehouse, fCabinet, fStorageType, fStorageNum, fCell])
+
+  const hasAnyFilter = fWarehouse != null
 
   // SKU search across all parts
   const skuMatches = useMemo(() => {
@@ -270,65 +325,89 @@ export function InventoryCountPage() {
               </CardBody>
             </Card>
 
-            {/* Location drill-down */}
+            {/* Cascading location filter */}
             <Card>
               <CardHeader>
-                <h3 className="text-sm font-semibold text-foreground">ספירה לפי מיקום</h3>
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold text-foreground">סינון לפי מיקום</h3>
+                  {hasAnyFilter && (
+                    <button
+                      type="button"
+                      onClick={() => { setFWarehouse(null); setFCabinet(null); setFStorageType(null); setFStorageNum(null); setFCell(null) }}
+                      className="text-xs text-primary hover:underline"
+                    >
+                      נקה סינון
+                    </button>
+                  )}
+                </div>
               </CardHeader>
               <CardBody className="flex flex-col gap-2">
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-60 overflow-y-auto">
-                  {locations.map((g) => {
-                    const active = selectedLoc === g.key
-                    const countedInGroup = g.parts.filter((p) => entries.has(p.id)).length
-                    const allCounted = countedInGroup === g.parts.length && g.parts.length > 0
-                    return (
-                      <button
-                        key={g.key}
-                        type="button"
-                        onClick={() => setSelectedLoc(active ? null : g.key)}
-                        aria-expanded={active}
-                        className={`text-start rounded-md px-2 py-2 text-xs transition-colors border ${
-                          active
-                            ? 'bg-primary/10 border-primary border-2 font-semibold'
-                            : allCounted
-                              ? 'bg-success/5 border-success/40 text-success'
-                              : 'bg-card border-border hover:bg-muted-surface'
-                        }`}
-                      >
-                        <div className="truncate text-foreground">{g.label}</div>
-                        <div className="text-muted mt-0.5">
-                          {countedInGroup}/{g.parts.length} נספרו
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
+                <FilterRow
+                  label="מחסן"
+                  options={filterLevels.warehouseOpts}
+                  selected={fWarehouse}
+                  onSelect={(v) => { setFWarehouse(v); setFCabinet(null); setFStorageType(null); setFStorageNum(null); setFCell(null) }}
+                />
+                {fWarehouse && (
+                  <FilterRow
+                    label="ארון"
+                    options={filterLevels.cabinetOpts}
+                    selected={fCabinet}
+                    onSelect={(v) => { setFCabinet(v); setFStorageType(null); setFStorageNum(null); setFCell(null) }}
+                  />
+                )}
+                {fCabinet && (
+                  <FilterRow
+                    label="סוג מאחסן"
+                    options={filterLevels.storageTypeOpts}
+                    selected={fStorageType}
+                    onSelect={(v) => { setFStorageType(v); setFStorageNum(null); setFCell(null) }}
+                  />
+                )}
+                {fStorageType && (
+                  <FilterRow
+                    label="מספר מאחסן"
+                    options={filterLevels.storageNumOpts}
+                    selected={fStorageNum}
+                    onSelect={(v) => { setFStorageNum(v); setFCell(null) }}
+                  />
+                )}
+                {fStorageNum && (
+                  <FilterRow
+                    label="תא"
+                    options={filterLevels.cellOpts}
+                    selected={fCell}
+                    onSelect={setFCell}
+                  />
+                )}
               </CardBody>
             </Card>
 
-            {/* Parts in selected location */}
-            {selectedGroup && (
+            {/* Filtered parts list */}
+            {hasAnyFilter && (
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-sm font-semibold text-foreground">{selectedGroup.label}</h3>
-                    <span className="text-xs text-muted">{selectedGroup.parts.length} פריטים</span>
+                    <h3 className="text-sm font-semibold text-foreground">פריטים ({filteredParts.length})</h3>
+                    <span className="text-xs text-muted">
+                      {filteredParts.filter((p) => entries.has(p.id)).length}/{filteredParts.length} נספרו
+                    </span>
                   </div>
                 </CardHeader>
                 <CardBody className="p-0">
+                  {filteredParts.length === 0 && (
+                    <p className="text-sm text-muted text-center py-4">אין פריטים במיקום זה</p>
+                  )}
                   <ul>
-                    {selectedGroup.parts
-                      .slice()
-                      .sort((a, b) => a.name.localeCompare(b.name, 'he'))
-                      .map((p) => (
-                        <CountRow
-                          key={p.id}
-                          part={p}
-                          entry={entries.get(p.id)}
-                          sessionOpen={session.status === 'open'}
-                          onSave={upsertEntry}
-                        />
-                      ))}
+                    {filteredParts.map((p) => (
+                      <CountRow
+                        key={p.id}
+                        part={p}
+                        entry={entries.get(p.id)}
+                        sessionOpen={session.status === 'open'}
+                        onSave={upsertEntry}
+                      />
+                    ))}
                   </ul>
                 </CardBody>
               </Card>
@@ -575,5 +654,75 @@ function ReportSummary({ allParts, entries }: { allParts: Part[]; entries: Map<s
         </div>
       </CardBody>
     </Card>
+  )
+}
+
+// --------------- cascading filter row ---------------
+
+function FilterRow({
+  label, options, selected, onSelect,
+}: {
+  label:    string
+  options:  Map<string, number>
+  selected: string | null
+  onSelect: (value: string | null) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const sorted = useMemo(
+    () => [...options.entries()].sort((a, b) => a[0].localeCompare(b[0], 'he')),
+    [options],
+  )
+
+  if (options.size === 0) return null
+
+  // If only one option, auto-select it and don't show a dropdown
+  if (options.size === 1 && !selected) {
+    const only = sorted[0][0]
+    onSelect(only)
+    return null
+  }
+
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="text-[11px] text-muted font-medium">{label}</div>
+      {!selected ? (
+        <div className="flex flex-wrap gap-1.5">
+          {sorted.map(([value, count]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => { onSelect(value); setOpen(false) }}
+              className="text-xs px-2.5 py-1.5 rounded-md border border-border bg-card text-foreground hover:bg-muted-surface transition-colors"
+            >
+              {value} <span className="text-muted">({count})</span>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="text-xs px-2.5 py-1.5 rounded-md border-2 border-primary bg-primary/10 text-foreground font-semibold"
+          >
+            {selected} <span className="text-muted">({options.get(selected) ?? 0})</span> ▾
+          </button>
+          {open && (
+            <div className="flex flex-wrap gap-1.5">
+              {sorted.filter(([v]) => v !== selected).map(([value, count]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => { onSelect(value); setOpen(false) }}
+                  className="text-xs px-2.5 py-1.5 rounded-md border border-border bg-card text-foreground hover:bg-muted-surface transition-colors"
+                >
+                  {value} <span className="text-muted">({count})</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   )
 }
