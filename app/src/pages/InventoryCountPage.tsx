@@ -598,92 +598,161 @@ function CountRow({
 // --------------- report summary ---------------
 
 function ReportSummary({ allParts, entries }: { allParts: Part[]; entries: Map<string, IcEntry> }) {
-  const { matching, deltas, notCounted } = useMemo(() => {
-    const matching:   Array<{ part: Part; entry: IcEntry }> = []
-    const deltas:     Array<{ part: Part; entry: IcEntry; delta: number }> = []
+  const { matching, surplus, shortage, notCounted } = useMemo(() => {
+    const matching:  Array<{ part: Part; entry: IcEntry }> = []
+    const surplus:   Array<{ part: Part; entry: IcEntry; delta: number }> = []
+    const shortage:  Array<{ part: Part; entry: IcEntry; delta: number }> = []
     const notCounted: Part[] = []
 
     for (const p of allParts) {
       const e = entries.get(p.id)
       if (!e) { notCounted.push(p); continue }
-      if (e.countedQty === e.expectedQty) matching.push({ part: p, entry: e })
-      else deltas.push({ part: p, entry: e, delta: e.countedQty - e.expectedQty })
+      const d = e.countedQty - e.expectedQty
+      if (d === 0) matching.push({ part: p, entry: e })
+      else if (d > 0) surplus.push({ part: p, entry: e, delta: d })
+      else shortage.push({ part: p, entry: e, delta: d })
     }
-    deltas.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
-    return { matching, deltas, notCounted }
+    surplus.sort((a, b) => b.delta - a.delta)
+    shortage.sort((a, b) => a.delta - b.delta)
+    return { matching, surplus, shortage, notCounted }
   }, [allParts, entries])
 
-  const [showMatching, setShowMatching] = useState(false)
+  const [showSurplus, setShowSurplus]     = useState(false)
+  const [showShortage, setShowShortage]   = useState(false)
+  const [showNotCounted, setShowNotCounted] = useState(false)
+  const [showMatching, setShowMatching]   = useState(false)
+
+  function buildCsv(): string {
+    const lines: string[] = ['שם,מק״ט,רשום,נספר,פער,קטגוריה']
+    for (const { part, entry, delta } of surplus) {
+      lines.push(`"${part.name}","${part.sku}",${entry.expectedQty},${entry.countedQty},+${delta},עודף`)
+    }
+    for (const { part, entry, delta } of shortage) {
+      lines.push(`"${part.name}","${part.sku}",${entry.expectedQty},${entry.countedQty},${delta},חוסר`)
+    }
+    for (const { part, entry } of matching) {
+      lines.push(`"${part.name}","${part.sku}",${entry.expectedQty},${entry.countedQty},0,התאמה`)
+    }
+    for (const p of notCounted) {
+      lines.push(`"${p.name}","${p.sku}",${p.quantity},,,"לא נספר"`)
+    }
+    return '﻿' + lines.join('\n')
+  }
+
+  function downloadReport() {
+    const csv = buildCsv()
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `inventory-count-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
   return (
     <Card>
       <CardHeader>
-        <h3 className="text-sm font-semibold text-foreground">דוח ספירה (חי)</h3>
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold text-foreground">דוח ספירה (חי)</h3>
+          <Button variant="secondary" onClick={downloadReport} className="text-xs px-3 py-1">
+            ⬇ הורד דוח CSV
+          </Button>
+        </div>
       </CardHeader>
       <CardBody className="flex flex-col gap-3 text-xs">
-        {/* Deltas */}
-        {deltas.length > 0 && (
+        {/* Shortage */}
+        {shortage.length > 0 && (
           <div>
-            <div className="font-semibold text-warning mb-1">פערים ({deltas.length})</div>
-            <table className="w-full">
-              <thead>
-                <tr className="text-muted text-[11px] border-b border-border">
-                  <th className="text-start py-1 font-medium">שם</th>
-                  <th className="text-start py-1 font-medium">מק״ט</th>
-                  <th className="text-start py-1 font-medium">רשום</th>
-                  <th className="text-start py-1 font-medium">נספר</th>
-                  <th className="text-start py-1 font-medium">פער</th>
-                </tr>
-              </thead>
-              <tbody>
-                {deltas.map(({ part, entry, delta }) => (
-                  <tr key={part.id} className="border-b border-border last:border-0">
-                    <td className="py-1 text-foreground">{part.name}</td>
-                    <td className="py-1 font-mono text-muted">{part.sku}</td>
-                    <td className="py-1 text-muted">{entry.expectedQty}</td>
-                    <td className="py-1 text-foreground font-medium">{entry.countedQty}</td>
-                    <td className={`py-1 font-semibold ${delta > 0 ? 'text-success' : 'text-danger'}`}>
-                      {delta > 0 ? `+${delta}` : delta}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <button type="button" onClick={() => setShowShortage((v) => !v)} className="font-semibold text-danger hover:underline">
+              חוסר ({shortage.length}) {showShortage ? '▴' : '▾'}
+            </button>
+            {showShortage && (
+              <DeltaTable rows={shortage} />
+            )}
+          </div>
+        )}
+
+        {/* Surplus */}
+        {surplus.length > 0 && (
+          <div>
+            <button type="button" onClick={() => setShowSurplus((v) => !v)} className="font-semibold text-success hover:underline">
+              עודף ({surplus.length}) {showSurplus ? '▴' : '▾'}
+            </button>
+            {showSurplus && (
+              <DeltaTable rows={surplus} />
+            )}
           </div>
         )}
 
         {/* Not counted */}
         {notCounted.length > 0 && (
           <div>
-            <div className="font-semibold text-danger mb-1">לא נספרו ({notCounted.length})</div>
-            <p className="text-muted">
-              {notCounted.length} פריטים ברשומים בקטלוג שלא נספרו עדיין.
-            </p>
+            <button type="button" onClick={() => setShowNotCounted((v) => !v)} className="font-semibold text-warning hover:underline">
+              לא נספרו ({notCounted.length}) {showNotCounted ? '▴' : '▾'}
+            </button>
+            {showNotCounted && (
+              <ul className="mt-1 flex flex-col gap-0.5">
+                {notCounted.map((p) => (
+                  <li key={p.id} className="flex items-center justify-between gap-2 text-muted">
+                    <span className="truncate">{p.name}</span>
+                    <span className="font-mono shrink-0">{p.sku} · {p.quantity}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
 
         {/* Matching */}
-        <div>
-          <button
-            type="button"
-            onClick={() => setShowMatching((v) => !v)}
-            className="font-semibold text-success hover:underline"
-          >
-            התאמה ({matching.length}) {showMatching ? '▴' : '▾'}
-          </button>
-          {showMatching && matching.length > 0 && (
-            <ul className="mt-1 flex flex-col gap-0.5">
-              {matching.map(({ part }) => (
-                <li key={part.id} className="flex items-center justify-between gap-2 text-muted">
-                  <span className="truncate">{part.name}</span>
-                  <span className="font-mono shrink-0">{part.sku} · {part.quantity}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        {matching.length > 0 && (
+          <div>
+            <button type="button" onClick={() => setShowMatching((v) => !v)} className="font-semibold text-muted hover:underline">
+              התאמה ({matching.length}) {showMatching ? '▴' : '▾'}
+            </button>
+            {showMatching && (
+              <ul className="mt-1 flex flex-col gap-0.5">
+                {matching.map(({ part }) => (
+                  <li key={part.id} className="flex items-center justify-between gap-2 text-muted">
+                    <span className="truncate">{part.name}</span>
+                    <span className="font-mono shrink-0">{part.sku} · {part.quantity}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
       </CardBody>
     </Card>
+  )
+}
+
+function DeltaTable({ rows }: { rows: Array<{ part: Part; entry: IcEntry; delta: number }> }) {
+  return (
+    <table className="w-full mt-1">
+      <thead>
+        <tr className="text-muted text-[11px] border-b border-border">
+          <th className="text-start py-1 font-medium">שם</th>
+          <th className="text-start py-1 font-medium">מק״ט</th>
+          <th className="text-start py-1 font-medium">רשום</th>
+          <th className="text-start py-1 font-medium">נספר</th>
+          <th className="text-start py-1 font-medium">פער</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map(({ part, entry, delta }) => (
+          <tr key={part.id} className="border-b border-border last:border-0">
+            <td className="py-1 text-foreground">{part.name}</td>
+            <td className="py-1 font-mono text-muted">{part.sku}</td>
+            <td className="py-1 text-muted">{entry.expectedQty}</td>
+            <td className="py-1 text-foreground font-medium">{entry.countedQty}</td>
+            <td className={`py-1 font-semibold ${delta > 0 ? 'text-success' : 'text-danger'}`}>
+              {delta > 0 ? `+${delta}` : delta}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   )
 }
 
