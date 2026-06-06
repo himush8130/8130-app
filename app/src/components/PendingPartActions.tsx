@@ -25,7 +25,7 @@ const ANY_REJECTED_SET: ReadonlySet<RequiredPartStatus> = new Set([
   ...PENDING_REJECTED_SET, ...FINAL_REJECTED_SET,
 ])
 
-type Variant = 'active' | 'rejected' | 'rejected_final' | 'blocked' | 'delivered' | 'not_consumed'
+type Variant = 'active' | 'rejected' | 'rejected_final' | 'blocked' | 'delivered' | 'not_consumed' | 'wear_credited'
 
 interface Props {
   variant?:      Variant
@@ -109,10 +109,11 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
       return true
     }
     if (blocked) return false
-    if (effective === 'delivered')      return r.status === 'delivered'
+    if (effective === 'delivered')       return r.status === 'delivered'
     if (effective === 'not_consumed')   return r.status === 'not_consumed'
+    if (effective === 'wear_credited')  return r.status === 'wear_credited'
     if (effective === 'active') {
-      if (ANY_REJECTED_SET.has(r.status) || r.status === 'delivered' || r.status === 'not_consumed') return false
+      if (ANY_REJECTED_SET.has(r.status) || r.status === 'delivered' || r.status === 'not_consumed' || r.status === 'wear' || r.status === 'wear_credited') return false
       if (skuQuery && !(r.parts?.sku.toLowerCase().includes(skuQuery))) return false
       return true
     }
@@ -141,6 +142,7 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
     effective === 'blocked'        ? 'מק״טים חסומים' :
     effective === 'delivered'      ? 'פריטים שנופקו' :
     effective === 'not_consumed'   ? 'פריטים שלא נצרכו' :
+    effective === 'wear_credited'  ? 'בלאי מזוכה' :
                                      'פעולות פתוחות'
   const badgeId =
     effective === 'rejected_final' ? 4011 :
@@ -148,6 +150,7 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
     effective === 'blocked'        ? 4010 :
     effective === 'delivered'      ? 4012 :
     effective === 'not_consumed'   ? 4016 :
+    effective === 'wear_credited'  ? 4017 :
                                      4003
   const tone =
     effective === 'rejected'       ? 'text-danger' :
@@ -155,6 +158,7 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
     effective === 'blocked'        ? 'text-warning' :
     effective === 'delivered'      ? 'text-success' :
     effective === 'not_consumed'   ? 'text-warning' :
+    effective === 'wear_credited'  ? 'text-muted'  :
                                      undefined
   // Whether to paint a row red. For blocked: only rows still WITHOUT a
   // replacement_sku — once a warehouse user assigns a replacement, the
@@ -199,6 +203,7 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
           : effective === 'rejected_final'? 'אין פריטים שנדחו סופית'
           : effective === 'delivered'     ? 'אין פריטים שנופקו'
           : effective === 'not_consumed'  ? 'אין פריטים בסטטוס "לא נצרך"'
+          : effective === 'wear_credited' ? 'אין פריטים בסטטוס "בלאי מזוכה"'
                                           : 'אין מק״טים חסומים'}
         </p>
       )}

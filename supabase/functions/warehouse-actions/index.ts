@@ -155,7 +155,7 @@ async function updateRequiredPartStatus(params: any): Promise<Response> {
   const allowed = [
     'in_stock', 'awaiting_order', 'awaiting_receipt', 'received',
     'rejected', 'pending_special_approval', 'rejected_final',
-    'not_consumed',
+    'not_consumed', 'wear', 'wear_credited',
   ]
   if (typeof required_part_id !== 'string' || !allowed.includes(status)) {
     return json(400, { ok: false, error: 'invalid_params' })

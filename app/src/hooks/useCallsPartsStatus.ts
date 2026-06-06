@@ -13,6 +13,8 @@ const PRIORITY: Record<RequiredPartStatus, number> = {
   in_stock:                 2,
   rejected_final:           1,
   delivered:                1,
+  wear:                     2,
+  wear_credited:            1,
 }
 
 const WARNING_STATUSES: ReadonlySet<RequiredPartStatus> = new Set([

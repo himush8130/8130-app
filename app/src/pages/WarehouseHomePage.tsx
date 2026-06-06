@@ -45,6 +45,7 @@ export function WarehouseHomePage() {
         />
         <PendingPartActions variant="not_consumed" />
         <PendingPartActions variant="rejected_final" />
+        <PendingPartActions variant="wear_credited" />
         <PendingPartActions variant="delivered" />
 
         {isLoading && <p className="text-sm text-muted text-center py-4">טוען קטלוג...</p>}

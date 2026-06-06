@@ -31,6 +31,8 @@ const partsStatusOverride: Record<RequiredPartStatus, 'info' | 'success' | 'warn
   pending_special_approval: 'warning',
   rejected_final:           'neutral',
   not_consumed:             'warning',
+  wear:                     'warning',
+  wear_credited:            'neutral',
 }
 
 const partsStatusBadgeLabel: Record<RequiredPartStatus, string> = {
@@ -43,6 +45,8 @@ const partsStatusBadgeLabel: Record<RequiredPartStatus, string> = {
   pending_special_approval: 'חלקים לאישור מיוחד',
   rejected_final:           'חלקים נדחו סופית',
   not_consumed:             'חלקים לא נצרכו',
+  wear:                     'בלאי',
+  wear_credited:            'בלאי מזוכה',
 }
 
 interface Props {

@@ -48,7 +48,7 @@ export function usePendingActions() {
         .in('status', [
           'in_stock', 'awaiting_order', 'awaiting_receipt', 'received',
           'rejected', 'pending_special_approval', 'rejected_final',
-          'delivered', 'not_consumed',
+          'delivered', 'not_consumed', 'wear', 'wear_credited',
         ])
         .order('requested_at', { ascending: true })
       if (error) throw error

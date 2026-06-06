@@ -16,22 +16,20 @@ import { CopyMenu } from './CopyMenu'
 import { buildCopyText } from '../lib/copyFormat'
 import type { RequiredPartStatus } from '../types/db'
 
-type Tab = 'awaiting_order' | 'awaiting_receipt' | 'received'
+type Tab = 'awaiting_order' | 'awaiting_receipt' | 'received' | 'wear'
 
 const TAB_LABEL: Record<Tab, string> = {
   awaiting_order:   'ממתין להזמנה',
   awaiting_receipt: 'ממתין לקבלה',
   received:         'התקבל',
+  wear:             'בלאי',
 }
 
-// Status-coloured classes for the three big square tab buttons.
-// Same hue in both states; the active state just gets a thicker
-// border so the press-affordance is clearly visible without
-// flipping the whole colour.
 const TAB_BASE: Record<Tab, string> = {
   awaiting_order:   'bg-danger/10  text-danger  border-danger  hover:bg-danger/15',
   awaiting_receipt: 'bg-warning/10 text-warning border-warning hover:bg-warning/15',
   received:         'bg-info/10    text-info    border-info    hover:bg-info/15',
+  wear:             'bg-purple-500/10 text-purple-700 border-purple-500 hover:bg-purple-500/15',
 }
 
 const HOUR = 60 * 60 * 1000
@@ -61,7 +59,7 @@ export function ActivePartActions() {
   // came from — instead of resetting to the collapsed default.
   const [searchParams, setSearchParams] = useSearchParams()
   const tabParam = searchParams.get('actab') as Tab | null
-  const tab: Tab | null = tabParam === 'awaiting_order' || tabParam === 'awaiting_receipt' || tabParam === 'received'
+  const tab: Tab | null = tabParam === 'awaiting_order' || tabParam === 'awaiting_receipt' || tabParam === 'received' || tabParam === 'wear'
     ? tabParam
     : null
   function setTab(next: Tab | null) {
@@ -106,11 +104,15 @@ export function ActivePartActions() {
   // Counts across the three tabs — feed the headline numbers in the
   // tab buttons. Rejected/blocked/delivered rows are excluded.
   const counts = useMemo(() => {
-    const out: Record<Tab, number> = { awaiting_order: 0, awaiting_receipt: 0, received: 0 }
+    const out: Record<Tab, number> = { awaiting_order: 0, awaiting_receipt: 0, received: 0, wear: 0 }
     for (const r of data ?? []) {
       if (r.parts?.is_sku_blocked) continue
-      if (r.status === 'awaiting_order' || r.status === 'awaiting_receipt' || r.status === 'received') {
+      if (r.status === 'awaiting_order' || r.status === 'awaiting_receipt') {
         out[r.status] += 1
+      } else if (r.status === 'received' && !r.warehouse_order_id) {
+        out.received += 1
+      } else if (r.status === 'wear') {
+        out.wear += 1
       }
     }
     return out
@@ -124,6 +126,7 @@ export function ActivePartActions() {
     const filtered = (data ?? []).filter((r) => {
       if (r.status !== tab) return false
       if (r.parts?.is_sku_blocked) return false
+      if (tab === 'received' && r.warehouse_order_id) return false
       if (skuQ && !(r.parts?.sku ?? '').toLowerCase().includes(skuQ)) return false
       if (orderQ && !((r.order_number ?? '').toLowerCase().includes(orderQ))) return false
       return true
@@ -294,7 +297,7 @@ export function ActivePartActions() {
       {/* Tabs ARE the header. Three equal-sized squares in a single
           row, each coloured by the status it represents. Clicking
           the active tab collapses the panel back to the default. */}
-      <div className="px-3 py-3 grid grid-cols-3 gap-2">
+      <div className="px-3 py-3 grid grid-cols-4 gap-2">
         {(Object.keys(TAB_LABEL) as Tab[]).map((t) => {
           const active = tab === t
           return (
