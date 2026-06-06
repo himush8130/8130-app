@@ -209,3 +209,25 @@ export function createWarehouseOrder(
     params: { items },
   }) as Promise<ActionResult<any> & { order?: { id: string; display_id: string }; items?: unknown[] }>
 }
+
+// --------------- Inventory Count ---------------
+
+export function icOpenSession(employeeNumber: number) {
+  return invoke({ employee_number: employeeNumber, action: 'ic_open_session', params: {} })
+}
+
+export function icToggleSession(employeeNumber: number, sessionId: string) {
+  return invoke({ employee_number: employeeNumber, action: 'ic_toggle_session', params: { session_id: sessionId } })
+}
+
+export function icResetSession(employeeNumber: number, sessionId: string) {
+  return invoke({ employee_number: employeeNumber, action: 'ic_reset_session', params: { session_id: sessionId } })
+}
+
+export function icUpsertEntry(employeeNumber: number, sessionId: string, partId: string, countedQty: number, expectedQty: number) {
+  return invoke({ employee_number: employeeNumber, action: 'ic_upsert_entry', params: { session_id: sessionId, part_id: partId, counted_qty: countedQty, expected_qty: expectedQty } })
+}
+
+export function icRemoveEntry(employeeNumber: number, sessionId: string, partId: string) {
+  return invoke({ employee_number: employeeNumber, action: 'ic_remove_entry', params: { session_id: sessionId, part_id: partId } })
+}

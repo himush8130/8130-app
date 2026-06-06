@@ -106,6 +106,31 @@ Deno.serve(async (req: Request) => {
         return json(403, { ok: false, error: 'requires_warehouse_or_manager' })
       }
       return await createWarehouseOrder(params, employee_number)
+    case 'ic_open_session':
+      if (caller.permissions !== 'warehouse' && caller.permissions !== 'manager') {
+        return json(403, { ok: false, error: 'requires_warehouse_or_manager' })
+      }
+      return await icOpenSession(employee_number)
+    case 'ic_toggle_session':
+      if (caller.permissions !== 'warehouse' && caller.permissions !== 'manager') {
+        return json(403, { ok: false, error: 'requires_warehouse_or_manager' })
+      }
+      return await icToggleSession(params)
+    case 'ic_reset_session':
+      if (caller.permissions !== 'warehouse' && caller.permissions !== 'manager') {
+        return json(403, { ok: false, error: 'requires_warehouse_or_manager' })
+      }
+      return await icResetSession(params)
+    case 'ic_upsert_entry':
+      if (caller.permissions !== 'warehouse' && caller.permissions !== 'manager') {
+        return json(403, { ok: false, error: 'requires_warehouse_or_manager' })
+      }
+      return await icUpsertEntry(params, employee_number)
+    case 'ic_remove_entry':
+      if (caller.permissions !== 'warehouse' && caller.permissions !== 'manager') {
+        return json(403, { ok: false, error: 'requires_warehouse_or_manager' })
+      }
+      return await icRemoveEntry(params)
     default:
       return json(400, { ok: false, error: 'unknown_action', action })
   }
@@ -727,6 +752,77 @@ async function createWarehouseOrder(params: any, requested_by: number): Promise<
 }
 
 // ---------------------------------------------------------------------
+
+// ---------------------------------------------------------------------
+// Inventory Count
+// ---------------------------------------------------------------------
+
+async function icOpenSession(opened_by: number): Promise<Response> {
+  const { data, error } = await admin
+    .from('inventory_count_sessions')
+    .insert({ opened_by })
+    .select('id, opened_by, opened_at, status')
+    .single()
+  if (error) return json(500, { ok: false, error: 'insert_failed', detail: error.message })
+  return json(200, { ok: true, session: data })
+}
+
+async function icToggleSession(params: any): Promise<Response> {
+  const { session_id } = params ?? {}
+  if (typeof session_id !== 'string') return json(400, { ok: false, error: 'invalid_params' })
+  const { data: cur } = await admin
+    .from('inventory_count_sessions').select('status').eq('id', session_id).maybeSingle()
+  if (!cur) return json(404, { ok: false, error: 'not_found' })
+  const next = cur.status === 'open' ? 'closed' : 'open'
+  const patch: Record<string, unknown> = { status: next }
+  if (next === 'closed') patch.closed_at = new Date().toISOString()
+  else patch.closed_at = null
+  const { data, error } = await admin
+    .from('inventory_count_sessions').update(patch).eq('id', session_id)
+    .select('id, opened_by, opened_at, closed_at, status').single()
+  if (error) return json(500, { ok: false, error: 'update_failed', detail: error.message })
+  return json(200, { ok: true, session: data })
+}
+
+async function icResetSession(params: any): Promise<Response> {
+  const { session_id } = params ?? {}
+  if (typeof session_id !== 'string') return json(400, { ok: false, error: 'invalid_params' })
+  const { error } = await admin.from('inventory_count_sessions').delete().eq('id', session_id)
+  if (error) return json(500, { ok: false, error: 'delete_failed', detail: error.message })
+  return json(200, { ok: true })
+}
+
+async function icUpsertEntry(params: any, counted_by: number): Promise<Response> {
+  const { session_id, part_id, counted_qty, expected_qty } = params ?? {}
+  if (typeof session_id !== 'string' || typeof part_id !== 'string'
+      || typeof counted_qty !== 'number' || typeof expected_qty !== 'number') {
+    return json(400, { ok: false, error: 'invalid_params' })
+  }
+  const { data, error } = await admin
+    .from('inventory_count_entries')
+    .upsert(
+      { session_id, part_id, counted_qty, expected_qty, counted_by, counted_at: new Date().toISOString() },
+      { onConflict: 'session_id,part_id' },
+    )
+    .select('id, part_id, counted_qty, expected_qty')
+    .single()
+  if (error) return json(500, { ok: false, error: 'upsert_failed', detail: error.message })
+  return json(200, { ok: true, entry: data })
+}
+
+async function icRemoveEntry(params: any): Promise<Response> {
+  const { session_id, part_id } = params ?? {}
+  if (typeof session_id !== 'string' || typeof part_id !== 'string') {
+    return json(400, { ok: false, error: 'invalid_params' })
+  }
+  const { error } = await admin
+    .from('inventory_count_entries')
+    .delete()
+    .eq('session_id', session_id)
+    .eq('part_id', part_id)
+  if (error) return json(500, { ok: false, error: 'delete_failed', detail: error.message })
+  return json(200, { ok: true })
+}
 
 function json(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {

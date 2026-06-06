@@ -2,69 +2,24 @@ import { useMemo, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useParts } from '../hooks/useParts'
+import { useInventorySession, useInventoryEntries, type IcEntry } from '../hooks/useInventoryCount'
 import { useAuthStore } from '../store/auth'
 import { AppHeader } from '../components/AppHeader'
 import { ExchangeBadge } from '../components/ExchangeBadge'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
-import { createPart, updatePart } from '../lib/warehouseActions'
+import { createPart, updatePart, icOpenSession, icToggleSession, icResetSession, icUpsertEntry, icRemoveEntry } from '../lib/warehouseActions'
 import type { Part } from '../types/parts'
-
-// --------------- localStorage persistence ---------------
-
-const LS_SESSION   = 'ic_session'
-const LS_ENTRIES   = 'ic_entries'
-
-interface IcSession {
-  id: string
-  openedBy: number
-  openedAt: string
-  status: 'open' | 'closed'
-}
-
-interface IcEntry {
-  partId:         string
-  countedQty:     number
-  expectedQty:    number
-  countedBy:      number
-  countedAt:      string
-  note:           string
-}
-
-function loadSession(): IcSession | null {
-  try { const r = localStorage.getItem(LS_SESSION); return r ? JSON.parse(r) : null } catch { return null }
-}
-function saveSession(s: IcSession | null) {
-  if (s) localStorage.setItem(LS_SESSION, JSON.stringify(s))
-  else   localStorage.removeItem(LS_SESSION)
-}
-
-function loadEntries(): Map<string, IcEntry> {
-  try {
-    const r = localStorage.getItem(LS_ENTRIES)
-    if (!r) return new Map()
-    const arr: [string, IcEntry][] = JSON.parse(r)
-    return new Map(arr)
-  } catch { return new Map() }
-}
-function saveEntries(m: Map<string, IcEntry>) {
-  localStorage.setItem(LS_ENTRIES, JSON.stringify([...m.entries()]))
-}
-
-// --------------- location helpers ---------------
 
 // --------------- page ---------------
 
 export function InventoryCountPage() {
   const employee = useAuthStore((s) => s.employee)!
+  const queryClient = useQueryClient()
   const { data: allParts, isLoading } = useParts()
-
-  const [session, setSessionState] = useState<IcSession | null>(() => loadSession())
-  const [entries, setEntriesState] = useState<Map<string, IcEntry>>(() => loadEntries())
-
-  function setSession(s: IcSession | null) { setSessionState(s); saveSession(s) }
-  function setEntries(m: Map<string, IcEntry>) { setEntriesState(m); saveEntries(m) }
+  const { data: session } = useInventorySession()
+  const { data: entries = new Map<string, IcEntry>() } = useInventoryEntries(session?.id ?? null)
 
   // cascading location filter state
   const [fWarehouse, setFWarehouse]       = useState<string | null>(null)
@@ -167,55 +122,47 @@ export function InventoryCountPage() {
     return (allParts ?? []).filter((p) => p.quantity > 0 && p.sku.replace(/\D/g, '').startsWith(q)).slice(0, 20)
   }, [allParts, skuSearch])
 
-  // session actions
-  function openSession() {
-    const s: IcSession = {
-      id: `ic-${Date.now()}`,
-      openedBy: employee.employee_number,
-      openedAt: new Date().toISOString(),
-      status: 'open',
-    }
-    setSession(s)
-    setEntries(new Map())
+  function invalidateIC() {
+    queryClient.invalidateQueries({ queryKey: ['ic_session'] })
+    queryClient.invalidateQueries({ queryKey: ['ic_entries'] })
   }
 
-  function toggleSessionStatus() {
+  async function openSession() {
+    await icOpenSession(employee.employee_number)
+    invalidateIC()
+  }
+
+  async function toggleSessionStatus() {
     if (!session) return
-    setSession({ ...session, status: session.status === 'open' ? 'closed' : 'open' })
+    await icToggleSession(employee.employee_number, session.id)
+    invalidateIC()
   }
 
   const [confirmReset, setConfirmReset] = useState(false)
-  function resetSession() {
-    setSession(null)
-    setEntries(new Map())
+  async function resetSession() {
+    if (!session) return
+    await icResetSession(employee.employee_number, session.id)
+    invalidateIC()
     setConfirmReset(false)
   }
 
-  // entry actions
-  const upsertEntry = useCallback((part: Part, countedQty: number) => {
-    const next = new Map(entries)
-    next.set(part.id, {
-      partId:      part.id,
-      countedQty,
-      expectedQty: part.quantity,
-      countedBy:   employee.employee_number,
-      countedAt:   new Date().toISOString(),
-      note:        '',
-    })
-    setEntries(next)
-  }, [entries, employee.employee_number, setEntries])
+  const upsertEntry = useCallback(async (part: Part, countedQty: number) => {
+    if (!session) return
+    await icUpsertEntry(employee.employee_number, session.id, part.id, countedQty, part.quantity)
+    queryClient.invalidateQueries({ queryKey: ['ic_entries', session.id] })
+  }, [session, employee.employee_number, queryClient])
 
-  const removeEntry = useCallback((partId: string) => {
-    const next = new Map(entries)
-    next.delete(partId)
-    setEntries(next)
-  }, [entries, setEntries])
+  const removeEntry = useCallback(async (partId: string) => {
+    if (!session) return
+    await icRemoveEntry(employee.employee_number, session.id, partId)
+    queryClient.invalidateQueries({ queryKey: ['ic_entries', session.id] })
+  }, [session, employee.employee_number, queryClient])
 
 
   // stats
   const totalParts = (allParts ?? []).length
   const countedCount = entries.size
-  const withDelta = [...entries.values()].filter((e) => e.countedQty !== e.expectedQty).length
+  const withDelta = [...entries.values()].filter((e) => e.counted_qty !== e.expected_qty).length
 
   return (
     <>
@@ -224,10 +171,6 @@ export function InventoryCountPage() {
         <Link to="/warehouse" className="self-start text-sm text-primary hover:underline">
           → חזור למחסנאי
         </Link>
-
-        <div className="bg-warning/10 border border-warning/30 rounded-md px-3 py-2 text-xs text-warning font-medium text-center">
-          מצב פיתוח — הנתונים נשמרים בדפדפן בלבד ולא משפיעים על הקטלוג
-        </div>
 
         {isLoading && <p className="text-sm text-muted text-center py-8">טוען קטלוג...</p>}
 
@@ -432,7 +375,7 @@ function CountRow({
   employeeNumber: number
 }) {
   const queryClient = useQueryClient()
-  const [qty, setQty] = useState(entry?.countedQty?.toString() ?? part.quantity.toString())
+  const [qty, setQty] = useState(entry?.counted_qty?.toString() ?? part.quantity.toString())
   const [confirmRemove, setConfirmRemove] = useState(false)
   const [editLoc, setEditLoc] = useState(false)
   const [locDraft, setLocDraft] = useState({
@@ -446,8 +389,8 @@ function CountRow({
   const [locSaved, setLocSaved] = useState(false)
 
   const counted = entry != null
-  const hasDelta = counted && entry!.countedQty !== entry!.expectedQty
-  const delta = counted ? entry!.countedQty - entry!.expectedQty : 0
+  const hasDelta = counted && entry!.counted_qty !== entry!.expected_qty
+  const delta = counted ? entry!.counted_qty - entry!.expected_qty : 0
 
   function save() {
     const n = parseInt(qty, 10)
@@ -491,7 +434,7 @@ function CountRow({
   if (part.storage_number != null && part.storage_number !== 0) locParts.push(`#${part.storage_number}`)
   if (part.cell_number != null && part.cell_number !== 0) locParts.push(`תא ${part.cell_number}`)
 
-  const savedQtyStr = counted ? entry!.countedQty.toString() : null
+  const savedQtyStr = counted ? entry!.counted_qty.toString() : null
   const canSave = qty !== '' && (savedQtyStr === null || qty !== savedQtyStr)
 
   return (
@@ -556,7 +499,7 @@ function CountRow({
           )}
           {counted && (
             <span className={`text-xs ${hasDelta ? 'font-semibold text-warning' : 'text-success'}`}>
-              נספר: {entry!.countedQty}
+              נספר: {entry!.counted_qty}
               {hasDelta && ` (${delta > 0 ? '+' : ''}${delta})`}
             </span>
           )}
@@ -586,7 +529,7 @@ function CountRow({
       {!sessionOpen && counted && (
         <div className="mt-1 text-xs">
           <span className={hasDelta ? 'font-semibold text-warning' : 'text-success'}>
-            נספר: {entry!.countedQty}
+            נספר: {entry!.counted_qty}
             {hasDelta && ` (${delta > 0 ? '+' : ''}${delta})`}
           </span>
         </div>
@@ -607,7 +550,7 @@ function ReportSummary({ allParts, entries }: { allParts: Part[]; entries: Map<s
     for (const p of allParts) {
       const e = entries.get(p.id)
       if (!e) { notCounted.push(p); continue }
-      const d = e.countedQty - e.expectedQty
+      const d = e.counted_qty - e.expected_qty
       if (d === 0) matching.push({ part: p, entry: e })
       else if (d > 0) surplus.push({ part: p, entry: e, delta: d })
       else shortage.push({ part: p, entry: e, delta: d })
@@ -625,13 +568,13 @@ function ReportSummary({ allParts, entries }: { allParts: Part[]; entries: Map<s
   function buildCsv(): string {
     const lines: string[] = ['שם,מק״ט,רשום,נספר,פער,קטגוריה']
     for (const { part, entry, delta } of surplus) {
-      lines.push(`"${part.name}","${part.sku}",${entry.expectedQty},${entry.countedQty},+${delta},עודף`)
+      lines.push(`"${part.name}","${part.sku}",${entry.expected_qty},${entry.counted_qty},+${delta},עודף`)
     }
     for (const { part, entry, delta } of shortage) {
-      lines.push(`"${part.name}","${part.sku}",${entry.expectedQty},${entry.countedQty},${delta},חוסר`)
+      lines.push(`"${part.name}","${part.sku}",${entry.expected_qty},${entry.counted_qty},${delta},חוסר`)
     }
     for (const { part, entry } of matching) {
-      lines.push(`"${part.name}","${part.sku}",${entry.expectedQty},${entry.countedQty},0,התאמה`)
+      lines.push(`"${part.name}","${part.sku}",${entry.expected_qty},${entry.counted_qty},0,התאמה`)
     }
     for (const p of notCounted) {
       lines.push(`"${p.name}","${p.sku}",${p.quantity},,,"לא נספר"`)
@@ -744,8 +687,8 @@ function DeltaTable({ rows }: { rows: Array<{ part: Part; entry: IcEntry; delta:
           <tr key={part.id} className="border-b border-border last:border-0">
             <td className="py-1 text-foreground">{part.name}</td>
             <td className="py-1 font-mono text-muted">{part.sku}</td>
-            <td className="py-1 text-muted">{entry.expectedQty}</td>
-            <td className="py-1 text-foreground font-medium">{entry.countedQty}</td>
+            <td className="py-1 text-muted">{entry.expected_qty}</td>
+            <td className="py-1 text-foreground font-medium">{entry.counted_qty}</td>
             <td className={`py-1 font-semibold ${delta > 0 ? 'text-success' : 'text-danger'}`}>
               {delta > 0 ? `+${delta}` : delta}
             </td>
