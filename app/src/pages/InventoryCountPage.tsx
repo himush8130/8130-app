@@ -8,7 +8,7 @@ import { ExchangeBadge } from '../components/ExchangeBadge'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
-import { createPart } from '../lib/warehouseActions'
+import { createPart, updatePart } from '../lib/warehouseActions'
 import type { Part } from '../types/parts'
 
 // --------------- localStorage persistence ---------------
@@ -298,6 +298,7 @@ export function InventoryCountPage() {
                         sessionOpen={session.status === 'open'}
                         onSave={upsertEntry}
                         onRemove={removeEntry}
+                        employeeNumber={employee.employee_number}
                       />
                     ))}
                   </ul>
@@ -387,6 +388,7 @@ export function InventoryCountPage() {
                         sessionOpen={session.status === 'open'}
                         onSave={upsertEntry}
                         onRemove={removeEntry}
+                        employeeNumber={employee.employee_number}
                       />
                     ))}
                   </ul>
@@ -420,16 +422,28 @@ export function InventoryCountPage() {
 // --------------- count row ---------------
 
 function CountRow({
-  part, entry, sessionOpen, onSave, onRemove,
+  part, entry, sessionOpen, onSave, onRemove, employeeNumber,
 }: {
   part:        Part
   entry:       IcEntry | undefined
   sessionOpen: boolean
   onSave:      (part: Part, qty: number) => void
   onRemove:    (partId: string) => void
+  employeeNumber: number
 }) {
+  const queryClient = useQueryClient()
   const [qty, setQty] = useState(entry?.countedQty?.toString() ?? part.quantity.toString())
   const [confirmRemove, setConfirmRemove] = useState(false)
+  const [editLoc, setEditLoc] = useState(false)
+  const [locDraft, setLocDraft] = useState({
+    warehouse:      part.warehouse ?? '',
+    cabinet:        part.cabinet != null && part.cabinet !== 0 ? String(part.cabinet) : '',
+    storage_type:   part.storage_type ?? '',
+    storage_number: part.storage_number != null && part.storage_number !== 0 ? String(part.storage_number) : '',
+    cell_number:    part.cell_number != null && part.cell_number !== 0 ? String(part.cell_number) : '',
+  })
+  const [locBusy, setLocBusy] = useState(false)
+  const [locSaved, setLocSaved] = useState(false)
 
   const counted = entry != null
   const hasDelta = counted && entry!.countedQty !== entry!.expectedQty
@@ -445,6 +459,29 @@ function CountRow({
     onRemove(part.id)
     setConfirmRemove(false)
     setQty(part.quantity.toString())
+  }
+
+  function nullableInt(s: string): number | null {
+    const t = s.trim()
+    if (!t) return null
+    const n = parseInt(t, 10)
+    return Number.isNaN(n) ? null : n
+  }
+
+  async function saveLoc() {
+    setLocBusy(true)
+    await updatePart(employeeNumber, part.id, {
+      warehouse:      locDraft.warehouse.trim() || null,
+      cabinet:        nullableInt(locDraft.cabinet),
+      storage_type:   locDraft.storage_type.trim() || null,
+      storage_number: nullableInt(locDraft.storage_number),
+      cell_number:    nullableInt(locDraft.cell_number),
+    })
+    setLocBusy(false)
+    setLocSaved(true)
+    setEditLoc(false)
+    queryClient.invalidateQueries({ queryKey: ['parts'] })
+    setTimeout(() => setLocSaved(false), 1500)
   }
 
   const locParts: string[] = []
@@ -468,7 +505,31 @@ function CountRow({
         <span className="text-xs text-muted shrink-0">רשום: {part.quantity}</span>
       </div>
 
-      <div className="text-[11px] text-muted mt-0.5">{locParts.length > 0 ? locParts.join(' · ') : 'ללא מיקום'}</div>
+      <div className="flex items-center gap-1.5 mt-0.5">
+        <span className="text-[11px] text-muted">{locParts.length > 0 ? locParts.join(' · ') : 'ללא מיקום'}</span>
+        {locSaved && <span className="text-[11px] text-success">✓</span>}
+        {sessionOpen && !editLoc && (
+          <button type="button" onClick={() => setEditLoc(true)} className="text-[11px] text-primary hover:underline">
+            ערוך
+          </button>
+        )}
+      </div>
+
+      {editLoc && (
+        <div className="mt-1.5 flex flex-col gap-1.5 bg-muted-surface/50 rounded-md p-2">
+          <div className="grid grid-cols-5 gap-1.5">
+            <Input label="מחסן" name={`loc-wh-${part.id}`} value={locDraft.warehouse} onChange={(e) => setLocDraft((d) => ({ ...d, warehouse: e.target.value }))} className="text-xs" />
+            <Input label="ארון" name={`loc-cab-${part.id}`} type="number" value={locDraft.cabinet} onChange={(e) => setLocDraft((d) => ({ ...d, cabinet: e.target.value }))} className="text-xs" />
+            <Input label="סוג מאחסן" name={`loc-st-${part.id}`} value={locDraft.storage_type} onChange={(e) => setLocDraft((d) => ({ ...d, storage_type: e.target.value }))} className="text-xs" />
+            <Input label="מספר" name={`loc-sn-${part.id}`} type="number" value={locDraft.storage_number} onChange={(e) => setLocDraft((d) => ({ ...d, storage_number: e.target.value }))} className="text-xs" />
+            <Input label="תא" name={`loc-cn-${part.id}`} type="number" value={locDraft.cell_number} onChange={(e) => setLocDraft((d) => ({ ...d, cell_number: e.target.value }))} className="text-xs" />
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={saveLoc} disabled={locBusy} className="text-[11px] px-3 py-1">{locBusy ? '...' : 'שמור מיקום'}</Button>
+            <Button variant="ghost" onClick={() => setEditLoc(false)} className="text-[11px] px-3 py-1">ביטול</Button>
+          </div>
+        </div>
+      )}
 
       {sessionOpen && (
         <div className="flex items-center gap-2 mt-1.5 flex-wrap">
