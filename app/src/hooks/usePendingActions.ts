@@ -45,11 +45,7 @@ export function usePendingActions() {
             parts(warehouse, cabinet, storage_type, storage_number, cell_number)
           )
         `)
-        .in('status', [
-          'in_stock', 'awaiting_order', 'awaiting_receipt', 'received',
-          'rejected', 'pending_special_approval', 'rejected_final',
-          'delivered', 'not_consumed', 'wear', 'wear_credited',
-        ])
+        .neq('status', 'in_stock')
         .order('requested_at', { ascending: true })
       if (error) throw error
       return (data ?? []) as PendingPart[]

@@ -29,7 +29,7 @@ const TAB_BASE: Record<Tab, string> = {
   awaiting_order:   'bg-danger/10  text-danger  border-danger  hover:bg-danger/15',
   awaiting_receipt: 'bg-warning/10 text-warning border-warning hover:bg-warning/15',
   received:         'bg-info/10    text-info    border-info    hover:bg-info/15',
-  wear:             'bg-purple-500/10 text-purple-700 border-purple-500 hover:bg-purple-500/15',
+  wear:             'bg-success/10 text-success border-success hover:bg-success/15',
 }
 
 const HOUR = 60 * 60 * 1000
