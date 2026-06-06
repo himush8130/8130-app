@@ -9,7 +9,7 @@ import { ExchangeBadge } from '../components/ExchangeBadge'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
-import { createPart, updatePart, icOpenSession, icToggleSession, icResetSession, icUpsertEntry, icRemoveEntry } from '../lib/warehouseActions'
+import { createPart, updatePart, setPartQuantity, icOpenSession, icToggleSession, icResetSession, icUpsertEntry, icRemoveEntry } from '../lib/warehouseActions'
 import type { Part } from '../types/parts'
 
 // --------------- page ---------------
@@ -344,7 +344,7 @@ export function InventoryCountPage() {
 
             {/* Report summary (live) */}
             {countedCount > 0 && (
-              <ReportSummary allParts={allParts ?? []} entries={entries} />
+              <ReportSummary allParts={allParts ?? []} entries={entries} employee={employee} />
             )}
           </>
         )}
@@ -540,7 +540,12 @@ function CountRow({
 
 // --------------- report summary ---------------
 
-function ReportSummary({ allParts, entries }: { allParts: Part[]; entries: Map<string, IcEntry> }) {
+function ReportSummary({ allParts, entries, employee }: {
+  allParts: Part[]
+  entries: Map<string, IcEntry>
+  employee: { employee_number: number; permissions: string }
+}) {
+  const queryClient = useQueryClient()
   const { matching, surplus, shortage, notCounted } = useMemo(() => {
     const matching:  Array<{ part: Part; entry: IcEntry }> = []
     const surplus:   Array<{ part: Part; entry: IcEntry; delta: number }> = []
@@ -564,6 +569,23 @@ function ReportSummary({ allParts, entries }: { allParts: Part[]; entries: Map<s
   const [showShortage, setShowShortage]   = useState(false)
   const [showNotCounted, setShowNotCounted] = useState(false)
   const [showMatching, setShowMatching]   = useState(false)
+  const [confirmUpdate, setConfirmUpdate] = useState(false)
+  const [updating, setUpdating]           = useState(false)
+  const [updateDone, setUpdateDone]       = useState(false)
+
+  const deltaItems = useMemo(() => [...surplus, ...shortage], [surplus, shortage])
+  const isManager = employee.permissions === 'manager'
+
+  async function applyStockUpdate() {
+    setUpdating(true)
+    for (const { part, entry } of deltaItems) {
+      await setPartQuantity(employee.employee_number, part.id, entry.counted_qty)
+    }
+    setUpdating(false)
+    setConfirmUpdate(false)
+    setUpdateDone(true)
+    queryClient.invalidateQueries({ queryKey: ['parts'] })
+  }
 
   function buildCsv(): string {
     const lines: string[] = ['שם,מק״ט,רשום,נספר,פער,קטגוריה']
@@ -596,14 +618,39 @@ function ReportSummary({ allParts, entries }: { allParts: Part[]; entries: Map<s
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
           <h3 className="text-sm font-semibold text-foreground">דוח ספירה (חי)</h3>
-          <Button variant="secondary" onClick={downloadReport} className="text-xs px-3 py-1">
-            ⬇ הורד דוח CSV
-          </Button>
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="secondary" onClick={downloadReport} className="text-xs px-3 py-1">
+              ⬇ הורד דוח CSV
+            </Button>
+            {isManager && deltaItems.length > 0 && !updateDone && (
+              <Button onClick={() => setConfirmUpdate(true)} disabled={updating} className="text-xs px-3 py-1 bg-danger hover:bg-danger/90 text-white">
+                עדכן מלאי
+              </Button>
+            )}
+            {updateDone && (
+              <span className="text-xs text-success font-semibold self-center">✓ המלאי עודכן</span>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardBody className="flex flex-col gap-3 text-xs">
+        {confirmUpdate && (
+          <div className="bg-danger/5 border border-danger/30 rounded-md px-3 py-3 flex flex-col gap-2">
+            <p className="text-sm text-danger font-semibold">שים לב! יש לבצע עדכון מלאי רק בסיום הספירה ולאחר שנשמר דוח הספירה</p>
+            <p className="text-xs text-muted">פעולה זו תעדכן את הכמות הרשומה של {deltaItems.length} פריטים בעודף או בחוסר לכמות שנספרה. פעולה זו אינה הפיכה.</p>
+            <div className="flex gap-2">
+              <Button onClick={applyStockUpdate} disabled={updating} className="text-xs px-3 py-1 bg-danger hover:bg-danger/90 text-white">
+                {updating ? `מעדכן... (${deltaItems.length} פריטים)` : 'אשר עדכון מלאי'}
+              </Button>
+              <Button variant="ghost" onClick={() => setConfirmUpdate(false)} disabled={updating} className="text-xs px-3 py-1">
+                ביטול
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Shortage */}
         {shortage.length > 0 && (
           <div>
