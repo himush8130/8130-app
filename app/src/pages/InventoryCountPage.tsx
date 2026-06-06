@@ -108,13 +108,13 @@ export function InventoryCountPage() {
       : []
     const storageTypeOpts = new Map<string, number>()
     for (const p of afterCabinet) {
-      const k = p.storage_type || 'ללא סוג מאחסן'
+      const k = p.storage_type || 'ללא מאחסן'
       storageTypeOpts.set(k, (storageTypeOpts.get(k) ?? 0) + 1)
     }
 
     // Level 4: storage_number
     const afterStorageType = fStorageType
-      ? afterCabinet.filter((p) => (p.storage_type || 'ללא סוג מאחסן') === fStorageType)
+      ? afterCabinet.filter((p) => (p.storage_type || 'ללא מאחסן') === fStorageType)
       : []
     const storageNumOpts = new Map<string, number>()
     for (const p of afterStorageType) {
@@ -146,7 +146,7 @@ export function InventoryCountPage() {
       const k = p.cabinet != null && p.cabinet !== 0 ? `ארון ${p.cabinet}` : 'ללא ארון'
       return k === fCabinet
     })
-    if (fStorageType) list = list.filter((p) => (p.storage_type || 'ללא סוג מאחסן') === fStorageType)
+    if (fStorageType) list = list.filter((p) => (p.storage_type || 'ללא מאחסן') === fStorageType)
     if (fStorageNum)  list = list.filter((p) => {
       const k = p.storage_number != null && p.storage_number !== 0 ? `#${p.storage_number}` : 'ללא מספר'
       return k === fStorageNum
@@ -339,7 +339,7 @@ export function InventoryCountPage() {
                 )}
                 {fCabinet && (
                   <FilterRow
-                    label="סוג מאחסן"
+                    label="מאחסן"
                     options={filterLevels.storageTypeOpts}
                     selected={fStorageType}
                     onSelect={(v) => { setFStorageType(v); setFStorageNum(null); setFCell(null) }}
@@ -518,9 +518,9 @@ function CountRow({
       {editLoc && (
         <div className="mt-1.5 flex flex-col gap-1.5 bg-muted-surface/50 rounded-md p-2">
           <div className="grid grid-cols-5 gap-1.5">
-            <Input label="מחסן" name={`loc-wh-${part.id}`} value={locDraft.warehouse} onChange={(e) => setLocDraft((d) => ({ ...d, warehouse: e.target.value }))} className="text-xs" />
+            <WarehouseSelect value={locDraft.warehouse} onChange={(v) => setLocDraft((d) => ({ ...d, warehouse: v }))} />
             <Input label="ארון" name={`loc-cab-${part.id}`} type="number" value={locDraft.cabinet} onChange={(e) => setLocDraft((d) => ({ ...d, cabinet: e.target.value }))} className="text-xs" />
-            <Input label="סוג מאחסן" name={`loc-st-${part.id}`} value={locDraft.storage_type} onChange={(e) => setLocDraft((d) => ({ ...d, storage_type: e.target.value }))} className="text-xs" />
+            <Input label="מאחסן" name={`loc-st-${part.id}`} value={locDraft.storage_type} onChange={(e) => setLocDraft((d) => ({ ...d, storage_type: e.target.value }))} className="text-xs" />
             <Input label="מספר" name={`loc-sn-${part.id}`} type="number" value={locDraft.storage_number} onChange={(e) => setLocDraft((d) => ({ ...d, storage_number: e.target.value }))} className="text-xs" />
             <Input label="תא" name={`loc-cn-${part.id}`} type="number" value={locDraft.cell_number} onChange={(e) => setLocDraft((d) => ({ ...d, cell_number: e.target.value }))} className="text-xs" />
           </div>
@@ -758,6 +758,26 @@ function DeltaTable({ rows }: { rows: Array<{ part: Part; entry: IcEntry; delta:
 
 // --------------- cascading filter row ---------------
 
+const WAREHOUSE_OPTIONS = ['חח', 'חח חירום', 'מלאי חיצוני']
+
+function WarehouseSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="text-sm font-medium text-foreground">מחסן</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="px-3 py-2 bg-card border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+      >
+        <option value="">— בחר —</option>
+        {WAREHOUSE_OPTIONS.map((o) => (
+          <option key={o} value={o}>{o}</option>
+        ))}
+      </select>
+    </label>
+  )
+}
+
 function FilterRow({
   label, options, selected, onSelect,
 }: {
@@ -962,9 +982,9 @@ function AddNewPartForm({ employeeNumber }: { employeeNumber: number }) {
           </label>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-          <Input label="מחסן" name="ic-new-wh" value={draft.warehouse} onChange={(e) => set('warehouse', e.target.value)} />
+          <WarehouseSelect value={draft.warehouse} onChange={(v) => set('warehouse', v)} />
           <Input label="ארון" name="ic-new-cab" type="number" value={draft.cabinet} onChange={(e) => set('cabinet', e.target.value)} />
-          <Input label="סוג מאחסן" name="ic-new-stype" value={draft.storage_type} onChange={(e) => set('storage_type', e.target.value)} />
+          <Input label="מאחסן" name="ic-new-stype" value={draft.storage_type} onChange={(e) => set('storage_type', e.target.value)} />
           <Input label="מספר מאחסן" name="ic-new-snum" type="number" value={draft.storage_number} onChange={(e) => set('storage_number', e.target.value)} />
           <Input label="מספר תא" name="ic-new-cell" type="number" value={draft.cell_number} onChange={(e) => set('cell_number', e.target.value)} />
         </div>
