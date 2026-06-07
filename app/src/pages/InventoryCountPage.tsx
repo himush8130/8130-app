@@ -6,6 +6,7 @@ import { useInventorySession, useInventoryEntries, type IcEntry } from '../hooks
 import { useAuthStore } from '../store/auth'
 import { AppHeader } from '../components/AppHeader'
 import { ExchangeBadge } from '../components/ExchangeBadge'
+import { WarehouseSelect } from '../components/WarehouseSelect'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
@@ -747,26 +748,6 @@ function DeltaTable({ rows }: { rows: Array<{ part: Part; entry: IcEntry; delta:
 }
 
 // --------------- cascading filter row ---------------
-
-const WAREHOUSE_OPTIONS = ['חח', 'חח חירום', 'מלאי חיצוני']
-
-function WarehouseSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="text-sm font-medium text-foreground">מחסן</span>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="px-3 py-2 bg-card border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-      >
-        <option value="">— בחר —</option>
-        {WAREHOUSE_OPTIONS.map((o) => (
-          <option key={o} value={o}>{o}</option>
-        ))}
-      </select>
-    </label>
-  )
-}
 
 function FilterRow({
   label, options, selected, onSelect,

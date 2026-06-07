@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { Input } from './ui/Input'
 import { Button } from './ui/Button'
+import { WarehouseSelect } from './WarehouseSelect'
 import type { Part } from '../types/parts'
 import type { ReceiveDestination } from '../lib/warehouseActions'
 
@@ -126,9 +127,9 @@ export function ReceiveDestinationDialog({
 
         {pick === NEW && (
           <div className="grid grid-cols-2 gap-2 border border-border rounded-md p-3 bg-muted-surface/40">
-            <Input label="מחסן"        name="rw"  value={warehouse}     onChange={(e) => setWarehouse(e.target.value)} />
+            <WarehouseSelect value={warehouse} onChange={setWarehouse} />
             <Input label="ארון"        name="rc"  value={cabinet}       onChange={(e) => setCabinet(e.target.value)} type="number" />
-            <Input label="סוג מאחסן"   name="rst" value={storageType}   onChange={(e) => setStorageType(e.target.value)} />
+            <Input label="מאחסן"       name="rst" value={storageType}   onChange={(e) => setStorageType(e.target.value)} />
             <Input label="מספר מאחסן"  name="rsn" value={storageNumber} onChange={(e) => setStorageNumber(e.target.value)} type="number" />
             <Input label="מספר תא"     name="rcn" value={cellNumber}    onChange={(e) => setCellNumber(e.target.value)} type="number" />
           </div>

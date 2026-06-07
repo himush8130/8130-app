@@ -11,6 +11,7 @@ import { ComponentBadge } from '../feedback/ComponentBadge'
 import { useAuthStore } from '../store/auth'
 import { updatePart, setPartQuantity, createPart, type PartUpdates, type NewPartPayload } from '../lib/warehouseActions'
 import { AddWarehouseOrderForm } from './AddWarehouseOrderForm'
+import { WarehouseSelect } from './WarehouseSelect'
 
 interface Filters {
   sku: string
@@ -193,7 +194,7 @@ export function PartsCatalogList({ parts }: { parts: Part[] }) {
                         onChange={(v) => setF({ ...f, warehouse: v })} />
           <Input label="ארון" name="filter-cabinet" value={f.cabinet}
                  onChange={(e) => setF({ ...f, cabinet: e.target.value })} type="number" />
-          <FilterSelect label="סוג מאחסן" value={f.storage_type} options={storageTypes}
+          <FilterSelect label="מאחסן" value={f.storage_type} options={storageTypes}
                         onChange={(v) => setF({ ...f, storage_type: v })} />
           <Input label="מספר מאחסן" name="filter-stnum" value={f.storage_number}
                  onChange={(e) => setF({ ...f, storage_number: e.target.value })} type="number" />
@@ -531,9 +532,9 @@ function PartEditForm({
         </label>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <Input label="מחסן" name="ed-wh" value={draft.warehouse} onChange={(e) => set('warehouse', e.target.value)} />
+        <WarehouseSelect value={draft.warehouse} onChange={(v) => set('warehouse', v)} />
         <Input label="ארון" name="ed-cab" type="number" value={draft.cabinet} onChange={(e) => set('cabinet', e.target.value)} />
-        <Input label="סוג מאחסן" name="ed-stype" value={draft.storage_type} onChange={(e) => set('storage_type', e.target.value)} />
+        <Input label="מאחסן" name="ed-stype" value={draft.storage_type} onChange={(e) => set('storage_type', e.target.value)} />
         <Input label="מספר מאחסן" name="ed-snum" type="number" value={draft.storage_number} onChange={(e) => set('storage_number', e.target.value)} />
         <Input label="מספר תא" name="ed-cell" type="number" value={draft.cell_number} onChange={(e) => set('cell_number', e.target.value)} />
       </div>
@@ -659,9 +660,9 @@ function AddPartForm({
         </label>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <Input label="מחסן" name="add-wh" value={draft.warehouse} onChange={(e) => set('warehouse', e.target.value)} />
+        <WarehouseSelect value={draft.warehouse} onChange={(v) => set('warehouse', v)} />
         <Input label="ארון" name="add-cab" type="number" value={draft.cabinet} onChange={(e) => set('cabinet', e.target.value)} />
-        <Input label="סוג מאחסן" name="add-stype" value={draft.storage_type} onChange={(e) => set('storage_type', e.target.value)} />
+        <Input label="מאחסן" name="add-stype" value={draft.storage_type} onChange={(e) => set('storage_type', e.target.value)} />
         <Input label="מספר מאחסן" name="add-snum" type="number" value={draft.storage_number} onChange={(e) => set('storage_number', e.target.value)} />
         <Input label="מספר תא" name="add-cell" type="number" value={draft.cell_number} onChange={(e) => set('cell_number', e.target.value)} />
       </div>
