@@ -128,10 +128,14 @@ export function TechnicianByCompanyPage() {
   }, [calls, vehiclesMap])
 
   const companies = useMemo(() => {
-    return [...groupedByCompany.keys()]
-      .filter((k) => k !== NO_COMPANY)
-      .sort((a, b) => a.localeCompare(b, 'he'))
-  }, [groupedByCompany])
+    const set = new Set(
+      [...groupedByCompany.keys()].filter((k) => k !== NO_COMPANY),
+    )
+    for (const v of vehiclesMap.values()) {
+      if (v.sub_department) set.add(v.sub_department)
+    }
+    return [...set].sort((a, b) => a.localeCompare(b, 'he'))
+  }, [groupedByCompany, vehiclesMap])
 
   // Stable colour assignment by sorted-index. Companies past the
   // palette wrap, which is the only case where duplicates can occur.
@@ -141,18 +145,33 @@ export function TechnicianByCompanyPage() {
     return m
   }, [companies])
 
-  const hasOrphans = groupedByCompany.has(NO_COMPANY)
+  const hasOrphans = groupedByCompany.has(NO_COMPANY) ||
+    [...vehiclesMap.values()].some((v) => !v.sub_department)
   const totalCalls = (calls ?? []).length
 
   // Vehicles for the picked company, with their per-vehicle call count.
+  // Includes vehicles with 0 active calls so the technician sees the
+  // full fleet for the selected company.
   const vehiclesForCompany = useMemo(() => {
     if (!selectedCompany) return [] as Array<{ vehicleNumber: string; count: number }>
-    const calls = groupedByCompany.get(selectedCompany) ?? []
+
+    // Count calls per vehicle from the active calls in this company.
+    const companyCalls = groupedByCompany.get(selectedCompany) ?? []
     const counts = new Map<string, number>()
-    for (const c of calls) {
+    for (const c of companyCalls) {
       const key = c.vehicle_number ?? '—'
       counts.set(key, (counts.get(key) ?? 0) + 1)
     }
+
+    // Add vehicles from the catalog that belong to this company but
+    // have no active calls (count = 0).
+    for (const [vNum, v] of vehiclesMap) {
+      const company = v.sub_department || NO_COMPANY
+      if (company === selectedCompany && !counts.has(vNum)) {
+        counts.set(vNum, 0)
+      }
+    }
+
     return [...counts.entries()]
       .map(([vehicleNumber, count]) => ({ vehicleNumber, count }))
       .sort((a, b) => {
