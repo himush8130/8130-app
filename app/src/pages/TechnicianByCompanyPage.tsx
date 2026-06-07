@@ -132,7 +132,7 @@ export function TechnicianByCompanyPage() {
       [...groupedByCompany.keys()].filter((k) => k !== NO_COMPANY),
     )
     for (const v of vehiclesMap.values()) {
-      if (v.sub_department) set.add(v.sub_department)
+      if (v.sub_department && v.type_name === 'טנק') set.add(v.sub_department)
     }
     return [...set].sort((a, b) => a.localeCompare(b, 'he'))
   }, [groupedByCompany, vehiclesMap])
@@ -146,7 +146,7 @@ export function TechnicianByCompanyPage() {
   }, [companies])
 
   const hasOrphans = groupedByCompany.has(NO_COMPANY) ||
-    [...vehiclesMap.values()].some((v) => !v.sub_department)
+    [...vehiclesMap.values()].some((v) => v.type_name === 'טנק' && !v.sub_department)
   const totalCalls = (calls ?? []).length
 
   // Vehicles for the picked company, with their per-vehicle call count.
@@ -163,9 +163,10 @@ export function TechnicianByCompanyPage() {
       counts.set(key, (counts.get(key) ?? 0) + 1)
     }
 
-    // Add vehicles from the catalog that belong to this company but
+    // Add tanks from the catalog that belong to this company but
     // have no active calls (count = 0).
     for (const [vNum, v] of vehiclesMap) {
+      if (v.type_name !== 'טנק') continue
       const company = v.sub_department || NO_COMPANY
       if (company === selectedCompany && !counts.has(vNum)) {
         counts.set(vNum, 0)
