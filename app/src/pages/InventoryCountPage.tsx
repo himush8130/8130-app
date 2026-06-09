@@ -160,8 +160,9 @@ export function InventoryCountPage() {
   }, [session, employee.employee_number, queryClient])
 
 
-  // stats
-  const totalParts = (allParts ?? []).length
+  // Only parts with quantity > 0 are relevant for counting.
+  const countableParts = useMemo(() => (allParts ?? []).filter((p) => p.quantity > 0), [allParts])
+  const totalParts = countableParts.length
   const countedCount = entries.size
   const withDelta = [...entries.values()].filter((e) => e.counted_qty !== e.expected_qty).length
 
@@ -345,7 +346,7 @@ export function InventoryCountPage() {
 
             {/* Report summary (live) */}
             {countedCount > 0 && (
-              <ReportSummary allParts={allParts ?? []} entries={entries} employee={employee} />
+              <ReportSummary allParts={countableParts} entries={entries} employee={employee} />
             )}
           </>
         )}
