@@ -40,13 +40,23 @@ export function useInventoryEntries(sessionId: string | null) {
     queryKey: ['ic_entries', sessionId],
     enabled: !!sessionId,
     queryFn: async (): Promise<Map<string, IcEntry>> => {
-      const { data, error } = await supabase
-        .from('inventory_count_entries')
-        .select('*')
-        .eq('session_id', sessionId!)
-      if (error) throw error
+      const PAGE = 1000
+      const all: IcEntry[] = []
+      let from = 0
+      while (true) {
+        const { data, error } = await supabase
+          .from('inventory_count_entries')
+          .select('*')
+          .eq('session_id', sessionId!)
+          .range(from, from + PAGE - 1)
+        if (error) throw error
+        const rows = (data ?? []) as IcEntry[]
+        all.push(...rows)
+        if (rows.length < PAGE) break
+        from += PAGE
+      }
       const map = new Map<string, IcEntry>()
-      for (const e of (data ?? []) as IcEntry[]) {
+      for (const e of all) {
         map.set(e.part_id, e)
       }
       return map
