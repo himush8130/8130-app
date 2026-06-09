@@ -148,9 +148,11 @@ export function InventoryCountPage() {
   }
 
   const upsertEntry = useCallback(async (part: Part, countedQty: number) => {
-    if (!session) return
-    await icUpsertEntry(employee.employee_number, session.id, part.id, countedQty, part.quantity)
+    if (!session) return false
+    const res = await icUpsertEntry(employee.employee_number, session.id, part.id, countedQty, part.quantity)
+    if (!res.ok) return false
     queryClient.invalidateQueries({ queryKey: ['ic_entries', session.id] })
+    return true
   }, [session, employee.employee_number, queryClient])
 
   const removeEntry = useCallback(async (partId: string) => {
@@ -372,13 +374,15 @@ function CountRow({
   part:        Part
   entry:       IcEntry | undefined
   sessionOpen: boolean
-  onSave:      (part: Part, qty: number) => void
+  onSave:      (part: Part, qty: number) => Promise<boolean>
   onRemove:    (partId: string) => void
   employeeNumber: number
 }) {
   const queryClient = useQueryClient()
   const [qty, setQty] = useState(entry?.counted_qty?.toString() ?? part.quantity.toString())
   const [confirmRemove, setConfirmRemove] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState(false)
   const [editLoc, setEditLoc] = useState(false)
   const [locDraft, setLocDraft] = useState({
     warehouse:      part.warehouse ?? '',
@@ -394,10 +398,14 @@ function CountRow({
   const hasDelta = counted && entry!.counted_qty !== entry!.expected_qty
   const delta = counted ? entry!.counted_qty - entry!.expected_qty : 0
 
-  function save() {
+  async function save() {
     const n = parseInt(qty, 10)
     if (!Number.isFinite(n) || n < 0) return
-    onSave(part, n)
+    setSaving(true)
+    setSaveError(false)
+    const ok = await onSave(part, n)
+    setSaving(false)
+    if (!ok) setSaveError(true)
   }
 
   function handleRemove() {
@@ -489,11 +497,12 @@ function CountRow({
           />
           <Button
             onClick={save}
-            disabled={!canSave}
+            disabled={!canSave || saving}
             className="text-xs px-3 py-1"
           >
-            שמור
+            {saving ? '...' : 'שמור'}
           </Button>
+          {saveError && <span className="text-[11px] text-danger">שגיאה בשמירה</span>}
           {counted && qty !== savedQtyStr && (
             <Button variant="ghost" onClick={() => setQty(savedQtyStr!)} className="text-xs px-3 py-1">
               בטל
