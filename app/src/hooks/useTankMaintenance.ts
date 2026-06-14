@@ -48,6 +48,63 @@ function companyRank(sub: string | null): number {
   return COMPANY_ORDER.length
 }
 
+export interface MonthlyMaintenanceCompanies {
+  thisWeekCompany: string | null
+  nextWeekCompany: string | null
+  thisWeekIso: string
+  nextWeekIso: string
+}
+
+/**
+ * Company-level monthly-maintenance view. Although the data is stored
+ * per-tank, monthly maintenance is really a company rotation — so for a
+ * given week we take the company with the most tanks marked monthly as
+ * "the company in monthly maintenance" that week.
+ */
+export function useMonthlyMaintenanceCompany() {
+  const now = new Date()
+  const thisIso = weekStartIso(now)
+  const nextIso = addWeeksIso(now, 1)
+
+  return useQuery({
+    queryKey: ['monthly_maintenance_company', thisIso, nextIso],
+    queryFn: async (): Promise<MonthlyMaintenanceCompanies> => {
+      const { data, error } = await supabase
+        .from('tank_monthly_maintenance')
+        .select('week_start, vehicles(sub_department)')
+        .in('week_start', [thisIso, nextIso])
+      if (error) throw error
+
+      const counts: Record<string, Map<string, number>> = {
+        [thisIso]: new Map(),
+        [nextIso]: new Map(),
+      }
+      type JoinRow = { week_start: string; vehicles: { sub_department: string | null } | { sub_department: string | null }[] | null }
+      for (const row of (data ?? []) as unknown as JoinRow[]) {
+        const v = Array.isArray(row.vehicles) ? row.vehicles[0] : row.vehicles
+        const co = v?.sub_department
+        const bucket = counts[row.week_start]
+        if (!co || !bucket) continue
+        bucket.set(co, (bucket.get(co) ?? 0) + 1)
+      }
+
+      const dominant = (m: Map<string, number>): string | null => {
+        let best: string | null = null
+        let bestN = 0
+        for (const [co, n] of m) if (n > bestN) { best = co; bestN = n }
+        return best
+      }
+
+      return {
+        thisWeekCompany: dominant(counts[thisIso]),
+        nextWeekCompany: dominant(counts[nextIso]),
+        thisWeekIso: thisIso,
+        nextWeekIso: nextIso,
+      }
+    },
+  })
+}
+
 /** Returns each tank with this-week/next-week treatment kind. */
 export function useTankMaintenanceOverview() {
   const { data: vehicles } = useVehicles()

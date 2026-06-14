@@ -28,6 +28,8 @@ const SettingsCopyFormatPage   = lazy(() => import('./pages/SettingsCopyFormatPa
 const RequiredPartDetailPage   = lazy(() => import('./pages/RequiredPartDetailPage').then(m => ({ default: m.RequiredPartDetailPage })))
 const TankMaintenancePage      = lazy(() => import('./pages/TankMaintenancePage').then(m => ({ default: m.TankMaintenancePage })))
 const InventoryCountPage       = lazy(() => import('./pages/InventoryCountPage').then(m => ({ default: m.InventoryCountPage })))
+const ManagerDashboardPage     = lazy(() => import('./pages/ManagerDashboardPage').then(m => ({ default: m.ManagerDashboardPage })))
+const SettingsPriorityPage     = lazy(() => import('./pages/SettingsPriorityPage').then(m => ({ default: m.SettingsPriorityPage })))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -77,6 +79,11 @@ createRoot(document.getElementById('root')!).render(
               <ProtectedRoute allow={['manager']}><ManagerHomePage /></ProtectedRoute>
             </Resilient>
           } />
+          <Route path="/manager/dashboard" element={
+            <Resilient scope="manager-dashboard">
+              <ProtectedRoute allow={['manager']}><ManagerDashboardPage /></ProtectedRoute>
+            </Resilient>
+          } />
           <Route path="/manager/vehicles" element={
             <Resilient scope="manager-vehicles">
               <ProtectedRoute><VehiclesBookPage /></ProtectedRoute>
@@ -115,6 +122,11 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/manager/settings/vehicles/:vehicleNumber/maintenance" element={
             <Resilient scope="tank-maintenance">
               <ProtectedRoute allow={['manager']}><TankMaintenancePage /></ProtectedRoute>
+            </Resilient>
+          } />
+          <Route path="/manager/settings/priority" element={
+            <Resilient scope="settings-priority">
+              <ProtectedRoute allow={['manager']}><SettingsPriorityPage /></ProtectedRoute>
             </Resilient>
           } />
           <Route path="/manager/settings/copy-format" element={

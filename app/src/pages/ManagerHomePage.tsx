@@ -24,6 +24,7 @@ const SETTINGS_LINKS: SettingsLink[] = [
   { to: '/warehouse',                    label: 'ניהול חלקי חילוף', desc: 'קטלוג, חיפוש, עדכון כמויות וערכי שדה' },
   { to: '/manager/settings/availability',label: 'ניהול זמינות עובדים', desc: 'ימי חופש / מילואים / מחלה לכל עובד' },
   { to: '/manager/settings/copy-format', label: 'פורמט העתקה',         desc: 'תוויות קבועות + חטיבה/גדוד שמופיעים בהעתקה מהירה' },
+  { to: '/manager/settings/priority',    label: 'תיעדוף פלוגה',        desc: 'חלוקת משקלים לחישוב הפלוגה לתיעדוף + חשיבות מבצעית' },
 ]
 
 export function ManagerHomePage() {
