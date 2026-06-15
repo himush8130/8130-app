@@ -317,12 +317,14 @@ export function PriorityCompanySection({ d }: { d: DashboardData }) {
           <span aria-hidden className="dev-divider w-0.5 bg-border self-stretch rounded-full shrink-0" />
 
           {/* Metric strip with thin vertical dividers between cells.
-              Nudged 1 dot (10px) left for alignment. */}
+              Nudged 1 dot (10px) left for alignment. Components 2–5 and
+              their dividers (incl. 5–6) get an extra dot-left nudge;
+              component 6 stays put. */}
           <div className="flex-1 flex items-stretch min-w-0 -translate-x-2.5">
             {metrics.map((m, i) => (
               <Fragment key={m.label}>
-                {i > 0 && <span aria-hidden className="dev-divider my-1 w-px bg-border" />}
-                <MetricBox {...m} />
+                {i > 0 && <span aria-hidden className="dev-divider my-1 w-px bg-border -translate-x-2.5" />}
+                <MetricBox {...m} className={i <= 3 ? '-translate-x-2.5' : ''} />
               </Fragment>
             ))}
           </div>
@@ -332,9 +334,9 @@ export function PriorityCompanySection({ d }: { d: DashboardData }) {
   )
 }
 
-function MetricBox({ icon, label, value, sub }: { icon: ReactNode; label: string; value: ReactNode; sub?: string }) {
+function MetricBox({ icon, label, value, sub, className = '' }: { icon: ReactNode; label: string; value: ReactNode; sub?: string; className?: string }) {
   return (
-    <div className="dev-metric flex-1 min-w-0 flex flex-col items-center gap-0.5 sm:gap-1 px-0 sm:px-0.5 text-center">
+    <div className={`dev-metric flex-1 min-w-0 flex flex-col items-center gap-0.5 sm:gap-1 px-0 sm:px-0.5 text-center ${className}`}>
       <span className="text-muted">{icon}</span>
       {/* Fixed two-line height so every metric's number sits on the same row. */}
       <span className="text-[9px] sm:text-[11px] text-muted leading-tight min-h-[2.4em] flex items-center justify-center">{label}</span>
