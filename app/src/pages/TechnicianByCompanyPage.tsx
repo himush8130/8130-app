@@ -170,7 +170,7 @@ export function TechnicianByCompanyPage() {
     const set = new Set(
       [...wheeledByDept.keys()].filter((k) => k !== NO_COMPANY),
     )
-    if (seeAll) {
+    if (showWheeled) {
       for (const v of vehiclesMap.values()) {
         if (v.type_name !== 'טנק') {
           const dept = v.department || v.sub_department
@@ -182,7 +182,7 @@ export function TechnicianByCompanyPage() {
     const shared = companies.filter((c) => set.has(c))
     const rest = [...set].filter((d) => !companySet.has(d)).sort((a, b) => a.localeCompare(b, 'he'))
     return [...shared, ...rest]
-  }, [wheeledByDept, vehiclesMap, seeAll, companies])
+  }, [wheeledByDept, vehiclesMap, showWheeled, companies])
 
   // Stable colour assignment by sorted-index. Companies past the
   // palette wrap, which is the only case where duplicates can occur.
