@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Card, CardBody } from './ui/Card'
+import { Card } from './ui/Card'
 import { Badge } from './ui/Badge'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { ServiceCall, CallStatus, RequiredPartStatus, Vehicle } from '../types/db'
@@ -94,33 +94,54 @@ export function CallCard({ call, partsSummary, vehicle, hasComments }: Props) {
     }
   }
 
+  const toneColors: Record<string, string> = {
+    danger:  'var(--color-danger)',
+    warning: 'var(--color-warning)',
+    info:    'var(--color-info)',
+    success: 'var(--color-success)',
+    neutral: 'var(--color-border)',
+  }
+  const accentColor = toneColors[effectiveTone] ?? toneColors.neutral
+
   return (
     <Link to={`/call/${call.id}`} className="block hover:opacity-95 transition-opacity">
       <Card>
-        <CardBody>
-          <ComponentBadge id={6002} />
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex flex-col gap-1 flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-semibold text-foreground">{call.display_id}</span>
+        <ComponentBadge id={6002} />
+        <div className="flex items-stretch rounded-xl overflow-hidden">
+          {/* Left accent bar */}
+          <div className="w-1.5 shrink-0" style={{ backgroundColor: accentColor }} />
+
+          <div className="flex-1 flex flex-col gap-1.5 px-3 py-2.5">
+            {/* Row 1: ID + status + date */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-sm font-mono font-semibold text-foreground">{call.display_id}</span>
                 <Badge tone={effectiveTone}>{effectiveLabel}</Badge>
+                {call.is_disabling && (
+                  <Badge tone="danger">משביתה</Badge>
+                )}
+              </div>
+              <span className="text-xs text-muted shrink-0">{date}</span>
+            </div>
+
+            {/* Row 2: Vehicle + profession + secondary indicators */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 text-xs text-muted min-w-0 truncate">
+                <span className="font-mono">{call.vehicle_number ?? '—'}</span>
+                {vehicle?.sub_department && <span>· {vehicle.sub_department}</span>}
+                {!vehicle && call.vehicle_name && <span>· {call.vehicle_name}</span>}
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {call.profession_name && (
+                  <Badge tone="neutral">{call.profession_name}</Badge>
+                )}
                 {secondary?.kind === 'badge' && (
                   <Badge tone={partsStatusOverride[secondary.status]}>
                     {partsStatusBadgeLabel[secondary.status]}
                   </Badge>
                 )}
                 {secondary?.kind === 'warning' && (
-                  <span
-                    title="חלקים בסטטוסים שונים, כולל סטטוס בעייתי (נדחה / מק״ט חסום)"
-                    aria-label="warning"
-                    className="text-warning text-sm"
-                  >⚠</span>
-                )}
-                {call.profession_name && (
-                  <Badge tone="neutral">{call.profession_name}</Badge>
-                )}
-                {call.is_disabling && (
-                  <Badge tone="danger">⛔ משביתה</Badge>
+                  <span title="חלקים בסטטוסים שונים" className="text-warning text-sm">⚠</span>
                 )}
                 {(call.anomaly_flags?.length ?? 0) > 0 && (
                   <Badge tone="warning">{call.anomaly_flags!.length} חריגות</Badge>
@@ -128,38 +149,25 @@ export function CallCard({ call, partsSummary, vehicle, hasComments }: Props) {
                 {hasComments && (
                   <span
                     title="לקריאה זו קיימות הערות"
-                    aria-label="לקריאה זו קיימות הערות"
-                    className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-warning text-white text-xs font-bold leading-none"
-                  >
-                    i
-                  </span>
+                    className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-warning text-white text-[10px] font-bold leading-none"
+                  >i</span>
                 )}
               </div>
-
-              <div className="text-sm text-muted">
-                {call.vehicle_number ?? '—'}
-                {vehicle?.department && <span className="ms-2">· {vehicle.department}</span>}
-                {vehicle?.sub_department && <span className="ms-2">· פלוגה: {vehicle.sub_department}</span>}
-                {!vehicle && call.vehicle_name && <span className="ms-2">· {call.vehicle_name}</span>}
-              </div>
-
-              {call.description && (
-                <p className="text-sm text-foreground line-clamp-2 mt-1">
-                  {call.description}
-                </p>
-              )}
             </div>
 
-            <div className="flex flex-col items-end shrink-0 gap-0.5">
-              <span className="text-xs text-faint">{date}</span>
-              {call.closed_at && (call.status === 'closed' || call.status === 'cancelled') && (
-                <span className="text-[11px] text-muted">
-                  נסגרה {new Date(call.closed_at).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                </span>
-              )}
-            </div>
+            {/* Row 3: description (if present) */}
+            {call.description && (
+              <p className="text-xs text-foreground/80 line-clamp-1">{call.description}</p>
+            )}
+
+            {/* Closed date (if applicable) */}
+            {call.closed_at && (call.status === 'closed' || call.status === 'cancelled') && (
+              <span className="text-[11px] text-muted">
+                נסגרה {new Date(call.closed_at).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+              </span>
+            )}
           </div>
-        </CardBody>
+        </div>
       </Card>
     </Link>
   )
