@@ -68,15 +68,15 @@ const COMPANY_PALETTE: Array<{ bg: string; border: string; text: string }> = [
  */
 export function TechnicianByCompanyPage() {
   const employee = useAuthStore((s) => s.employee)!
-  const isManager = employee.permissions === 'manager'
+  const seeAll = employee.permissions === 'manager' || employee.permissions === 'commander_viewer'
 
   const techQuery = useTechnicianCalls(
-    !isManager ? employee.profession_name : null,
+    !seeAll ? employee.profession_name : null,
     employee.specialty ?? null,
   )
   const allActiveQuery = useQuery({
     queryKey: ['service_calls', 'active'],
-    enabled: isManager,
+    enabled: seeAll,
     queryFn: async (): Promise<ServiceCall[]> => {
       const { data, error } = await supabase
         .from('service_calls')
@@ -87,7 +87,7 @@ export function TechnicianByCompanyPage() {
       return (data ?? []) as ServiceCall[]
     },
   })
-  const { data: calls, isLoading, error } = isManager ? allActiveQuery : techQuery
+  const { data: calls, isLoading, error } = seeAll ? allActiveQuery : techQuery
 
   const vehiclesMap = useVehiclesMap()
   const { data: vehicleStats } = useVehicleCallStats()
@@ -115,26 +115,20 @@ export function TechnicianByCompanyPage() {
       .slice(0, 6)
   }, [vehicleSearch, vehiclesMap])
 
-  function updateParams(updates: { company?: string | null; vehicle?: string | null }) {
+  function updateParams(updates: Record<string, string | null>) {
     const sp = new URLSearchParams(searchParams)
-    if ('company' in updates) {
-      if (updates.company) sp.set('company', updates.company)
-      else                 sp.delete('company')
-    }
-    if ('vehicle' in updates) {
-      if (updates.vehicle) sp.set('vehicle', updates.vehicle)
-      else                 sp.delete('vehicle')
+    for (const [key, val] of Object.entries(updates)) {
+      if (val) sp.set(key, val)
+      else sp.delete(key)
     }
     setSearchParams(sp, { replace: true })
   }
 
-  // Group calls by sub_department. NO_COMPANY catches both
-  // "vehicle_number is null" and "vehicle exists but sub_department
-  // is null".
-  const groupedByCompany = useMemo(() => {
+  const tankByCompany = useMemo(() => {
     const out = new Map<string, ServiceCall[]>()
     for (const c of calls ?? []) {
       const v = c.vehicle_number ? vehiclesMap.get(c.vehicle_number) : undefined
+      if (v && v.type_name !== 'טנק') continue
       const company = v?.sub_department || NO_COMPANY
       const arr = out.get(company) ?? []
       arr.push(c)
@@ -143,15 +137,43 @@ export function TechnicianByCompanyPage() {
     return out
   }, [calls, vehiclesMap])
 
+  const wheeledByDept = useMemo(() => {
+    const out = new Map<string, ServiceCall[]>()
+    for (const c of calls ?? []) {
+      const v = c.vehicle_number ? vehiclesMap.get(c.vehicle_number) : undefined
+      if (!v || v.type_name === 'טנק') continue
+      const dept = v.sub_department || v.department || NO_COMPANY
+      const arr = out.get(dept) ?? []
+      arr.push(c)
+      out.set(dept, arr)
+    }
+    return out
+  }, [calls, vehiclesMap])
+
   const companies = useMemo(() => {
     const set = new Set(
-      [...groupedByCompany.keys()].filter((k) => k !== NO_COMPANY),
+      [...tankByCompany.keys()].filter((k) => k !== NO_COMPANY),
     )
     for (const v of vehiclesMap.values()) {
       if (v.sub_department && v.type_name === 'טנק') set.add(v.sub_department)
     }
     return [...set].sort((a, b) => a.localeCompare(b, 'he'))
-  }, [groupedByCompany, vehiclesMap])
+  }, [tankByCompany, vehiclesMap])
+
+  const wheeledDepts = useMemo(() => {
+    const set = new Set(
+      [...wheeledByDept.keys()].filter((k) => k !== NO_COMPANY),
+    )
+    if (seeAll) {
+      for (const v of vehiclesMap.values()) {
+        if (v.type_name !== 'טנק') {
+          const dept = v.sub_department || v.department
+          if (dept) set.add(dept)
+        }
+      }
+    }
+    return [...set].sort((a, b) => a.localeCompare(b, 'he'))
+  }, [wheeledByDept, vehiclesMap, seeAll])
 
   // Stable colour assignment by sorted-index. Companies past the
   // palette wrap, which is the only case where duplicates can occur.
@@ -161,8 +183,9 @@ export function TechnicianByCompanyPage() {
     return m
   }, [companies])
 
-  const hasOrphans = groupedByCompany.has(NO_COMPANY) ||
+  const hasOrphans = tankByCompany.has(NO_COMPANY) ||
     [...vehiclesMap.values()].some((v) => v.type_name === 'טנק' && !v.sub_department)
+  const wheeledHasOrphans = wheeledByDept.has(NO_COMPANY)
   const totalCalls = (calls ?? []).length
 
   // Vehicles for the picked company, with their per-vehicle call count.
@@ -170,48 +193,71 @@ export function TechnicianByCompanyPage() {
   // full fleet for the selected company.
   const vehiclesForCompany = useMemo(() => {
     if (!selectedCompany) return [] as Array<{ vehicleNumber: string; count: number }>
-
-    // Count calls per vehicle from the active calls in this company.
-    const companyCalls = groupedByCompany.get(selectedCompany) ?? []
+    const companyCalls = tankByCompany.get(selectedCompany) ?? []
     const counts = new Map<string, number>()
     for (const c of companyCalls) {
       const key = c.vehicle_number ?? '—'
       counts.set(key, (counts.get(key) ?? 0) + 1)
     }
-
-    // Add tanks from the catalog that belong to this company but
-    // have no active calls (count = 0).
     for (const [vNum, v] of vehiclesMap) {
       if (v.type_name !== 'טנק') continue
       const company = v.sub_department || NO_COMPANY
-      if (company === selectedCompany && !counts.has(vNum)) {
-        counts.set(vNum, 0)
-      }
+      if (company === selectedCompany && !counts.has(vNum)) counts.set(vNum, 0)
     }
-
     return [...counts.entries()]
       .map(([vehicleNumber, count]) => ({ vehicleNumber, count }))
       .sort((a, b) => {
-        const aDisabled = !!vehicleStats?.get(a.vehicleNumber)?.disabled
-        const bDisabled = !!vehicleStats?.get(b.vehicleNumber)?.disabled
-        if (aDisabled !== bDisabled) return aDisabled ? -1 : 1
-        const aLoc = vehiclesMap.get(a.vehicleNumber)?.location ?? ''
-        const bLoc = vehiclesMap.get(b.vehicleNumber)?.location ?? ''
-        return aLoc.localeCompare(bLoc, 'he')
+        const aD = !!vehicleStats?.get(a.vehicleNumber)?.disabled
+        const bD = !!vehicleStats?.get(b.vehicleNumber)?.disabled
+        if (aD !== bD) return aD ? -1 : 1
+        return (vehiclesMap.get(a.vehicleNumber)?.location ?? '').localeCompare(vehiclesMap.get(b.vehicleNumber)?.location ?? '', 'he')
       })
-  }, [groupedByCompany, selectedCompany, vehicleStats, vehiclesMap])
+  }, [tankByCompany, selectedCompany, vehicleStats, vehiclesMap])
+
+  const selectedWDept = searchParams.get('wdept')
+  const selectedWVehicle = searchParams.get('wvehicle')
+
+  const wheeledVehiclesForDept = useMemo(() => {
+    if (!selectedWDept) return [] as Array<{ vehicleNumber: string; count: number }>
+    const deptCalls = wheeledByDept.get(selectedWDept) ?? []
+    const counts = new Map<string, number>()
+    for (const c of deptCalls) {
+      const key = c.vehicle_number ?? '—'
+      counts.set(key, (counts.get(key) ?? 0) + 1)
+    }
+    if (seeAll) {
+      for (const [vNum, v] of vehiclesMap) {
+        if (v.type_name === 'טנק') continue
+        const dept = v.sub_department || v.department || NO_COMPANY
+        if (dept === selectedWDept && !counts.has(vNum)) counts.set(vNum, 0)
+      }
+    }
+    return [...counts.entries()]
+      .map(([vehicleNumber, count]) => ({ vehicleNumber, count }))
+      .sort((a, b) => {
+        const aD = !!vehicleStats?.get(a.vehicleNumber)?.disabled
+        const bD = !!vehicleStats?.get(b.vehicleNumber)?.disabled
+        if (aD !== bD) return aD ? -1 : 1
+        return (vehiclesMap.get(a.vehicleNumber)?.location ?? '').localeCompare(vehiclesMap.get(b.vehicleNumber)?.location ?? '', 'he')
+      })
+  }, [wheeledByDept, selectedWDept, vehicleStats, vehiclesMap, seeAll])
 
   function pickCompany(name: string) {
-    updateParams({ company: selectedCompany === name ? null : name, vehicle: null })
+    updateParams({ company: selectedCompany === name ? null : name, vehicle: null, wdept: null, wvehicle: null })
   }
-
-  function pickVehicle(vehicleNumber: string) {
-    updateParams({ vehicle: selectedVehicle === vehicleNumber ? null : vehicleNumber })
+  function pickVehicle(vn: string) {
+    updateParams({ vehicle: selectedVehicle === vn ? null : vn })
+  }
+  function pickWDept(name: string) {
+    updateParams({ wdept: selectedWDept === name ? null : name, wvehicle: null, company: null, vehicle: null })
+  }
+  function pickWVehicle(vn: string) {
+    updateParams({ wvehicle: selectedWVehicle === vn ? null : vn })
   }
 
   return (
     <>
-      <AppHeader subtitle={isManager ? 'תצוגת טכנאי לפי פלוגה — כל המקצועות' : 'תצוגה לפי פלוגה'} />
+      <AppHeader subtitle={seeAll ? 'תצוגת טכנאי לפי פלוגה — כל המקצועות' : 'תצוגה לפי פלוגה'} />
       <main className="max-w-3xl mx-auto p-4 flex flex-col gap-4 pb-24">
         <ComponentBadge id={6020} />
 
@@ -264,7 +310,7 @@ export function TechnicianByCompanyPage() {
               <CardBody className="flex flex-col gap-3">
                 <div className="flex items-baseline justify-between gap-3">
                   <span className="text-sm text-muted">
-                    {!isManager && employee.profession_name ? `סה״כ קריאות פעילות ב${employee.profession_name}` : 'סה״כ קריאות פעילות'}
+                    {!seeAll && employee.profession_name ? `סה״כ קריאות פעילות ב${employee.profession_name}` : 'סה״כ קריאות פעילות'}
                   </span>
                   <span className="text-3xl font-bold text-foreground leading-none">{totalCalls}</span>
                 </div>
@@ -285,7 +331,7 @@ export function TechnicianByCompanyPage() {
                       style={{ gridTemplateColumns: `repeat(${tileCount}, minmax(0, 1fr))` }}
                     >
                       {companies.map((name) => {
-                        const count = groupedByCompany.get(name)?.length ?? 0
+                        const count = tankByCompany.get(name)?.length ?? 0
                         const active = selectedCompany === name
                         const tint = companyTints.get(name) ?? COMPANY_PALETTE[0]
                         return (
@@ -321,7 +367,7 @@ export function TechnicianByCompanyPage() {
                         >
                           <span className="text-[10px] leading-tight truncate w-full">ללא שיוך</span>
                           <span className="text-lg font-bold leading-none">
-                            {groupedByCompany.get(NO_COMPANY)?.length ?? 0}
+                            {tankByCompany.get(NO_COMPANY)?.length ?? 0}
                           </span>
                         </button>
                       )}
@@ -414,6 +460,96 @@ export function TechnicianByCompanyPage() {
                 onBack={() => updateParams({ vehicle: null })}
               />
             )}
+
+            {/* ─── Wheeled vehicles section ─── */}
+            {(wheeledDepts.length > 0 || wheeledHasOrphans) && (
+              <Card>
+                <CardBody className="flex flex-col gap-3">
+                  <span className="text-sm font-semibold text-foreground">רכבים גלגליים</span>
+                  {(() => {
+                    const tileCount = wheeledDepts.length + (wheeledHasOrphans ? 1 : 0)
+                    return (
+                      <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${tileCount}, minmax(0, 1fr))` }}>
+                        {wheeledDepts.map((name, i) => {
+                          const count = wheeledByDept.get(name)?.length ?? 0
+                          const active = selectedWDept === name
+                          const tint = COMPANY_PALETTE[(companies.length + i) % COMPANY_PALETTE.length]
+                          return (
+                            <button key={name} type="button" onClick={() => pickWDept(name)} aria-expanded={active} title={name}
+                              className={`min-w-0 rounded-md transition-colors flex flex-col items-center justify-center gap-0.5 px-1 py-2 text-center ${active ? 'border-[3px] font-semibold' : 'border'}`}
+                              style={{ background: tint.bg, color: tint.text, borderColor: tint.border }}
+                            >
+                              <span className="text-[11px] leading-tight truncate w-full">{name}</span>
+                              <span className="text-lg font-bold leading-none">{count}</span>
+                            </button>
+                          )
+                        })}
+                        {wheeledHasOrphans && (
+                          <button type="button" onClick={() => pickWDept(NO_COMPANY)} aria-expanded={selectedWDept === NO_COMPANY} title="ללא שיוך"
+                            className={`min-w-0 rounded-md transition-colors flex flex-col items-center justify-center gap-0.5 px-1 py-2 text-center bg-muted-surface text-muted border-border hover:bg-muted-surface/80 ${selectedWDept === NO_COMPANY ? 'border-[3px] font-semibold' : 'border'}`}
+                          >
+                            <span className="text-[10px] leading-tight truncate w-full">ללא שיוך</span>
+                            <span className="text-lg font-bold leading-none">{wheeledByDept.get(NO_COMPANY)?.length ?? 0}</span>
+                          </button>
+                        )}
+                      </div>
+                    )
+                  })()}
+                </CardBody>
+              </Card>
+            )}
+
+            {selectedWDept && (
+              <Card>
+                <CardBody className="flex flex-col gap-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-semibold text-foreground">
+                      {selectedWDept === NO_COMPANY ? 'רכבים ללא שיוך' : `רכבים — ${selectedWDept}`}
+                    </span>
+                    <button type="button" onClick={() => updateParams({ wdept: null, wvehicle: null })} className="text-xs text-primary hover:underline">נקה בחירה</button>
+                  </div>
+                  {wheeledVehiclesForDept.length === 0 && (
+                    <p className="text-sm text-muted text-center py-3">אין רכבים בקבוצה זו.</p>
+                  )}
+                  {wheeledVehiclesForDept.length > 0 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {wheeledVehiclesForDept.map(({ vehicleNumber, count }) => {
+                        const v = vehiclesMap.get(vehicleNumber)
+                        const active = selectedWVehicle === vehicleNumber
+                        const disabled = !!vehicleStats?.get(vehicleNumber)?.disabled
+                        return (
+                          <button key={vehicleNumber} type="button" onClick={() => pickWVehicle(vehicleNumber)} aria-expanded={active}
+                            className={`rounded-md px-3 py-3 transition-colors text-start flex items-center justify-between gap-3 ${
+                              active ? 'bg-primary/10 border-2 border-primary' : disabled ? 'bg-danger/5 border border-danger/70 ring-1 ring-danger/40 hover:bg-danger/10' : 'bg-card border border-border hover:bg-muted-surface'
+                            }`}
+                          >
+                            <div className="flex flex-col min-w-0">
+                              <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                                <span className="text-base font-semibold text-foreground truncate">{vehicleNumber}</span>
+                                {disabled && <span className="text-[10px] font-bold text-danger bg-danger/10 border border-danger/40 px-1.5 py-0.5 rounded whitespace-nowrap">מושבת</span>}
+                              </div>
+                              {v?.type_name && <span className="text-xs text-muted truncate">{v.type_name}</span>}
+                              {v?.location && <span className="text-xs text-muted truncate">{v.location}</span>}
+                            </div>
+                            <span className="text-xs text-muted whitespace-nowrap">{count} קריאות</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                </CardBody>
+              </Card>
+            )}
+
+            {selectedWDept && selectedWVehicle && (
+              <VehicleCallsLayer
+                vehicleNumber={selectedWVehicle}
+                partsMap={partsMap}
+                vehiclesMap={vehiclesMap}
+                commentsSet={commentsSet}
+                onBack={() => updateParams({ wvehicle: null })}
+              />
+            )}
           </>
         )}
 
@@ -445,7 +581,7 @@ function VehicleCallsLayer({
     if (!historyData) return { disabling, regular, closed }
 
     let list = historyData.calls
-    if (employee?.permissions !== 'manager') {
+    if (employee?.permissions !== 'manager' && employee?.permissions !== 'commander_viewer') {
       const prof = employee?.profession_name
       if (prof) list = list.filter(c => !c.profession_name || c.profession_name === prof)
     }
