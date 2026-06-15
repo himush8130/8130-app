@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'לשונית ראשונה בסרגל נקראת "בית" לכל הרשאה. הוסר ספר רקם — חיפוש רכב נוסף לדף טכנאי. לחיצה על קריאות פתוחות בדשבורד מובילה לדף קריאות.'
+export const LATEST_NOTE = 'כרטיסי פלוגות בדשבורד צפופים יותר. רכבים גלגליים מקובצים לפי מחלקה (טנא, סיור וכו\') במקום פירוט רכבים בודדים.'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build

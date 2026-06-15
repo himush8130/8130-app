@@ -142,7 +142,7 @@ export function TechnicianByCompanyPage() {
     for (const c of calls ?? []) {
       const v = c.vehicle_number ? vehiclesMap.get(c.vehicle_number) : undefined
       if (!v || v.type_name === 'טנק') continue
-      const dept = v.sub_department || v.department || NO_COMPANY
+      const dept = v.department || v.sub_department || NO_COMPANY
       const arr = out.get(dept) ?? []
       arr.push(c)
       out.set(dept, arr)
@@ -167,7 +167,7 @@ export function TechnicianByCompanyPage() {
     if (seeAll) {
       for (const v of vehiclesMap.values()) {
         if (v.type_name !== 'טנק') {
-          const dept = v.sub_department || v.department
+          const dept = v.department || v.sub_department
           if (dept) set.add(dept)
         }
       }
@@ -228,7 +228,7 @@ export function TechnicianByCompanyPage() {
     if (seeAll) {
       for (const [vNum, v] of vehiclesMap) {
         if (v.type_name === 'טנק') continue
-        const dept = v.sub_department || v.department || NO_COMPANY
+        const dept = v.department || v.sub_department || NO_COMPANY
         if (dept === selectedWDept && !counts.has(vNum)) counts.set(vNum, 0)
       }
     }
