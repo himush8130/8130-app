@@ -14,13 +14,14 @@ import { CallCard } from '../components/CallCard'
 import { NewCallForm } from '../components/NewCallForm'
 import { TankReadingEditor } from '../components/TankReadingEditor'
 import { CollapsibleSection } from '../components/CollapsibleSection'
-import { Card, CardBody } from '../components/ui/Card'
+import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import type { ServiceCall, Vehicle } from '../types/db'
 import type { CallPartsSummary } from '../hooks/useCallsPartsStatus'
 
 const ACTIVE_STATUSES = ['in_treatment', 'waiting_for_parts']
+const STAT_NAVY = '#232150'
 
 // Sentinel for vehicles that aren't tagged with a sub_department.
 // Kept as a real value so React keys stay stable; users never see it.
@@ -279,26 +280,28 @@ export function TechnicianByCompanyPage() {
             <div className="relative">
               <form
                 onSubmit={(e) => { e.preventDefault(); const q = vehicleSearch.trim(); if (q) navTo(`/vehicle/${encodeURIComponent(q)}`) }}
-                className="flex gap-2"
               >
-                <input
-                  type="text"
-                  placeholder="חיפוש רכב לפי מספר..."
-                  value={vehicleSearch}
-                  onChange={(e) => setVehicleSearch(e.target.value)}
-                  className="flex-1 h-9 px-3 rounded-md border border-border bg-card text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/30"
-                />
+                <div className="relative">
+                  <svg className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
+                  <input
+                    type="text"
+                    placeholder="חיפוש רכב לפי מספר..."
+                    value={vehicleSearch}
+                    onChange={(e) => setVehicleSearch(e.target.value)}
+                    className="w-full h-10 ps-10 pe-3 rounded-xl border border-border bg-card text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                </div>
               </form>
               {vehicleSearchResults.length > 0 && (
-                <div className="absolute z-10 top-full mt-1 inset-x-0 bg-card border border-border rounded-md shadow-lg overflow-hidden">
+                <div className="absolute z-10 top-full mt-1 inset-x-0 bg-card border border-border rounded-xl shadow-lg overflow-hidden">
                   {vehicleSearchResults.map((v) => (
                     <Link
                       key={v.vehicle_number}
                       to={`/vehicle/${encodeURIComponent(v.vehicle_number)}`}
                       onClick={() => setVehicleSearch('')}
-                      className="flex items-center justify-between gap-2 px-3 py-2 text-sm hover:bg-muted-surface border-b border-border last:border-0"
+                      className="flex items-center justify-between gap-2 px-3 py-2.5 text-sm hover:bg-muted-surface border-b border-border last:border-0"
                     >
-                      <span className="font-mono text-foreground">{v.vehicle_number}</span>
+                      <span className="font-mono font-medium text-foreground">{v.vehicle_number}</span>
                       <span className="text-xs text-muted truncate">
                         {v.type_name}{v.sub_department ? ` · ${v.sub_department}` : ''}
                       </span>
@@ -310,11 +313,14 @@ export function TechnicianByCompanyPage() {
 
             {/* Layer 1 — total + per-company tiles */}
             <Card>
+              <CardHeader>
+                <h2 className="text-sm font-semibold text-foreground">טנקים</h2>
+              </CardHeader>
               <CardBody className="flex flex-col gap-3">
-                <span className="text-sm font-semibold text-foreground">טנקים</span>
-                <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-sm text-muted">סה״כ קריאות פעילות</span>
-                  <span className="text-3xl font-bold text-foreground leading-none">{[...tankByCompany.values()].reduce((s, arr) => s + arr.length, 0)}</span>
+                {/* Navy stats bar */}
+                <div className="flex items-center justify-between rounded-xl px-4 py-3" style={{ backgroundColor: STAT_NAVY }}>
+                  <span className="text-xs text-white/80">סה״כ קריאות פעילות</span>
+                  <span className="text-2xl font-bold text-white leading-none">{[...tankByCompany.values()].reduce((s, arr) => s + arr.length, 0)}</span>
                 </div>
 
                 {companies.length === 0 && !hasOrphans && (
@@ -322,14 +328,10 @@ export function TechnicianByCompanyPage() {
                 )}
 
                 {(companies.length > 0 || hasOrphans) && (() => {
-                  // Force every tile onto a single row, no matter how
-                  // many companies exist — each column shrinks to fit.
-                  // minmax(0, 1fr) is what stops long labels from
-                  // pushing the row wider than the container.
                   const tileCount = companies.length + (hasOrphans ? 1 : 0)
                   return (
                     <div
-                      className="grid gap-1.5"
+                      className="grid gap-2"
                       style={{ gridTemplateColumns: `repeat(${tileCount}, minmax(0, 1fr))` }}
                     >
                       {companies.map((name) => {
@@ -343,17 +345,18 @@ export function TechnicianByCompanyPage() {
                             onClick={() => pickCompany(name)}
                             aria-expanded={active}
                             title={name}
-                            className={`min-w-0 rounded-md transition-colors flex flex-col items-center justify-center gap-0.5 px-1 py-2 text-center ${
-                              active ? 'border-[3px] font-semibold' : 'border'
+                            className={`min-w-0 rounded-xl overflow-hidden transition-all flex flex-col items-center text-center ${
+                              active ? 'ring-2 ring-offset-1 shadow-md' : 'border border-border hover:shadow-sm'
                             }`}
                             style={{
-                              background:   tint.bg,
-                              color:        tint.text,
-                              borderColor:  tint.border,
+                              background: tint.bg,
+                              color: tint.text,
+                              ...(active ? { ringColor: tint.border } : {}),
                             }}
                           >
-                            <span className="text-[11px] leading-tight truncate w-full">{name}</span>
-                            <span className="text-lg font-bold leading-none">{count}</span>
+                            <div className="w-full h-1" style={{ backgroundColor: tint.border }} />
+                            <span className="text-[11px] leading-tight truncate w-full px-1 pt-2">{name}</span>
+                            <span className="text-xl font-bold leading-none pb-2.5 pt-0.5">{count}</span>
                           </button>
                         )
                       })}
@@ -363,12 +366,13 @@ export function TechnicianByCompanyPage() {
                           onClick={() => pickCompany(NO_COMPANY)}
                           aria-expanded={selectedCompany === NO_COMPANY}
                           title="ללא שיוך פלוגה"
-                          className={`min-w-0 rounded-md transition-colors flex flex-col items-center justify-center gap-0.5 px-1 py-2 text-center bg-muted-surface text-muted border-border hover:bg-muted-surface/80 ${
-                            selectedCompany === NO_COMPANY ? 'border-[3px] font-semibold' : 'border'
+                          className={`min-w-0 rounded-xl overflow-hidden transition-all flex flex-col items-center text-center bg-muted-surface text-muted ${
+                            selectedCompany === NO_COMPANY ? 'ring-2 ring-offset-1 ring-border shadow-md' : 'border border-border hover:shadow-sm'
                           }`}
                         >
-                          <span className="text-[10px] leading-tight truncate w-full">ללא שיוך</span>
-                          <span className="text-lg font-bold leading-none">
+                          <div className="w-full h-1 bg-border" />
+                          <span className="text-[10px] leading-tight truncate w-full px-1 pt-2">ללא שיוך</span>
+                          <span className="text-xl font-bold leading-none pb-2.5 pt-0.5">
                             {tankByCompany.get(NO_COMPANY)?.length ?? 0}
                           </span>
                         </button>
@@ -380,77 +384,83 @@ export function TechnicianByCompanyPage() {
             </Card>
 
             {/* Layer 2 — vehicle tiles for the picked company */}
-            {selectedCompany && (
-              <Card>
-                <CardBody className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-semibold text-foreground">
-                      {selectedCompany === NO_COMPANY
-                        ? 'טנקים ללא שיוך פלוגה'
-                        : `טנקים בפלוגה ${selectedCompany}`}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => updateParams({ company: null, vehicle: null })}
-                      className="text-xs text-primary hover:underline"
-                    >
-                      נקה בחירה
-                    </button>
-                  </div>
-
-                  {vehiclesForCompany.length === 0 && (
-                    <p className="text-sm text-muted text-center py-3">אין טנקים פעילים בפלוגה זו.</p>
-                  )}
-
-                  {vehiclesForCompany.length > 0 && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {vehiclesForCompany.map(({ vehicleNumber, count }) => {
-                        const v = vehiclesMap.get(vehicleNumber)
-                        const active = selectedVehicle === vehicleNumber
-                        const disabled = !!vehicleStats?.get(vehicleNumber)?.disabled
-                        return (
-                          <button
-                            key={vehicleNumber}
-                            type="button"
-                            onClick={() => pickVehicle(vehicleNumber)}
-                            aria-expanded={active}
-                            className={`rounded-md px-3 py-3 transition-colors text-start flex items-center justify-between gap-3 ${
-                              active
-                                ? 'bg-primary/10 border-2 border-primary'
-                                : disabled
-                                  ? 'bg-danger/5 border border-danger/70 ring-1 ring-danger/40 hover:bg-danger/10'
-                                  : 'bg-card border border-border hover:bg-muted-surface'
-                            }`}
-                          >
-                            <div className="flex flex-col min-w-0">
-                              <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                                <span className="text-base font-semibold text-foreground truncate">
-                                  {vehicleNumber}
-                                </span>
-                                {disabled && (
-                                  <span className="text-[10px] font-bold text-danger bg-danger/10 border border-danger/40 px-1.5 py-0.5 rounded whitespace-nowrap">
-                                    ⛔ מושבת
-                                  </span>
-                                )}
-                              </div>
-                              {v?.type_name && (
-                                <span className="text-xs text-muted truncate">{v.type_name}</span>
-                              )}
-                              {v?.location && (
-                                <span className="text-xs text-muted truncate">📍 {v.location}</span>
-                              )}
-                            </div>
-                            <span className="text-xs text-muted whitespace-nowrap">
-                              {count} קריאות
-                            </span>
-                          </button>
-                        )
-                      })}
+            {selectedCompany && (() => {
+              const tint = selectedCompany !== NO_COMPANY
+                ? (companyTints.get(selectedCompany) ?? COMPANY_PALETTE[0])
+                : { bg: 'var(--color-muted-surface)', border: 'var(--color-border)', text: 'var(--color-muted)' }
+              return (
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between gap-2">
+                      <h2 className="text-sm font-semibold text-foreground">
+                        {selectedCompany === NO_COMPANY
+                          ? 'טנקים ללא שיוך פלוגה'
+                          : `טנקים — ${selectedCompany}`}
+                      </h2>
+                      <button
+                        type="button"
+                        onClick={() => updateParams({ company: null, vehicle: null })}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        נקה בחירה
+                      </button>
                     </div>
-                  )}
-                </CardBody>
-              </Card>
-            )}
+                  </CardHeader>
+                  <CardBody>
+                    {vehiclesForCompany.length === 0 && (
+                      <p className="text-sm text-muted text-center py-3">אין טנקים פעילים בפלוגה זו.</p>
+                    )}
+
+                    {vehiclesForCompany.length > 0 && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {vehiclesForCompany.map(({ vehicleNumber, count }) => {
+                          const v = vehiclesMap.get(vehicleNumber)
+                          const active = selectedVehicle === vehicleNumber
+                          const disabled = !!vehicleStats?.get(vehicleNumber)?.disabled
+                          return (
+                            <button
+                              key={vehicleNumber}
+                              type="button"
+                              onClick={() => pickVehicle(vehicleNumber)}
+                              aria-expanded={active}
+                              className={`rounded-xl overflow-hidden transition-all text-start flex items-stretch ${
+                                active
+                                  ? 'ring-2 ring-primary shadow-md'
+                                  : disabled
+                                    ? 'border border-danger/50 hover:shadow-sm'
+                                    : 'border border-border hover:shadow-sm'
+                              }`}
+                            >
+                              <div className="w-1.5 shrink-0" style={{ backgroundColor: disabled ? 'var(--color-danger)' : tint.border }} />
+                              <div className="flex-1 flex items-center justify-between gap-3 px-3 py-2.5">
+                                <div className="flex flex-col min-w-0">
+                                  <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                                    <span className="text-sm font-mono font-semibold text-foreground truncate">
+                                      {vehicleNumber}
+                                    </span>
+                                    {disabled && (
+                                      <span className="text-[10px] font-bold text-white bg-danger px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                                        מושבת
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="text-xs text-muted truncate">
+                                    {[v?.type_name, v?.location].filter(Boolean).join(' · ')}
+                                  </span>
+                                </div>
+                                <span className="text-xs font-bold text-white rounded-full min-w-[1.5rem] h-6 inline-flex items-center justify-center px-2" style={{ backgroundColor: count > 0 ? tint.border : 'var(--color-border)' }}>
+                                  {count}
+                                </span>
+                              </div>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </CardBody>
+                </Card>
+              )
+            })()}
 
             {/* Layer 3 — calls list for the picked vehicle */}
             {selectedCompany && selectedVehicle && (
@@ -466,85 +476,104 @@ export function TechnicianByCompanyPage() {
             {/* ─── Wheeled vehicles section ─── */}
             {(wheeledDepts.length > 0 || wheeledHasOrphans) && (
               <Card>
+                <CardHeader>
+                  <h2 className="text-sm font-semibold text-foreground">רכבים גלגליים</h2>
+                </CardHeader>
                 <CardBody className="flex flex-col gap-3">
-                  <span className="text-sm font-semibold text-foreground">רכבים גלגליים</span>
-                  <div className="flex items-baseline justify-between gap-3">
-                    <span className="text-sm text-muted">סה״כ קריאות פעילות</span>
-                    <span className="text-3xl font-bold text-foreground leading-none">{[...wheeledByDept.values()].reduce((s, arr) => s + arr.length, 0)}</span>
+                  {/* Navy stats bar */}
+                  <div className="flex items-center justify-between rounded-xl px-4 py-3" style={{ backgroundColor: STAT_NAVY }}>
+                    <span className="text-xs text-white/80">סה״כ קריאות פעילות</span>
+                    <span className="text-2xl font-bold text-white leading-none">{[...wheeledByDept.values()].reduce((s, arr) => s + arr.length, 0)}</span>
                   </div>
-                  {(() => {
-                    return (
-                      <div className="grid grid-cols-4 gap-1.5">
-                        {wheeledDepts.map((name, i) => {
-                          const count = wheeledByDept.get(name)?.length ?? 0
-                          const active = selectedWDept === name
-                          const tint = companyTints.get(name) ?? COMPANY_PALETTE[(companies.length + i) % COMPANY_PALETTE.length]
-                          return (
-                            <button key={name} type="button" onClick={() => pickWDept(name)} aria-expanded={active} title={name}
-                              className={`min-w-0 rounded-md transition-colors flex flex-col items-center justify-center gap-0.5 px-1 py-2 text-center ${active ? 'border-[3px] font-semibold' : 'border'}`}
-                              style={{ background: tint.bg, color: tint.text, borderColor: tint.border }}
-                            >
-                              <span className="text-[11px] leading-tight truncate w-full">{name}</span>
-                              <span className="text-lg font-bold leading-none">{count}</span>
-                            </button>
-                          )
-                        })}
-                        {wheeledHasOrphans && (
-                          <button type="button" onClick={() => pickWDept(NO_COMPANY)} aria-expanded={selectedWDept === NO_COMPANY} title="ללא שיוך"
-                            className={`min-w-0 rounded-md transition-colors flex flex-col items-center justify-center gap-0.5 px-1 py-2 text-center bg-muted-surface text-muted border-border hover:bg-muted-surface/80 ${selectedWDept === NO_COMPANY ? 'border-[3px] font-semibold' : 'border'}`}
-                          >
-                            <span className="text-[10px] leading-tight truncate w-full">ללא שיוך</span>
-                            <span className="text-lg font-bold leading-none">{wheeledByDept.get(NO_COMPANY)?.length ?? 0}</span>
-                          </button>
-                        )}
-                      </div>
-                    )
-                  })()}
+                  <div className="grid grid-cols-4 gap-2">
+                    {wheeledDepts.map((name, i) => {
+                      const count = wheeledByDept.get(name)?.length ?? 0
+                      const active = selectedWDept === name
+                      const tint = companyTints.get(name) ?? COMPANY_PALETTE[(companies.length + i) % COMPANY_PALETTE.length]
+                      return (
+                        <button key={name} type="button" onClick={() => pickWDept(name)} aria-expanded={active} title={name}
+                          className={`min-w-0 rounded-xl overflow-hidden transition-all flex flex-col items-center text-center ${
+                            active ? 'ring-2 ring-offset-1 shadow-md' : 'border border-border hover:shadow-sm'
+                          }`}
+                          style={{ background: tint.bg, color: tint.text, ...(active ? { ringColor: tint.border } : {}) }}
+                        >
+                          <div className="w-full h-1" style={{ backgroundColor: tint.border }} />
+                          <span className="text-[11px] leading-tight truncate w-full px-1 pt-2">{name}</span>
+                          <span className="text-xl font-bold leading-none pb-2.5 pt-0.5">{count}</span>
+                        </button>
+                      )
+                    })}
+                    {wheeledHasOrphans && (
+                      <button type="button" onClick={() => pickWDept(NO_COMPANY)} aria-expanded={selectedWDept === NO_COMPANY} title="ללא שיוך"
+                        className={`min-w-0 rounded-xl overflow-hidden transition-all flex flex-col items-center text-center bg-muted-surface text-muted ${
+                          selectedWDept === NO_COMPANY ? 'ring-2 ring-offset-1 ring-border shadow-md' : 'border border-border hover:shadow-sm'
+                        }`}
+                      >
+                        <div className="w-full h-1 bg-border" />
+                        <span className="text-[10px] leading-tight truncate w-full px-1 pt-2">ללא שיוך</span>
+                        <span className="text-xl font-bold leading-none pb-2.5 pt-0.5">{wheeledByDept.get(NO_COMPANY)?.length ?? 0}</span>
+                      </button>
+                    )}
+                  </div>
                 </CardBody>
               </Card>
             )}
 
-            {selectedWDept && (
-              <Card>
-                <CardBody className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-semibold text-foreground">
-                      {selectedWDept === NO_COMPANY ? 'רכבים ללא שיוך' : `רכבים — ${selectedWDept}`}
-                    </span>
-                    <button type="button" onClick={() => updateParams({ wdept: null, wvehicle: null })} className="text-xs text-primary hover:underline">נקה בחירה</button>
-                  </div>
-                  {wheeledVehiclesForDept.length === 0 && (
-                    <p className="text-sm text-muted text-center py-3">אין רכבים בקבוצה זו.</p>
-                  )}
-                  {wheeledVehiclesForDept.length > 0 && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {wheeledVehiclesForDept.map(({ vehicleNumber, count }) => {
-                        const v = vehiclesMap.get(vehicleNumber)
-                        const active = selectedWVehicle === vehicleNumber
-                        const disabled = !!vehicleStats?.get(vehicleNumber)?.disabled
-                        return (
-                          <button key={vehicleNumber} type="button" onClick={() => pickWVehicle(vehicleNumber)} aria-expanded={active}
-                            className={`rounded-md px-3 py-3 transition-colors text-start flex items-center justify-between gap-3 ${
-                              active ? 'bg-primary/10 border-2 border-primary' : disabled ? 'bg-danger/5 border border-danger/70 ring-1 ring-danger/40 hover:bg-danger/10' : 'bg-card border border-border hover:bg-muted-surface'
-                            }`}
-                          >
-                            <div className="flex flex-col min-w-0">
-                              <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                                <span className="text-base font-semibold text-foreground truncate">{vehicleNumber}</span>
-                                {disabled && <span className="text-[10px] font-bold text-danger bg-danger/10 border border-danger/40 px-1.5 py-0.5 rounded whitespace-nowrap">מושבת</span>}
-                              </div>
-                              {v?.type_name && <span className="text-xs text-muted truncate">{v.type_name}</span>}
-                              {v?.location && <span className="text-xs text-muted truncate">{v.location}</span>}
-                            </div>
-                            <span className="text-xs text-muted whitespace-nowrap">{count} קריאות</span>
-                          </button>
-                        )
-                      })}
+            {selectedWDept && (() => {
+              const wTint = companyTints.get(selectedWDept) ?? COMPANY_PALETTE[(companies.length) % COMPANY_PALETTE.length]
+              const deptTint = selectedWDept !== NO_COMPANY
+                ? wTint
+                : { bg: 'var(--color-muted-surface)', border: 'var(--color-border)', text: 'var(--color-muted)' }
+              return (
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between gap-2">
+                      <h2 className="text-sm font-semibold text-foreground">
+                        {selectedWDept === NO_COMPANY ? 'רכבים ללא שיוך' : `רכבים — ${selectedWDept}`}
+                      </h2>
+                      <button type="button" onClick={() => updateParams({ wdept: null, wvehicle: null })} className="text-xs text-primary hover:underline">נקה בחירה</button>
                     </div>
-                  )}
-                </CardBody>
-              </Card>
-            )}
+                  </CardHeader>
+                  <CardBody>
+                    {wheeledVehiclesForDept.length === 0 && (
+                      <p className="text-sm text-muted text-center py-3">אין רכבים בקבוצה זו.</p>
+                    )}
+                    {wheeledVehiclesForDept.length > 0 && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {wheeledVehiclesForDept.map(({ vehicleNumber, count }) => {
+                          const v = vehiclesMap.get(vehicleNumber)
+                          const active = selectedWVehicle === vehicleNumber
+                          const disabled = !!vehicleStats?.get(vehicleNumber)?.disabled
+                          return (
+                            <button key={vehicleNumber} type="button" onClick={() => pickWVehicle(vehicleNumber)} aria-expanded={active}
+                              className={`rounded-xl overflow-hidden transition-all text-start flex items-stretch ${
+                                active ? 'ring-2 ring-primary shadow-md' : disabled ? 'border border-danger/50 hover:shadow-sm' : 'border border-border hover:shadow-sm'
+                              }`}
+                            >
+                              <div className="w-1.5 shrink-0" style={{ backgroundColor: disabled ? 'var(--color-danger)' : deptTint.border }} />
+                              <div className="flex-1 flex items-center justify-between gap-3 px-3 py-2.5">
+                                <div className="flex flex-col min-w-0">
+                                  <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                                    <span className="text-sm font-mono font-semibold text-foreground truncate">{vehicleNumber}</span>
+                                    {disabled && <span className="text-[10px] font-bold text-white bg-danger px-1.5 py-0.5 rounded-full whitespace-nowrap">מושבת</span>}
+                                  </div>
+                                  <span className="text-xs text-muted truncate">
+                                    {[v?.type_name, v?.location].filter(Boolean).join(' · ')}
+                                  </span>
+                                </div>
+                                <span className="text-xs font-bold text-white rounded-full min-w-[1.5rem] h-6 inline-flex items-center justify-center px-2" style={{ backgroundColor: count > 0 ? deptTint.border : 'var(--color-border)' }}>
+                                  {count}
+                                </span>
+                              </div>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </CardBody>
+                </Card>
+              )
+            })()}
 
             {selectedWDept && selectedWVehicle && (
               <VehicleCallsLayer
@@ -605,94 +634,93 @@ function VehicleCallsLayer({
   const totalCalls = buckets.disabling.length + buckets.regular.length + buckets.closed.length
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-semibold text-foreground">
-          קריאות בכלי {vehicleNumber}
-        </span>
-        <button
-          type="button"
-          onClick={onBack}
-          className="text-xs text-primary hover:underline"
-        >
-          חזרה לרשימה
-        </button>
-      </div>
-
-      <div className="flex gap-2 flex-wrap">
-        {!showNewCall && (
-          <Button onClick={() => { setShowNewCall(true); setShowReading(false) }} className="self-start">+ פתח תקלה חדשה</Button>
-        )}
-        {isTank && !showReading && (
-          <Button
-            variant="secondary"
-            onClick={() => { setShowReading(true); setShowNewCall(false) }}
-            className="self-start bg-info/10 border-info text-info hover:bg-info/20"
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold text-foreground">
+            קריאות בכלי {vehicleNumber}
+          </h2>
+          <button
+            type="button"
+            onClick={onBack}
+            className="text-xs text-primary hover:underline"
           >
-            עדכן שעמ/קמ
-          </Button>
-        )}
-      </div>
+            חזרה לרשימה
+          </button>
+        </div>
+      </CardHeader>
+      <CardBody className="flex flex-col gap-3">
+        <div className="flex gap-2 flex-wrap">
+          {!showNewCall && (
+            <Button onClick={() => { setShowNewCall(true); setShowReading(false) }} className="self-start">+ פתח תקלה חדשה</Button>
+          )}
+          {isTank && !showReading && (
+            <Button
+              variant="secondary"
+              onClick={() => { setShowReading(true); setShowNewCall(false) }}
+              className="self-start bg-info/10 border-info text-info hover:bg-info/20"
+            >
+              עדכן שעמ/קמ
+            </Button>
+          )}
+        </div>
 
-      {showNewCall && (
-        <Card>
-          <CardBody>
+        {showNewCall && (
+          <div className="border border-border rounded-xl p-3">
             <NewCallForm
               initialVehicleNumber={vehicleNumber}
               onCancel={() => setShowNewCall(false)}
               onCreated={() => setShowNewCall(false)}
             />
-          </CardBody>
-        </Card>
-      )}
+          </div>
+        )}
 
-      {showReading && vehicle && (
-        <Card>
-          <CardBody>
+        {showReading && vehicle && (
+          <div className="border border-border rounded-xl p-3">
             <div className="flex items-center justify-between gap-2 mb-2">
               <span className="text-sm font-semibold text-foreground">עדכון שעמ/קמ — {vehicleNumber}</span>
               <button type="button" onClick={() => setShowReading(false)} className="text-xs text-primary hover:underline">סגור</button>
             </div>
             <TankReadingEditor vehicle={vehicle} onSaved={() => setShowReading(false)} />
-          </CardBody>
-        </Card>
-      )}
-
-      {histLoading && <p className="text-sm text-muted text-center py-3">טוען...</p>}
-
-      {!histLoading && totalCalls === 0 && (
-        <Card><CardBody><p className="text-sm text-muted text-center py-3">אין קריאות לכלי הזה.</p></CardBody></Card>
-      )}
-
-      {buckets.disabling.length > 0 && (
-        <CollapsibleSection title="תקלות משביתות" count={buckets.disabling.length} defaultOpen countTone="text-danger">
-          <div className="flex flex-col gap-2 p-2">
-            {buckets.disabling.map(c => (
-              <CallCard key={c.id} call={c} partsSummary={partsMap?.get(c.id) ?? null} vehicle={vehiclesMap.get(c.vehicle_number ?? '') ?? null} hasComments={commentsSet?.has(c.id) ?? false} />
-            ))}
           </div>
-        </CollapsibleSection>
-      )}
+        )}
 
-      {buckets.regular.length > 0 && (
-        <CollapsibleSection title="תקלות פתוחות" count={buckets.regular.length} defaultOpen>
-          <div className="flex flex-col gap-2 p-2">
-            {buckets.regular.map(c => (
-              <CallCard key={c.id} call={c} partsSummary={partsMap?.get(c.id) ?? null} vehicle={vehiclesMap.get(c.vehicle_number ?? '') ?? null} hasComments={commentsSet?.has(c.id) ?? false} />
-            ))}
-          </div>
-        </CollapsibleSection>
-      )}
+        {histLoading && <p className="text-sm text-muted text-center py-3">טוען...</p>}
 
-      {buckets.closed.length > 0 && (
-        <CollapsibleSection title="תקלות סגורות" count={buckets.closed.length}>
-          <div className="flex flex-col gap-2 p-2">
-            {buckets.closed.map(c => (
-              <CallCard key={c.id} call={c} partsSummary={partsMap?.get(c.id) ?? null} vehicle={vehiclesMap.get(c.vehicle_number ?? '') ?? null} hasComments={commentsSet?.has(c.id) ?? false} />
-            ))}
-          </div>
-        </CollapsibleSection>
-      )}
-    </div>
+        {!histLoading && totalCalls === 0 && (
+          <p className="text-sm text-muted text-center py-3">אין קריאות לכלי הזה.</p>
+        )}
+
+        {buckets.disabling.length > 0 && (
+          <CollapsibleSection title="תקלות משביתות" count={buckets.disabling.length} defaultOpen countTone="text-danger">
+            <div className="flex flex-col gap-2 p-2">
+              {buckets.disabling.map(c => (
+                <CallCard key={c.id} call={c} partsSummary={partsMap?.get(c.id) ?? null} vehicle={vehiclesMap.get(c.vehicle_number ?? '') ?? null} hasComments={commentsSet?.has(c.id) ?? false} />
+              ))}
+            </div>
+          </CollapsibleSection>
+        )}
+
+        {buckets.regular.length > 0 && (
+          <CollapsibleSection title="תקלות פתוחות" count={buckets.regular.length} defaultOpen>
+            <div className="flex flex-col gap-2 p-2">
+              {buckets.regular.map(c => (
+                <CallCard key={c.id} call={c} partsSummary={partsMap?.get(c.id) ?? null} vehicle={vehiclesMap.get(c.vehicle_number ?? '') ?? null} hasComments={commentsSet?.has(c.id) ?? false} />
+              ))}
+            </div>
+          </CollapsibleSection>
+        )}
+
+        {buckets.closed.length > 0 && (
+          <CollapsibleSection title="תקלות סגורות" count={buckets.closed.length}>
+            <div className="flex flex-col gap-2 p-2">
+              {buckets.closed.map(c => (
+                <CallCard key={c.id} call={c} partsSummary={partsMap?.get(c.id) ?? null} vehicle={vehiclesMap.get(c.vehicle_number ?? '') ?? null} hasComments={commentsSet?.has(c.id) ?? false} />
+              ))}
+            </div>
+          </CollapsibleSection>
+        )}
+      </CardBody>
+    </Card>
   )
 }
