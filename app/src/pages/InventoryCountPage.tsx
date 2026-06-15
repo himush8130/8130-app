@@ -700,25 +700,25 @@ function ReportSummary({ allParts, entries, employee }: {
 
 function DeltaTable({ rows }: { rows: Array<{ part: Part; entry: IcEntry; delta: number }> }) {
   return (
-    <table className="w-full mt-1 text-xs">
+    <table className="w-full mt-1 text-[11px]">
       <thead>
-        <tr className="text-muted text-[11px] border-b border-border">
-          <th className="text-start py-1 font-medium">שם</th>
-          <th className="text-start py-1 font-medium">מק״ט</th>
-          <th className="text-start py-1 font-medium">מחסן</th>
-          <th className="text-start py-1 font-medium">רשום</th>
-          <th className="text-start py-1 font-medium">נספר</th>
+        <tr className="text-muted text-[10px] border-b border-border">
+          <th className="text-start py-1 pe-2 font-medium">שם</th>
+          <th className="text-start py-1 pe-2 font-medium">מק״ט</th>
+          <th className="text-start py-1 pe-2 font-medium">מחסן</th>
+          <th className="text-start py-1 pe-1 font-medium">רשום</th>
+          <th className="text-start py-1 pe-1 font-medium">נספר</th>
           <th className="text-start py-1 font-medium">פער</th>
         </tr>
       </thead>
       <tbody>
         {rows.map(({ part, entry, delta }) => (
           <tr key={part.id} className="border-b border-border last:border-0">
-            <td className="py-1 text-foreground">{part.name}</td>
-            <td className="py-1 font-mono text-muted">{part.sku}</td>
-            <td className="py-1 text-muted">{part.warehouse ?? '—'}</td>
-            <td className="py-1 text-muted">{entry.expected_qty}</td>
-            <td className="py-1 text-foreground font-medium">{entry.counted_qty}</td>
+            <td className="py-1 pe-2 text-foreground">{part.name}</td>
+            <td className="py-1 pe-2 font-mono text-muted">{part.sku}</td>
+            <td className="py-1 pe-2 text-muted whitespace-nowrap">{part.warehouse ?? '—'}</td>
+            <td className="py-1 pe-1 text-muted">{entry.expected_qty}</td>
+            <td className="py-1 pe-1 text-foreground font-medium">{entry.counted_qty}</td>
             <td className={`py-1 font-semibold ${delta > 0 ? 'text-success' : 'text-danger'}`}>
               {delta > 0 ? `+${delta}` : delta}
             </td>
