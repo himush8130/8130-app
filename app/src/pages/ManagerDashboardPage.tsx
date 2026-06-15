@@ -307,8 +307,8 @@ export function PriorityCompanySection({ d }: { d: DashboardData }) {
                   <span className="text-muted text-[10px] sm:text-xs font-normal">/100</span>
                 </span>
               </div>
-              <div dir="ltr" className="w-full bg-border rounded-full h-1.5 sm:h-2 mt-1">
-                <div className="h-full rounded-full" style={{ width: `${top.score}%`, backgroundColor: STAT_NAVY }} />
+              <div dir="ltr" className="w-4/5 max-w-48 bg-border rounded-full h-1.5 sm:h-2 mt-1">
+                <div className="h-full rounded-full" style={{ width: `${top.score}%`, backgroundColor: t.fill }} />
               </div>
             </div>
           </div>
