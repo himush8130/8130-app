@@ -167,40 +167,40 @@ function TopStatsBar({ d }: { d: DashboardData }) {
   // Order is RTL right→left: highlighted open-calls (right), then the
   // four metrics, ending with the placeholder "חריגות טיפול" (left).
   const STATS: Array<{ key: string; icon: ReactNode; value: ReactNode; label: string; sub?: ReactNode; highlight?: boolean }> = [
-    { key: 'open',  icon: <IconClipboard size={26} color="#fff" />, value: d.totalOpenCalls,                label: 'קריאות פתוחות', highlight: true },
-    { key: 'dis',   icon: <IconWrench size={22} />,    value: d.totalDisabling,                label: 'משביתות' },
+    { key: 'open',  icon: <IconClipboard size={20} color="#fff" />, value: d.totalOpenCalls,                label: 'קריאות פתוחות', highlight: true },
+    { key: 'dis',   icon: <IconWrench size={16} />,    value: d.totalDisabling,                label: 'משביתות' },
     {
       key: 'monthly',
-      icon: <IconCalendar size={22} />,
-      value: <span className="text-xs sm:text-base lg:text-2xl whitespace-nowrap">{mm?.thisWeekCompany ?? 'אין'}</span>,
+      icon: <IconCalendar size={16} />,
+      value: <span className="text-xs sm:text-sm lg:text-xl whitespace-nowrap">{mm?.thisWeekCompany ?? 'אין'}</span>,
       label: 'טיפול חודשי',
     },
-    { key: 'ready', icon: <IconShield size={22} />,    value: `${d.overallTankReadinessPct}%`, label: 'כשירות כוללת' },
-    { key: 'dev',   icon: <IconWarning size={22} />,   value: d.treatmentDeviations ?? 0,      label: 'חריגות טיפול' },
+    { key: 'ready', icon: <IconShield size={16} />,    value: `${d.overallTankReadinessPct}%`, label: 'כשירות כוללת' },
+    { key: 'dev',   icon: <IconWarning size={16} />,   value: d.treatmentDeviations ?? 0,      label: 'חריגות טיפול' },
   ]
   return (
     // Single row of 5 at every width; sizes scale down on phones so the
     // whole bar fits. `gap-px` over a border-coloured background paints
     // the divider lines between segments automatically.
-    <nav className="grid grid-cols-5 gap-px bg-border rounded-2xl border border-border overflow-hidden">
+    <nav className="grid grid-cols-[1.4fr_1fr_1fr_1fr_1fr] gap-px bg-border rounded-2xl border border-border overflow-hidden">
       {STATS.map((s) => (
         <div
           key={s.key}
-          className={`flex flex-col items-center px-1 sm:px-3 py-4 lg:py-7 min-h-28 lg:min-h-44 ${
+          className={`flex flex-col items-center px-1 sm:px-3 py-2 lg:py-3 ${
             s.highlight ? 'text-white' : 'bg-card'
           }`}
           style={s.highlight ? { backgroundColor: STAT_NAVY } : undefined}
         >
-          {/* Value (and optional sub-line) fill the upper area; the label
-              is pinned to the bottom so labels line up across the row. */}
-          <div className="flex-1 flex flex-col items-center justify-center gap-1">
-            <div className="flex items-center justify-center gap-1 lg:gap-2">
+          {/* Value fills the upper area; the label is pinned to the
+              bottom so labels line up across the row. */}
+          <div className="flex-1 flex flex-col items-center justify-center gap-0.5">
+            <div className="flex items-center justify-center gap-1">
               {s.icon}
-              <span className={`font-bold leading-none ${s.highlight ? 'text-2xl sm:text-3xl lg:text-5xl' : 'text-xl sm:text-2xl lg:text-4xl text-foreground'}`}>{s.value}</span>
+              <span className={`font-bold leading-none ${s.highlight ? 'text-xl sm:text-3xl lg:text-4xl' : 'text-lg sm:text-2xl lg:text-3xl text-foreground'}`}>{s.value}</span>
             </div>
             {s.sub && <span className="text-[9px] sm:text-[10px] text-muted text-center leading-tight">{s.sub}</span>}
           </div>
-          <span className={`text-[10px] sm:text-xs lg:text-sm text-center mt-1 leading-tight ${s.highlight ? 'opacity-90' : 'text-muted'}`}>{s.label}</span>
+          <span className={`text-[10px] sm:text-xs lg:text-sm text-center mt-0.5 leading-tight ${s.highlight ? 'opacity-90' : 'text-muted'}`}>{s.label}</span>
         </div>
       ))}
     </nav>
