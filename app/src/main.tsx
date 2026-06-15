@@ -83,12 +83,12 @@ createRoot(document.getElementById('root')!).render(
           } />
           <Route path="/manager/dashboard" element={
             <Resilient scope="manager-dashboard">
-              <ProtectedRoute allow={['manager', 'commander_viewer']}><ManagerDashboardPage /></ProtectedRoute>
+              <ProtectedRoute allow={['manager', 'commander_viewer']}><ManagerDashboardV2Page /></ProtectedRoute>
             </Resilient>
           } />
           <Route path="/manager/dashboard-v2" element={
             <Resilient scope="manager-dashboard-v2">
-              <ProtectedRoute allow={['manager', 'commander_viewer']}><ManagerDashboardV2Page /></ProtectedRoute>
+              <ProtectedRoute allow={['manager', 'commander_viewer']}><ManagerDashboardPage /></ProtectedRoute>
             </Resilient>
           } />
           <Route path="/manager/dev" element={
