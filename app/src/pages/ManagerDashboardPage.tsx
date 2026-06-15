@@ -188,7 +188,7 @@ function TopStatsBar({ d }: { d: DashboardData }) {
     // the divider lines between segments automatically.
     <nav className="grid grid-cols-[1.4fr_1fr_1fr_1fr_1fr] gap-px bg-border rounded-2xl border border-border overflow-hidden">
       {STATS.map((s) => {
-        const cls = `flex flex-col items-center px-1 sm:px-3 py-2 lg:py-3 ${
+        const cls = `flex flex-col items-center px-1 sm:px-3 py-3 lg:py-4 ${
           s.highlight ? 'text-white' : 'bg-card'
         }`
         const style = s.highlight ? { backgroundColor: STAT_NAVY } : undefined
@@ -237,15 +237,15 @@ function CompanyCard({ co }: { co: DashboardCompany }) {
       {/* top accent line */}
       <div className="h-1 sm:h-1.5" style={{ backgroundColor: t.fill }} />
 
-      <span className={`px-1 sm:px-4 pt-2 sm:pt-3 text-center text-xs sm:text-base font-bold ${t.text}`}>{co.label}</span>
+      <span className={`px-1 sm:px-4 pt-1.5 sm:pt-2 text-center text-xs sm:text-base font-bold ${t.text}`}>{co.label}</span>
 
-      <div className="px-1 sm:px-4 pt-1 sm:pt-2 pb-2 sm:pb-3 flex flex-col items-center gap-0.5 sm:gap-1">
+      <div className="px-1 sm:px-4 pt-0.5 sm:pt-1 pb-1 sm:pb-1.5 flex flex-col items-center gap-0 sm:gap-0.5">
         <TankIcon color={t.fill} size={44} />
         <span className={`text-2xl sm:text-4xl font-bold ${t.text}`}>{co.openCalls}</span>
       </div>
 
       <div className="px-2 sm:px-5">
-        <div className="border-t border-black/10 pt-2 sm:pt-3 pb-1 sm:pb-2 flex flex-col gap-1 sm:gap-2">
+        <div className="border-t border-black/10 pt-1.5 sm:pt-2 pb-0.5 sm:pb-1 flex flex-col gap-0.5 sm:gap-1">
           <div className="flex items-center justify-between gap-1">
             <span className={`text-base sm:text-2xl font-bold ${t.text}`}>{disabling}</span>
             <span className="text-[10px] sm:text-sm text-foreground">משביתות</span>
@@ -258,7 +258,7 @@ function CompanyCard({ co }: { co: DashboardCompany }) {
       </div>
 
       {/* bottom accent pill */}
-      <div className="mx-2 sm:mx-4 mt-2 mb-2 sm:mb-3 h-1 sm:h-1.5 rounded-full" style={{ backgroundColor: t.fill }} />
+      <div className="mx-2 sm:mx-4 mt-1 mb-1.5 sm:mb-2 h-1 sm:h-1.5 rounded-full" style={{ backgroundColor: t.fill }} />
     </div>
   )
 }
