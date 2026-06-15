@@ -18,7 +18,7 @@ export function VehiclesBookPage() {
             to="/warehouse"
             className="self-start text-sm text-primary hover:underline"
           >
-            → חזור למחסנאי
+            → חזור למחסן
           </Link>
         )}
         <VehiclePicker />

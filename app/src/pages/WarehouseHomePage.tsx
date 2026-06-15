@@ -19,7 +19,7 @@ export function WarehouseHomePage() {
 
   return (
     <>
-      <AppHeader subtitle="פאנל מחסנאי" />
+      <AppHeader subtitle="פאנל מחסן" />
 
       <main className="max-w-3xl mx-auto p-4 flex flex-col gap-4">
         <ComponentBadge id={4001} />

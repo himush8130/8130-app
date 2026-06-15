@@ -174,7 +174,7 @@ export function InventoryCountPage() {
       <AppHeader subtitle="ספירת מלאי" />
       <main className="max-w-3xl mx-auto p-4 flex flex-col gap-4 pb-24">
         <Link to="/warehouse" className="self-start text-sm text-primary hover:underline">
-          → חזור למחסנאי
+          → חזור למחסן
         </Link>
 
         {isLoading && <p className="text-sm text-muted text-center py-8">טוען קטלוג...</p>}
