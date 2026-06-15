@@ -318,7 +318,7 @@ export function PriorityCompanySection({ d }: { d: DashboardData }) {
 
           {/* Metric strip — fixed width so the equal cells give small,
               symmetric centre↔divider gaps; the cube takes the rest. */}
-          <div className="shrink-0 w-48 flex items-stretch">
+          <div className="shrink-0 w-[250px] flex items-stretch">
             {metrics.map((m, i) => (
               <Fragment key={m.label}>
                 {i > 0 && <span aria-hidden className="dev-divider my-1 w-px bg-border" />}
