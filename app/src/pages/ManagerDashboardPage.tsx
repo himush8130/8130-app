@@ -167,19 +167,19 @@ function TopStatsBar({ d }: { d: DashboardData }) {
   // Order is RTL right→left: highlighted open-calls (right), then the
   // four metrics, ending with the placeholder "חריגות טיפול" (left).
   const STATS: Array<{ key: string; icon: ReactNode; value: ReactNode; label: string; sub?: ReactNode; highlight?: boolean }> = [
-    { key: 'open',  icon: <IconClipboard size={34} color="#fff" />, value: d.totalOpenCalls,                label: 'קריאות פתוחות', highlight: true },
-    { key: 'dis',   icon: <IconWrench />,    value: d.totalDisabling,                label: 'משביתות' },
+    { key: 'open',  icon: <IconClipboard size={26} color="#fff" />, value: d.totalOpenCalls,                label: 'קריאות פתוחות', highlight: true },
+    { key: 'dis',   icon: <IconWrench size={22} />,    value: d.totalDisabling,                label: 'משביתות' },
     {
       key: 'monthly',
-      icon: <IconCalendar />,
-      value: <span className="text-sm sm:text-lg lg:text-2xl">{mm?.thisWeekCompany ?? 'אין'}</span>,
+      icon: <IconCalendar size={22} />,
+      value: <span className="text-xs sm:text-base lg:text-2xl whitespace-nowrap">{mm?.thisWeekCompany ?? 'אין'}</span>,
       label: 'טיפול חודשי',
       sub: mm?.nextWeekCompany
-        ? <>שבוע הבא: <span className="font-semibold text-foreground">{mm.nextWeekCompany}</span></>
+        ? <span className="font-semibold text-foreground">{mm.nextWeekCompany}</span>
         : undefined,
     },
-    { key: 'ready', icon: <IconShield />,    value: `${d.overallTankReadinessPct}%`, label: 'כשירות כוללת' },
-    { key: 'dev',   icon: <IconWarning />,   value: d.treatmentDeviations ?? 0,      label: 'חריגות טיפול' },
+    { key: 'ready', icon: <IconShield size={22} />,    value: `${d.overallTankReadinessPct}%`, label: 'כשירות כוללת' },
+    { key: 'dev',   icon: <IconWarning size={22} />,   value: d.treatmentDeviations ?? 0,      label: 'חריגות טיפול' },
   ]
   return (
     // Single row of 5 at every width; sizes scale down on phones so the
@@ -197,8 +197,8 @@ function TopStatsBar({ d }: { d: DashboardData }) {
           {/* Value (and optional sub-line) fill the upper area; the label
               is pinned to the bottom so labels line up across the row. */}
           <div className="flex-1 flex flex-col items-center justify-center gap-1">
-            <div className="flex items-center justify-center gap-1.5 lg:gap-3">
-              <span className="hidden sm:block">{s.icon}</span>
+            <div className="flex items-center justify-center gap-1 lg:gap-2">
+              {s.icon}
               <span className={`font-bold leading-none ${s.highlight ? 'text-2xl sm:text-3xl lg:text-5xl' : 'text-xl sm:text-2xl lg:text-4xl text-foreground'}`}>{s.value}</span>
             </div>
             {s.sub && <span className="text-[9px] sm:text-[10px] text-muted text-center leading-tight">{s.sub}</span>}
@@ -294,26 +294,28 @@ function PriorityCompanySection({ d }: { d: DashboardData }) {
 
   return (
     <Card>
-      <CardBody>
-        <div className="flex flex-col lg:flex-row items-stretch gap-4">
+      <CardBody className="px-2 sm:px-4">
+        {/* Single row at every width: target + score, then the metrics. */}
+        <div className="flex items-stretch gap-1 sm:gap-3">
           {/* Priority company + score (right side in RTL). */}
-          <div className="flex items-center gap-3 lg:min-w-80 shrink-0">
-            <IconTarget size={44} color={t.fill} />
-            <div className="flex-1">
-              <div className="text-xs text-muted">פלוגה לתיעדוף</div>
-              <div className={`text-xl font-bold ${t.text}`}>{co.label}</div>
-              <div className="flex items-center gap-2 mt-1.5">
-                <span className="text-xs text-muted shrink-0">ציון תיעדוף</span>
-                <span className={`font-bold ${t.text}`}>{top.score}</span><span className="text-muted text-xs">/100</span>
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 max-w-[40%] sm:max-w-none sm:min-w-72">
+            <IconTarget size={32} color={t.fill} />
+            <div className="min-w-0">
+              <div className="text-[9px] sm:text-xs text-muted leading-tight">פלוגה לתיעדוף</div>
+              <div className={`text-sm sm:text-xl font-bold leading-tight ${t.text}`}>{co.label}</div>
+              <div className="flex items-baseline gap-1 mt-1">
+                <span className="hidden sm:inline text-xs text-muted shrink-0">ציון תיעדוף</span>
+                <span className={`text-base sm:text-lg font-bold ${t.text}`}>{top.score}</span>
+                <span className="text-muted text-[10px] sm:text-xs">/100</span>
               </div>
-              <div className="w-full bg-border rounded-full h-2 mt-1.5">
-                <div className="h-2 rounded-full" style={{ width: `${top.score}%`, backgroundColor: STAT_NAVY }} />
+              <div className="w-full bg-border rounded-full h-1.5 sm:h-2 mt-1">
+                <div className="h-full rounded-full" style={{ width: `${top.score}%`, backgroundColor: STAT_NAVY }} />
               </div>
             </div>
           </div>
 
           {/* Metric strip with thin vertical dividers between cells. */}
-          <div className="flex-1 flex items-stretch">
+          <div className="flex-1 flex items-stretch min-w-0">
             {metrics.map((m, i) => (
               <Fragment key={m.label}>
                 {i > 0 && <span aria-hidden className="my-1 w-px bg-border" />}
@@ -329,11 +331,11 @@ function PriorityCompanySection({ d }: { d: DashboardData }) {
 
 function MetricBox({ icon, label, value, sub }: { icon: ReactNode; label: string; value: ReactNode; sub?: string }) {
   return (
-    <div className="flex-1 flex flex-col items-center justify-start gap-1 px-1 text-center">
-      <span className="text-muted">{icon}</span>
-      <span className="text-[11px] text-muted leading-tight">{label}</span>
-      <span className="text-xl font-bold text-foreground leading-tight">{value}</span>
-      {sub && <span className="text-[10px] text-muted">{sub}</span>}
+    <div className="flex-1 min-w-0 flex flex-col items-center justify-start gap-0.5 sm:gap-1 px-0.5 sm:px-1 text-center">
+      <span className="text-muted hidden sm:block">{icon}</span>
+      <span className="text-[9px] sm:text-[11px] text-muted leading-tight">{label}</span>
+      <span className="text-base sm:text-xl font-bold text-foreground leading-tight">{value}</span>
+      {sub && <span className="text-[9px] sm:text-[10px] text-muted">{sub}</span>}
     </div>
   )
 }
