@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'עמודת מחסן נוספה לטבלת חוסר/עודף בספירת מלאי. שורת סטטיסטיקות גדלה, כרטיסי פלוגה הוקטנו.'
+export const LATEST_NOTE = 'כפתור ערוך בספירת מלאי פותח טופס עריכה מלא של הפריט (שם, כמות, מיקום, ספק ועוד).'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build
