@@ -454,13 +454,21 @@ function VehicleCallsLayer({
         <span className="text-sm font-semibold text-foreground">
           קריאות בכלי {vehicleNumber}
         </span>
-        <button
-          type="button"
-          onClick={onBack}
-          className="text-xs text-primary hover:underline"
-        >
-          חזרה לטנקים
-        </button>
+        <div className="flex items-center gap-3">
+          <Link
+            to={`/vehicle/${encodeURIComponent(vehicleNumber)}`}
+            className="text-xs text-primary hover:underline"
+          >
+            היסטוריה מלאה
+          </Link>
+          <button
+            type="button"
+            onClick={onBack}
+            className="text-xs text-primary hover:underline"
+          >
+            חזרה לטנקים
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-2 flex-wrap">
