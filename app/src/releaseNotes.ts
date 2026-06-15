@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'שורת סטטיסטיקות בדשבורד גבוהה יותר. כרטיסי פלוגות צפופים יותר. רכבים גלגליים מקובצים לפי מחלקה.'
+export const LATEST_NOTE = 'רכבים גלגליים: סדר וצבע פלוגות זהה לטנקים, מחלקות שלא חופפות מופיעות אחרי.'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build

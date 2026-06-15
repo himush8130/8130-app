@@ -172,8 +172,11 @@ export function TechnicianByCompanyPage() {
         }
       }
     }
-    return [...set].sort((a, b) => a.localeCompare(b, 'he'))
-  }, [wheeledByDept, vehiclesMap, seeAll])
+    const companySet = new Set(companies)
+    const shared = companies.filter((c) => set.has(c))
+    const rest = [...set].filter((d) => !companySet.has(d)).sort((a, b) => a.localeCompare(b, 'he'))
+    return [...shared, ...rest]
+  }, [wheeledByDept, vehiclesMap, seeAll, companies])
 
   // Stable colour assignment by sorted-index. Companies past the
   // palette wrap, which is the only case where duplicates can occur.
@@ -472,7 +475,7 @@ export function TechnicianByCompanyPage() {
                         {wheeledDepts.map((name, i) => {
                           const count = wheeledByDept.get(name)?.length ?? 0
                           const active = selectedWDept === name
-                          const tint = COMPANY_PALETTE[(companies.length + i) % COMPANY_PALETTE.length]
+                          const tint = companyTints.get(name) ?? COMPANY_PALETTE[(companies.length + i) % COMPANY_PALETTE.length]
                           return (
                             <button key={name} type="button" onClick={() => pickWDept(name)} aria-expanded={active} title={name}
                               className={`min-w-0 rounded-md transition-colors flex flex-col items-center justify-center gap-0.5 px-1 py-2 text-center ${active ? 'border-[3px] font-semibold' : 'border'}`}
