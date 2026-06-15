@@ -50,25 +50,50 @@ function AlignmentRuler() {
   )
 }
 
+interface ToggleProps { on: boolean; onClick: () => void; children: React.ReactNode }
+function Toggle({ on, onClick, children }: ToggleProps) {
+  return (
+    <button
+      onClick={onClick}
+      className={`text-xs px-3 py-1.5 rounded-md border transition-colors ${
+        on ? 'bg-card text-foreground border-border hover:bg-muted-surface'
+           : 'bg-muted-surface text-muted border-border line-through'
+      }`}
+    >
+      {children}
+    </button>
+  )
+}
+
 export function DevelopmentPage() {
   const { data } = useDashboardData()
   const wrapRef = useRef<HTMLDivElement>(null)
-  // Center x of each component (cube + metrics), right-to-left order.
   const [centers, setCenters] = useState<number[]>([])
+  const [dividers, setDividers] = useState<number[]>([])
+
+  const [showV, setShowV] = useState(true)
+  const [showH, setShowH] = useState(true)
+  const [showDots, setShowDots] = useState(true)
 
   useEffect(() => {
     const wrap = wrapRef.current
     if (!wrap) return
     const measure = () => {
       const base = wrap.getBoundingClientRect()
-      const els = wrap.querySelectorAll('.dev-cube, .dev-metric')
-      const xs: number[] = []
-      els.forEach(el => {
+      const cx: number[] = []
+      wrap.querySelectorAll('.dev-cube, .dev-metric').forEach(el => {
         const r = el.getBoundingClientRect()
-        xs.push(r.left - base.left + r.width / 2)
+        cx.push(r.left - base.left + r.width / 2)
       })
-      xs.sort((a, b) => b - a) // RTL: rightmost component = #1
-      setCenters(xs)
+      const dx: number[] = []
+      wrap.querySelectorAll('.dev-divider').forEach(el => {
+        const r = el.getBoundingClientRect()
+        dx.push(r.left - base.left + r.width / 2)
+      })
+      cx.sort((a, b) => b - a) // RTL: rightmost = #1
+      dx.sort((a, b) => a - b)
+      setCenters(cx)
+      setDividers(dx)
     }
     measure()
     const ro = new ResizeObserver(measure)
@@ -77,6 +102,17 @@ export function DevelopmentPage() {
     return () => { ro.disconnect(); clearTimeout(t) }
   }, [data])
 
+  // Merge centres + dividers, sort by x; the gap between each consecutive
+  // pair is a centre↔divider distance worth showing.
+  const markers = [
+    ...centers.map(x => ({ x, type: 'c' as const })),
+    ...dividers.map(x => ({ x, type: 'd' as const })),
+  ].sort((a, b) => a.x - b.x)
+  const gaps = markers.slice(1).map((m, i) => {
+    const prev = markers[i]
+    return { mid: (prev.x + m.x) / 2, dist: Math.round(m.x - prev.x) }
+  })
+
   return (
     <>
       <AppHeader subtitle="פיתוח" showLogo wide />
@@ -84,9 +120,15 @@ export function DevelopmentPage() {
         <div>
           <h2 className="text-sm font-semibold text-foreground">פיתוח — כלי יישור</h2>
           <p className="text-xs text-muted mt-1">
-            כל נקודה = {STEP}px (נקודת חצי = {HALF}px). הקווים האדומים הם מרכז כל רכיב, ממוספרים מימין לשמאל.
-            אמור לי למשל "רכיב 3 לנקודה 40" או "הזז רכיב 2 חצי נקודה ימינה".
+            כל נקודה = {STEP}px (חצי = {HALF}px). אדום = מרכז רכיב (ממוספר מימין לשמאל), ירוק = קו הפרדה.
+            המספרים הכתומים הם המרחק בין כל קו אמצע לקו הפרדה (ב-px).
           </p>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <Toggle on={showV} onClick={() => setShowV(v => !v)}>קווים אנכיים</Toggle>
+          <Toggle on={showH} onClick={() => setShowH(v => !v)}>קווים אופקיים</Toggle>
+          <Toggle on={showDots} onClick={() => setShowDots(v => !v)}>נקודות</Toggle>
         </div>
 
         {!data ? (
@@ -95,27 +137,56 @@ export function DevelopmentPage() {
           <div ref={wrapRef} className="relative">
             <div className="flex flex-col gap-1">
               <PriorityCompanySection d={data} />
-              <AlignmentRuler />
+              {showDots && <AlignmentRuler />}
             </div>
 
-            {/* Vertical alignment gridlines — major every 5 dots, faint every dot. */}
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                backgroundImage:
-                  `repeating-linear-gradient(to right, rgba(99,102,241,0.28) 0, rgba(99,102,241,0.28) 1px, transparent 1px, transparent ${STEP * 5}px),` +
-                  `repeating-linear-gradient(to right, rgba(99,102,241,0.12) 0, rgba(99,102,241,0.12) 1px, transparent 1px, transparent ${STEP}px)`,
-              }}
-            />
+            {/* Vertical gridlines */}
+            {showV && (
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  backgroundImage:
+                    `repeating-linear-gradient(to right, rgba(99,102,241,0.28) 0, rgba(99,102,241,0.28) 1px, transparent 1px, transparent ${STEP * 5}px),` +
+                    `repeating-linear-gradient(to right, rgba(99,102,241,0.12) 0, rgba(99,102,241,0.12) 1px, transparent 1px, transparent ${STEP}px)`,
+                }}
+              />
+            )}
 
-            {/* Per-component centre lines + numbers. */}
-            {centers.map((x, i) => (
-              <div key={i} className="absolute top-0 bottom-0 pointer-events-none" style={{ left: x }}>
+            {/* Horizontal gridlines */}
+            {showH && (
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  backgroundImage:
+                    `repeating-linear-gradient(to bottom, rgba(16,185,129,0.18) 0, rgba(16,185,129,0.18) 1px, transparent 1px, transparent ${STEP}px)`,
+                }}
+              />
+            )}
+
+            {/* Divider marker lines (green) */}
+            {showV && dividers.map((x, i) => (
+              <div key={`d${i}`} className="absolute top-0 bottom-0 w-px bg-emerald-500/70 pointer-events-none" style={{ left: x }} />
+            ))}
+
+            {/* Component centre lines (red) + numbers */}
+            {showV && centers.map((x, i) => (
+              <div key={`c${i}`} className="absolute top-0 bottom-0 pointer-events-none" style={{ left: x }}>
                 <div className="w-px h-full bg-red-500/70 -translate-x-1/2" />
                 <span className="absolute top-0 -translate-x-1/2 -translate-y-1/2 bg-red-500 text-white text-[9px] font-bold rounded px-1 leading-tight">
                   {i + 1}
                 </span>
               </div>
+            ))}
+
+            {/* Distance labels between consecutive markers (px) */}
+            {showV && gaps.map((g, i) => (
+              <span
+                key={`g${i}`}
+                className="absolute top-4 -translate-x-1/2 text-[9px] font-mono font-bold text-orange-600 bg-card/80 rounded px-0.5 pointer-events-none"
+                style={{ left: g.mid }}
+              >
+                {g.dist}
+              </span>
             ))}
           </div>
         )}
