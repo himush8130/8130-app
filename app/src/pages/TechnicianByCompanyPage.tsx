@@ -70,6 +70,9 @@ const COMPANY_PALETTE: Array<{ bg: string; border: string; text: string }> = [
 export function TechnicianByCompanyPage() {
   const employee = useAuthStore((s) => s.employee)!
   const seeAll = employee.permissions === 'manager' || employee.permissions === 'commander_viewer'
+  const isTankProfession = employee.profession_name === 'טנק'
+  const showTanks = seeAll || isTankProfession
+  const showWheeled = seeAll || !isTankProfession
 
   const techQuery = useTechnicianCalls(
     !seeAll ? employee.profession_name : null,
@@ -311,7 +314,8 @@ export function TechnicianByCompanyPage() {
               )}
             </div>
 
-            {/* Layer 1 — total + per-company tiles */}
+            {/* ─── Tanks section ─── */}
+            {showTanks && <>
             <Card>
               <CardHeader>
                 <h2 className="text-sm font-semibold text-foreground">טנקים</h2>
@@ -468,9 +472,10 @@ export function TechnicianByCompanyPage() {
                 onBack={() => updateParams({ vehicle: null })}
               />
             )}
+            </>}
 
             {/* ─── Wheeled vehicles section ─── */}
-            {(wheeledDepts.length > 0 || wheeledHasOrphans) && (
+            {showWheeled && (wheeledDepts.length > 0 || wheeledHasOrphans) && (
               <Card>
                 <CardHeader>
                   <h2 className="text-sm font-semibold text-foreground">רכבים גלגליים</h2>
@@ -515,7 +520,7 @@ export function TechnicianByCompanyPage() {
               </Card>
             )}
 
-            {selectedWDept && (() => {
+            {showWheeled && selectedWDept && (() => {
               const wTint = companyTints.get(selectedWDept) ?? COMPANY_PALETTE[(companies.length) % COMPANY_PALETTE.length]
               const deptTint = selectedWDept !== NO_COMPANY
                 ? wTint
@@ -571,7 +576,7 @@ export function TechnicianByCompanyPage() {
               )
             })()}
 
-            {selectedWDept && selectedWVehicle && (
+            {showWheeled && selectedWDept && selectedWVehicle && (
               <VehicleCallsLayer
                 vehicleNumber={selectedWVehicle}
                 partsMap={partsMap}
