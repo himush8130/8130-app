@@ -81,7 +81,7 @@ export function ActivePartActions() {
    *  source tab is awaiting_order — the same number applies to all
    *  items in the batch. */
   const [receiveQueue, setReceiveQueue] = useState<
-    Array<{ id: string; partId: string; name: string; sku: string; orderNumber?: string }>
+    Array<{ id: string; partId: string; name: string; sku: string; quantity: number; orderNumber?: string }>
   >([])
   const [receiveTotal, setReceiveTotal] = useState(0)
 
