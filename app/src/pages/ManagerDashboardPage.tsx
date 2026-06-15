@@ -285,7 +285,7 @@ export function PriorityCompanySection({ d }: { d: DashboardData }) {
     { icon: <IconWrench size={18} />, label: 'משביתות',          value: co.disabledTanks },
     { icon: <IconChat size={18} />,   label: 'קריאות פתוחות',     value: co.openCalls },
     { icon: <IconStar size={18} />,   label: 'חשיבות מבצעית',     value: `${top.rating}/${MAX_IMPORTANCE}` },
-    { icon: <IconClock size={18} />,  label: 'קצב סגירה (שבועיים)', value: co.closedLast14 },
+    { icon: <IconClock size={18} />,  label: 'קצב סגירה',          value: co.closedLast14 },
     { icon: <IconBox size={18} />,    label: 'חלקים שהתקבלו',     value: co.receivedCalls },
   ]
 
@@ -295,7 +295,7 @@ export function PriorityCompanySection({ d }: { d: DashboardData }) {
         {/* Single row at every width: target + score, then the metrics. */}
         <div className="flex items-stretch gap-0 sm:gap-0.5">
           {/* Priority company + score (right side in RTL). */}
-          <div className="dev-cube flex items-center gap-1.5 sm:gap-3 shrink-0 max-w-[58%] sm:max-w-none sm:min-w-[26rem]">
+          <div className="dev-cube flex items-center gap-1.5 sm:gap-3 shrink-0 max-w-[64%] sm:max-w-none sm:min-w-[30rem]">
             <IconTarget size={36} color={t.fill} />
             <div className="min-w-0 flex-1">
               <div className="text-[9px] sm:text-xs text-muted leading-tight">פלוגה לתיעדוף</div>
@@ -316,15 +316,13 @@ export function PriorityCompanySection({ d }: { d: DashboardData }) {
           {/* Prominent divider separating the score block from the metrics. */}
           <span aria-hidden className="dev-divider w-0.5 bg-border self-stretch rounded-full shrink-0" />
 
-          {/* Metric strip with thin vertical dividers between cells.
-              Nudged 1 dot (10px) left for alignment. Components 2–5 and
-              their dividers (incl. 5–6) get an extra dot-left nudge;
-              component 6 stays put. */}
-          <div className="flex-1 flex items-stretch min-w-0 -translate-x-2.5">
+          {/* Metric strip — equal flex cells keep the centre↔divider gaps
+              symmetric; width is driven by the cube's size. */}
+          <div className="flex-1 flex items-stretch min-w-0">
             {metrics.map((m, i) => (
               <Fragment key={m.label}>
-                {i > 0 && <span aria-hidden className="dev-divider my-1 w-px bg-border -translate-x-2.5" />}
-                <MetricBox {...m} className={i <= 3 ? '-translate-x-2.5' : ''} />
+                {i > 0 && <span aria-hidden className="dev-divider my-1 w-px bg-border" />}
+                <MetricBox {...m} />
               </Fragment>
             ))}
           </div>

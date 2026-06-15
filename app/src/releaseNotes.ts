@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'מסך פיתוח: מדידת מרחקים בין קווי הפרדה לקווי אמצע, קווי סימון, וכפתורי הסתרה לקווים אנכיים/אופקיים/נקודות.'
+export const LATEST_NOTE = 'סקטור תיעדוף: מרווחים אחידים וסימטריים בין המדדים, קוביית הציון הורחבה, והוסר "(שבועיים)" מקצב סגירה.'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build
