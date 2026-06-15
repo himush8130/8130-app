@@ -176,20 +176,15 @@ export function AppHeader({ subtitle, showLogo, wide }: { subtitle?: string; sho
               </button>
             </span>
 
-            <span className="inline-flex flex-col items-center gap-0.5">
-              <span className="inline-flex items-center">
-                <ComponentBadge id={1002} />
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className={`${CHIP_BASE} ${CHIP_NEUTRAL} px-3`}
-                >
-                  יציאה
-                </button>
-              </span>
-              <span className="text-[9px] text-muted font-mono leading-none" dir="ltr" title="זמן עדכון אחרון">
-                {buildTimeLabel}
-              </span>
+            <span className="inline-flex items-center">
+              <ComponentBadge id={1002} />
+              <button
+                type="button"
+                onClick={handleLogout}
+                className={`${CHIP_BASE} ${CHIP_NEUTRAL} px-3`}
+              >
+                יציאה
+              </button>
             </span>
           </div>
         )}
@@ -231,13 +226,13 @@ export function AppHeader({ subtitle, showLogo, wide }: { subtitle?: string; sho
                     to={v.to}
                     aria-current={active ? 'page' : undefined}
                     style={active ? { backgroundColor: '#232150' } : undefined}
-                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-medium transition-colors ${
+                    className={`flex-1 flex items-center justify-center gap-1 sm:gap-2 px-1 sm:px-3 py-2 sm:py-2.5 text-[11px] sm:text-sm font-medium transition-colors ${
                       active
                         ? 'text-white'
                         : 'text-foreground hover:bg-muted-surface'
                     }`}
                   >
-                    {NAV_ICONS[v.key]}
+                    <span className="hidden sm:flex">{NAV_ICONS[v.key]}</span>
                     <span className="whitespace-nowrap">{v.label}</span>
                   </Link>
                 </Fragment>
