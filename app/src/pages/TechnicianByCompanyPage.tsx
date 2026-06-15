@@ -317,6 +317,7 @@ export function TechnicianByCompanyPage() {
                   </span>
                   <span className="text-3xl font-bold text-foreground leading-none">{totalCalls}</span>
                 </div>
+                <span className="text-sm font-semibold text-foreground">טנקים</span>
 
                 {companies.length === 0 && !hasOrphans && (
                   <p className="text-sm text-muted text-center py-4">אין כרגע קריאות פעילות.</p>
@@ -468,7 +469,10 @@ export function TechnicianByCompanyPage() {
             {(wheeledDepts.length > 0 || wheeledHasOrphans) && (
               <Card>
                 <CardBody className="flex flex-col gap-3">
-                  <span className="text-sm font-semibold text-foreground">רכבים גלגליים</span>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-sm font-semibold text-foreground">רכבים גלגליים</span>
+                    <span className="text-lg font-bold text-foreground leading-none">{[...wheeledByDept.values()].reduce((s, arr) => s + arr.length, 0)}</span>
+                  </div>
                   {(() => {
                     return (
                       <div className="grid grid-cols-4 gap-1.5">

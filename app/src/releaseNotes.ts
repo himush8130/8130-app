@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'רכבים גלגליים: סדר וצבע פלוגות זהה לטנקים, מחלקות שלא חופפות מופיעות אחרי.'
+export const LATEST_NOTE = 'כותרת "טנקים" נוספה לסקשן טנקים. סה״כ קריאות פתוחות מוצג גם ברכבים גלגליים.'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build
