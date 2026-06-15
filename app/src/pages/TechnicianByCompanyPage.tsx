@@ -5,6 +5,7 @@ import { useAuthStore } from '../store/auth'
 import { useTechnicianCalls } from '../hooks/useTechnicianCalls'
 import { useVehiclesMap } from '../hooks/useVehicles'
 import { useVehicleCallStats } from '../hooks/useVehicleCallStats'
+import { useVehicleHistory } from '../hooks/useVehicleHistory'
 import { useCallsPartsStatus } from '../hooks/useCallsPartsStatus'
 import { useCallsWithComments } from '../hooks/useCallsWithComments'
 import { supabase } from '../lib/supabase'
@@ -12,6 +13,7 @@ import { AppHeader } from '../components/AppHeader'
 import { CallCard } from '../components/CallCard'
 import { NewCallForm } from '../components/NewCallForm'
 import { TankReadingEditor } from '../components/TankReadingEditor'
+import { CollapsibleSection } from '../components/CollapsibleSection'
 import { Card, CardBody } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { ComponentBadge } from '../feedback/ComponentBadge'
@@ -418,7 +420,6 @@ export function TechnicianByCompanyPage() {
             {selectedCompany && selectedVehicle && (
               <VehicleCallsLayer
                 vehicleNumber={selectedVehicle}
-                calls={callsForVehicle}
                 partsMap={partsMap}
                 vehiclesMap={vehiclesMap}
                 commentsSet={commentsSet}
@@ -433,20 +434,46 @@ export function TechnicianByCompanyPage() {
   )
 }
 
+function isClosed(c: ServiceCall): boolean {
+  return c.status === 'closed' || c.status === 'cancelled'
+}
+
 function VehicleCallsLayer({
-  vehicleNumber, calls, partsMap, vehiclesMap, commentsSet, onBack,
+  vehicleNumber, partsMap, vehiclesMap, commentsSet, onBack,
 }: {
   vehicleNumber: string
-  calls: ServiceCall[]
   partsMap: Map<string, CallPartsSummary> | undefined
   vehiclesMap: Map<string, Vehicle>
   commentsSet: Set<string> | undefined
   onBack: () => void
 }) {
+  const employee = useAuthStore((s) => s.employee)
+  const { data: historyData, isLoading: histLoading } = useVehicleHistory(vehicleNumber)
+
+  const buckets = useMemo(() => {
+    const disabling: ServiceCall[] = []
+    const regular:   ServiceCall[] = []
+    const closed:    ServiceCall[] = []
+    if (!historyData) return { disabling, regular, closed }
+
+    let list = historyData.calls
+    if (employee?.permissions !== 'manager') {
+      const prof = employee?.profession_name
+      if (prof) list = list.filter(c => !c.profession_name || c.profession_name === prof)
+    }
+    for (const c of list) {
+      if (isClosed(c))         closed.push(c)
+      else if (c.is_disabling) disabling.push(c)
+      else                     regular.push(c)
+    }
+    return { disabling, regular, closed }
+  }, [historyData, employee])
+
   const [showNewCall, setShowNewCall] = useState(false)
   const [showReading, setShowReading] = useState(false)
   const vehicle = vehiclesMap.get(vehicleNumber)
   const isTank = vehicle?.type_name === 'טנק'
+  const totalCalls = buckets.disabling.length + buckets.regular.length + buckets.closed.length
 
   return (
     <div className="flex flex-col gap-3">
@@ -454,21 +481,13 @@ function VehicleCallsLayer({
         <span className="text-sm font-semibold text-foreground">
           קריאות בכלי {vehicleNumber}
         </span>
-        <div className="flex items-center gap-3">
-          <Link
-            to={`/vehicle/${encodeURIComponent(vehicleNumber)}`}
-            className="text-xs text-primary hover:underline"
-          >
-            היסטוריה מלאה
-          </Link>
-          <button
-            type="button"
-            onClick={onBack}
-            className="text-xs text-primary hover:underline"
-          >
-            חזרה לטנקים
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={onBack}
+          className="text-xs text-primary hover:underline"
+        >
+          חזרה לרשימה
+        </button>
       </div>
 
       <div className="flex gap-2 flex-wrap">
@@ -510,18 +529,41 @@ function VehicleCallsLayer({
         </Card>
       )}
 
-      {calls.length === 0 && (
-        <Card><CardBody><p className="text-sm text-muted text-center py-3">אין קריאות פעילות לכלי הזה.</p></CardBody></Card>
+      {histLoading && <p className="text-sm text-muted text-center py-3">טוען...</p>}
+
+      {!histLoading && totalCalls === 0 && (
+        <Card><CardBody><p className="text-sm text-muted text-center py-3">אין קריאות לכלי הזה.</p></CardBody></Card>
       )}
-      {calls.map((c) => (
-        <CallCard
-          key={c.id}
-          call={c}
-          partsSummary={partsMap?.get(c.id) ?? null}
-          vehicle={c.vehicle_number ? vehiclesMap.get(c.vehicle_number) ?? null : null}
-          hasComments={commentsSet?.has(c.id) ?? false}
-        />
-      ))}
+
+      {buckets.disabling.length > 0 && (
+        <CollapsibleSection title="תקלות משביתות" count={buckets.disabling.length} defaultOpen countTone="text-danger">
+          <div className="flex flex-col gap-2 p-2">
+            {buckets.disabling.map(c => (
+              <CallCard key={c.id} call={c} partsSummary={partsMap?.get(c.id) ?? null} vehicle={vehiclesMap.get(c.vehicle_number ?? '') ?? null} hasComments={commentsSet?.has(c.id) ?? false} />
+            ))}
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {buckets.regular.length > 0 && (
+        <CollapsibleSection title="תקלות פתוחות" count={buckets.regular.length} defaultOpen>
+          <div className="flex flex-col gap-2 p-2">
+            {buckets.regular.map(c => (
+              <CallCard key={c.id} call={c} partsSummary={partsMap?.get(c.id) ?? null} vehicle={vehiclesMap.get(c.vehicle_number ?? '') ?? null} hasComments={commentsSet?.has(c.id) ?? false} />
+            ))}
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {buckets.closed.length > 0 && (
+        <CollapsibleSection title="תקלות סגורות" count={buckets.closed.length}>
+          <div className="flex flex-col gap-2 p-2">
+            {buckets.closed.map(c => (
+              <CallCard key={c.id} call={c} partsSummary={partsMap?.get(c.id) ?? null} vehicle={vehiclesMap.get(c.vehicle_number ?? '') ?? null} hasComments={commentsSet?.has(c.id) ?? false} />
+            ))}
+          </div>
+        </CollapsibleSection>
+      )}
     </div>
   )
 }
