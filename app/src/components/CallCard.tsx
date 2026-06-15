@@ -112,40 +112,44 @@ export function CallCard({ call, partsSummary, vehicle, hasComments }: Props) {
           <div className="w-1.5 shrink-0" style={{ backgroundColor: accentColor }} />
 
           <div className="flex-1 flex flex-col gap-1.5 px-3 py-2.5">
-            {/* Row 1: ID + status badge */}
-            <div className="flex items-center gap-2">
+            {/* Row 1: ID + status badge (badge pinned left) */}
+            <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-mono font-semibold text-foreground">{call.display_id}</span>
               <Badge tone={effectiveTone}>{effectiveLabel}</Badge>
             </div>
 
-            {/* Row 2: vehicle · company · date · anomalies · comments · parts */}
-            <div className="flex items-center gap-1.5 text-xs text-muted flex-wrap">
-              <span className="font-mono">{call.vehicle_number ?? '—'}</span>
-              {vehicle?.sub_department && <span>· {vehicle.sub_department}</span>}
-              {!vehicle && call.vehicle_name && <span>· {call.vehicle_name}</span>}
-              <span>· {date}</span>
-              {(call.anomaly_flags?.length ?? 0) > 0 && (
-                <Badge tone="warning">{call.anomaly_flags!.length} חריגות</Badge>
-              )}
-              {hasComments && (
-                <span
-                  title="לקריאה זו קיימות הערות"
-                  className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-warning text-white text-[10px] font-bold leading-none"
-                >i</span>
-              )}
-              {secondary?.kind === 'badge' && (
-                <Badge tone={partsStatusOverride[secondary.status]}>
-                  {partsStatusBadgeLabel[secondary.status]}
-                </Badge>
-              )}
-              {secondary?.kind === 'warning' && (
-                <span title="חלקים בסטטוסים שונים" className="text-warning text-sm">⚠</span>
-              )}
+            {/* Row 2: vehicle · company · date | badges pinned left */}
+            <div className="flex items-center justify-between gap-1.5 text-xs text-muted">
+              <div className="flex items-center gap-1.5 min-w-0 truncate">
+                <span className="font-mono">{call.vehicle_number ?? '—'}</span>
+                {vehicle?.sub_department && <span>· {vehicle.sub_department}</span>}
+                {!vehicle && call.vehicle_name && <span>· {call.vehicle_name}</span>}
+                <span>· {date}</span>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {(call.anomaly_flags?.length ?? 0) > 0 && (
+                  <Badge tone="warning">{call.anomaly_flags!.length} חריגות</Badge>
+                )}
+                {hasComments && (
+                  <span
+                    title="לקריאה זו קיימות הערות"
+                    className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-warning text-white text-[10px] font-bold leading-none"
+                  >i</span>
+                )}
+                {secondary?.kind === 'badge' && (
+                  <Badge tone={partsStatusOverride[secondary.status]}>
+                    {partsStatusBadgeLabel[secondary.status]}
+                  </Badge>
+                )}
+                {secondary?.kind === 'warning' && (
+                  <span title="חלקים בסטטוסים שונים" className="text-warning text-sm">⚠</span>
+                )}
+              </div>
             </div>
 
-            {/* Row 3: description + disabling */}
+            {/* Row 3: description + disabling (badge pinned left) */}
             {(call.description || call.is_disabling) && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between gap-2">
                 {call.description && (
                   <p className="text-xs text-foreground/80 line-clamp-1 min-w-0 flex-1">{call.description}</p>
                 )}
