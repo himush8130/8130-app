@@ -77,7 +77,7 @@ export function SettingsEmployeesPage() {
 
           <CardBody className="border-b border-border">
             <Input
-              label="חיפוש (שם / מספר עובד / טלפון / מקצוע)"
+              label="חיפוש (שם / מספר אישי / טלפון / מקצוע)"
               name="search"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
@@ -128,7 +128,7 @@ function AddRow({
   async function save() {
     setError(null)
     const n = parseInt(num, 10)
-    if (Number.isNaN(n) || n <= 0)  { setError('מספר עובד לא תקין'); return }
+    if (Number.isNaN(n) || n <= 0)  { setError('מספר אישי לא תקין'); return }
     if (!name.trim())                { setError('שם חובה'); return }
     setBusy(true)
     const res = await createEmployee(managerNum, {
@@ -142,7 +142,7 @@ function AddRow({
     })
     setBusy(false)
     if (!res.ok) {
-      setError(res.error === 'employee_number_taken' ? 'מספר עובד כבר קיים' : 'שגיאה')
+      setError(res.error === 'employee_number_taken' ? 'מספר אישי כבר קיים' : 'שגיאה')
       return
     }
     onDone()
@@ -151,7 +151,7 @@ function AddRow({
   return (
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <Input label="מספר עובד"  name="num"   value={num}   onChange={(e) => setNum(e.target.value)} type="number" autoFocus />
+        <Input label="מספר אישי"  name="num"   value={num}   onChange={(e) => setNum(e.target.value)} type="number" autoFocus />
         <Input label="שם"          name="name"  value={name}  onChange={(e) => setName(e.target.value)} />
         <Input label="טלפון"       name="phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
         <ProfSelect label="מקצוע" value={prof} options={profs} onChange={setProf} />

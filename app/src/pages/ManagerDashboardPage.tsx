@@ -293,9 +293,9 @@ function PriorityCompanySection({ d }: { d: DashboardData }) {
     <Card>
       <CardBody className="px-1 sm:px-2">
         {/* Single row at every width: target + score, then the metrics. */}
-        <div className="flex items-stretch gap-0.5 sm:gap-1.5">
+        <div className="flex items-stretch gap-0 sm:gap-0.5">
           {/* Priority company + score (right side in RTL). */}
-          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 max-w-[50%] sm:max-w-none sm:min-w-96">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 max-w-[58%] sm:max-w-none sm:min-w-[26rem]">
             <IconTarget size={36} color={t.fill} />
             <div className="min-w-0 flex-1">
               <div className="text-[9px] sm:text-xs text-muted leading-tight">פלוגה לתיעדוף</div>
@@ -333,7 +333,7 @@ function PriorityCompanySection({ d }: { d: DashboardData }) {
 
 function MetricBox({ icon, label, value, sub }: { icon: ReactNode; label: string; value: ReactNode; sub?: string }) {
   return (
-    <div className="flex-1 min-w-0 flex flex-col items-center gap-0.5 sm:gap-1 px-0.5 sm:px-1 text-center">
+    <div className="flex-1 min-w-0 flex flex-col items-center gap-0.5 sm:gap-1 px-0 sm:px-0.5 text-center">
       <span className="text-muted">{icon}</span>
       {/* Fixed two-line height so every metric's number sits on the same row. */}
       <span className="text-[9px] sm:text-[11px] text-muted leading-tight min-h-[2.4em] flex items-center justify-center">{label}</span>

@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'מסך כניסה: "מספר עובד" שונה ל"מספר אישי".'
+export const LATEST_NOTE = '"מספר עובד" שונה ל"מספר אישי" בכל המערכת. בסקטור תיעדוף — קוביית הציון הורחבה והמרווחים צומצמו.'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build

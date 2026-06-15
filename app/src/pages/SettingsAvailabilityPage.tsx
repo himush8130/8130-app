@@ -65,7 +65,7 @@ export function SettingsAvailabilityPage() {
           </CardHeader>
           <CardBody className="flex flex-col gap-3">
             <Input
-              label="חיפוש (שם / מספר עובד)"
+              label="חיפוש (שם / מספר אישי)"
               name="search"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
