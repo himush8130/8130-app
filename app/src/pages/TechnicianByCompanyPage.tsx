@@ -467,9 +467,8 @@ export function TechnicianByCompanyPage() {
                 <CardBody className="flex flex-col gap-3">
                   <span className="text-sm font-semibold text-foreground">רכבים גלגליים</span>
                   {(() => {
-                    const tileCount = wheeledDepts.length + (wheeledHasOrphans ? 1 : 0)
                     return (
-                      <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${tileCount}, minmax(0, 1fr))` }}>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5">
                         {wheeledDepts.map((name, i) => {
                           const count = wheeledByDept.get(name)?.length ?? 0
                           const active = selectedWDept === name
