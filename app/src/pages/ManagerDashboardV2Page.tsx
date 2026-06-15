@@ -189,24 +189,22 @@ function TopStatsBar({ d }: { d: DashboardData }) {
   )
 
   return (
-    <div className="flex flex-col gap-2">
-      {/* Row 1 — Open calls hero */}
+    <div className="rounded-2xl border border-border overflow-hidden">
       {canLinkCalls ? (
         <Link
           to="/manager/calls"
-          className="block rounded-2xl px-4 py-5 sm:py-6 text-center transition-opacity hover:opacity-90"
+          className="block px-4 py-5 sm:py-6 text-center transition-opacity hover:opacity-90"
           style={{ backgroundColor: STAT_NAVY }}
         >
           {heroContent}
         </Link>
       ) : (
-        <div className="rounded-2xl px-4 py-5 sm:py-6 text-center" style={{ backgroundColor: STAT_NAVY }}>
+        <div className="px-4 py-5 sm:py-6 text-center" style={{ backgroundColor: STAT_NAVY }}>
           {heroContent}
         </div>
       )}
 
-      {/* Row 2 — Secondary metrics */}
-      <div className="grid grid-cols-4 gap-px bg-border rounded-xl border border-border overflow-hidden">
+      <div className="grid grid-cols-4 gap-px bg-border">
         {SECONDARY.map((s) => (
           <div key={s.key} className="bg-card flex flex-col items-center px-1 sm:px-3 py-3 sm:py-4">
             <span className="text-muted mb-1">{s.icon}</span>
@@ -272,6 +270,7 @@ function CompanyCard({ co }: { co: DashboardCompany }) {
 
 export function PriorityCompanySection({ d }: { d: DashboardData }) {
   const { weights, importance } = usePriorityConfig()
+  const [expanded, setExpanded] = useState(false)
 
   const ranked = useMemo(() => {
     return d.companies
@@ -297,38 +296,54 @@ export function PriorityCompanySection({ d }: { d: DashboardData }) {
   ]
 
   return (
-    <div className="flex flex-col gap-2">
-      {/* Row 1 — Priority company headline */}
-      <div className="rounded-xl border border-border overflow-hidden" style={{ borderColor: t.fill + '40' }}>
-        <div className="h-1" style={{ backgroundColor: t.fill }} />
-        <div className="bg-card px-4 sm:px-5 py-4 sm:py-5 flex items-center gap-3 sm:gap-4">
-          <IconTarget size={44} color={t.fill} />
-          <div className="flex-1 min-w-0">
-            <div className="text-xs text-muted leading-tight">פלוגה לתיעדוף</div>
-            <div className={`text-lg sm:text-2xl font-bold leading-tight ${t.text}`}>{co.label}</div>
-          </div>
-          <div className="flex flex-col items-center gap-1">
-            <span dir="ltr" className="font-bold">
-              <span className={`text-2xl sm:text-3xl ${t.text}`}>{top.score}</span>
-              <span className="text-muted text-xs font-normal">/100</span>
-            </span>
-            <span className="text-[10px] sm:text-xs text-muted">ציון תיעדוף</span>
-            <div dir="ltr" className="w-24 sm:w-32 bg-border rounded-full h-1.5 sm:h-2">
-              <div className="h-full rounded-full transition-all" style={{ width: `${top.score}%`, backgroundColor: t.fill }} />
-            </div>
+    <div className="rounded-xl border border-border overflow-hidden" style={{ borderColor: t.fill + '40' }}>
+      <div className="h-1" style={{ backgroundColor: t.fill }} />
+
+      <button
+        type="button"
+        onClick={() => setExpanded(v => !v)}
+        className="w-full bg-card px-4 sm:px-5 py-4 sm:py-5 flex items-center gap-3 sm:gap-4 transition-colors hover:bg-muted-surface/40"
+      >
+        <IconTarget size={44} color={t.fill} />
+        <div className="flex-1 min-w-0 text-start">
+          <div className="text-xs text-muted leading-tight">פלוגה לתיעדוף</div>
+          <div className={`text-lg sm:text-2xl font-bold leading-tight ${t.text}`}>{co.label}</div>
+        </div>
+        <div className="flex flex-col items-center gap-1">
+          <span dir="ltr" className="font-bold">
+            <span className={`text-2xl sm:text-3xl ${t.text}`}>{top.score}</span>
+            <span className="text-muted text-xs font-normal">/100</span>
+          </span>
+          <span className="text-[10px] sm:text-xs text-muted">ציון תיעדוף</span>
+          <div dir="ltr" className="w-24 sm:w-32 bg-border rounded-full h-1.5 sm:h-2">
+            <div className="h-full rounded-full transition-all" style={{ width: `${top.score}%`, backgroundColor: t.fill }} />
           </div>
         </div>
-      </div>
+        <svg
+          width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          className={`text-muted shrink-0 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+          aria-hidden
+        >
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </button>
 
-      {/* Row 2 — Metrics breakdown */}
-      <div className="grid grid-cols-5 gap-px bg-border rounded-xl border border-border overflow-hidden">
-        {metrics.map((m) => (
-          <div key={m.label} className="bg-card flex flex-col items-center px-1 sm:px-2 py-3 sm:py-4">
-            <span className="text-muted mb-1">{m.icon}</span>
-            <span className="text-[9px] sm:text-[11px] text-muted leading-tight text-center min-h-[2.2em] flex items-center">{m.label}</span>
-            <span className="text-sm sm:text-lg font-bold text-foreground leading-tight mt-0.5">{m.value}</span>
+      <div
+        className="grid transition-[grid-template-rows] duration-200"
+        style={{ gridTemplateRows: expanded ? '1fr' : '0fr' }}
+      >
+        <div className="overflow-hidden">
+          <div className="border-t border-border grid grid-cols-5 gap-px bg-border">
+            {metrics.map((m) => (
+              <div key={m.label} className="bg-card flex flex-col items-center px-1 sm:px-2 py-3 sm:py-4">
+                <span className="text-muted mb-1">{m.icon}</span>
+                <span className="text-[9px] sm:text-[11px] text-muted leading-tight text-center min-h-[2.2em] flex items-center">{m.label}</span>
+                <span className="text-sm sm:text-lg font-bold text-foreground leading-tight mt-0.5">{m.value}</span>
+              </div>
+            ))}
           </div>
-        ))}
+        </div>
       </div>
     </div>
   )
