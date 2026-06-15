@@ -262,7 +262,7 @@ export function TechnicianByCompanyPage() {
   return (
     <>
       <AppHeader subtitle={seeAll ? 'תצוגת טכנאי לפי פלוגה — כל המקצועות' : 'תצוגה לפי פלוגה'} />
-      <main className="max-w-3xl mx-auto p-4 flex flex-col gap-4 pb-24">
+      <main className="max-w-5xl mx-auto p-4 flex flex-col gap-4 pb-24">
         <ComponentBadge id={6020} />
 
         {isLoading && <p className="text-sm text-muted text-center py-8">טוען...</p>}
