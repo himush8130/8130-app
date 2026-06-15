@@ -132,27 +132,29 @@ export function TechnicianByCompanyPage() {
     const out = new Map<string, ServiceCall[]>()
     for (const c of calls ?? []) {
       const v = c.vehicle_number ? vehiclesMap.get(c.vehicle_number) : undefined
-      if (v && v.type_name !== 'טנק') continue
+      if (seeAll && v && v.type_name !== 'טנק') continue
+      if (!seeAll && !isTankProfession) continue
       const company = v?.sub_department || NO_COMPANY
       const arr = out.get(company) ?? []
       arr.push(c)
       out.set(company, arr)
     }
     return out
-  }, [calls, vehiclesMap])
+  }, [calls, vehiclesMap, seeAll, isTankProfession])
 
   const wheeledByDept = useMemo(() => {
     const out = new Map<string, ServiceCall[]>()
     for (const c of calls ?? []) {
       const v = c.vehicle_number ? vehiclesMap.get(c.vehicle_number) : undefined
-      if (!v || v.type_name === 'טנק') continue
-      const dept = v.department || v.sub_department || NO_COMPANY
+      if (seeAll && (!v || v.type_name === 'טנק')) continue
+      if (!seeAll && isTankProfession) continue
+      const dept = v?.department || v?.sub_department || NO_COMPANY
       const arr = out.get(dept) ?? []
       arr.push(c)
       out.set(dept, arr)
     }
     return out
-  }, [calls, vehiclesMap])
+  }, [calls, vehiclesMap, seeAll, isTankProfession])
 
   const companies = useMemo(() => {
     const set = new Set(
