@@ -189,7 +189,7 @@ export function TechnicianByCompanyPage() {
   const hasOrphans = tankByCompany.has(NO_COMPANY) ||
     [...vehiclesMap.values()].some((v) => v.type_name === 'טנק' && !v.sub_department)
   const wheeledHasOrphans = wheeledByDept.has(NO_COMPANY)
-  const totalCalls = (calls ?? []).length
+
 
   // Vehicles for the picked company, with their per-vehicle call count.
   // Includes vehicles with 0 active calls so the technician sees the
@@ -311,13 +311,11 @@ export function TechnicianByCompanyPage() {
             {/* Layer 1 — total + per-company tiles */}
             <Card>
               <CardBody className="flex flex-col gap-3">
-                <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-sm text-muted">
-                    {!seeAll && employee.profession_name ? `סה״כ קריאות פעילות ב${employee.profession_name}` : 'סה״כ קריאות פעילות'}
-                  </span>
-                  <span className="text-3xl font-bold text-foreground leading-none">{totalCalls}</span>
-                </div>
                 <span className="text-sm font-semibold text-foreground">טנקים</span>
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-sm text-muted">סה״כ קריאות פעילות</span>
+                  <span className="text-3xl font-bold text-foreground leading-none">{[...tankByCompany.values()].reduce((s, arr) => s + arr.length, 0)}</span>
+                </div>
 
                 {companies.length === 0 && !hasOrphans && (
                   <p className="text-sm text-muted text-center py-4">אין כרגע קריאות פעילות.</p>
@@ -469,9 +467,10 @@ export function TechnicianByCompanyPage() {
             {(wheeledDepts.length > 0 || wheeledHasOrphans) && (
               <Card>
                 <CardBody className="flex flex-col gap-3">
+                  <span className="text-sm font-semibold text-foreground">רכבים גלגליים</span>
                   <div className="flex items-baseline justify-between gap-3">
-                    <span className="text-sm font-semibold text-foreground">רכבים גלגליים</span>
-                    <span className="text-lg font-bold text-foreground leading-none">{[...wheeledByDept.values()].reduce((s, arr) => s + arr.length, 0)}</span>
+                    <span className="text-sm text-muted">סה״כ קריאות פעילות</span>
+                    <span className="text-3xl font-bold text-foreground leading-none">{[...wheeledByDept.values()].reduce((s, arr) => s + arr.length, 0)}</span>
                   </div>
                   {(() => {
                     return (
