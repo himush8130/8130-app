@@ -8,13 +8,15 @@ import { hardReload } from '../lib/hardReload'
 import { BUILD_TIME } from '../releaseNotes'
 import type { EmployeePermissions } from '../types/db'
 
-type ViewKey = 'manager' | 'dashboard' | 'vehicles' | 'warehouse' | 'technician'
+type ViewKey = 'calls' | 'dashboard' | 'vehicles' | 'warehouse' | 'technician'
 
 const SVG = 'w-4 h-4 shrink-0'
 const NAV_ICONS: Record<ViewKey, ReactNode> = {
-  manager: (
+  calls: (
     <svg className={SVG} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+      <rect x="8" y="2" width="8" height="4" rx="1" />
+      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+      <path d="M9 12h6M9 16h4" />
     </svg>
   ),
   dashboard: (
@@ -42,7 +44,7 @@ const NAV_ICONS: Record<ViewKey, ReactNode> = {
 }
 
 const ALL_VIEWS: Array<{ key: ViewKey; to: string; label: string; matches: (p: string) => boolean }> = [
-  { key: 'manager',    to: '/manager',            label: 'מנהל',           matches: (p) => p === '/manager' || (p.startsWith('/manager') && !p.startsWith('/manager/vehicles') && !p.startsWith('/manager/dashboard')) },
+  { key: 'calls',      to: '/manager/calls',      label: 'קריאות',         matches: (p) => p.startsWith('/manager/calls') },
   { key: 'dashboard',  to: '/manager/dashboard',  label: 'לוח בקרה',       matches: (p) => p.startsWith('/manager/dashboard') },
   { key: 'vehicles',   to: '/manager/vehicles',   label: 'ספר רק״ם/כלי',   matches: (p) => p.startsWith('/manager/vehicles') },
   { key: 'warehouse',  to: '/warehouse',          label: 'מחסנאי',         matches: (p) => p.startsWith('/warehouse') },
@@ -50,7 +52,7 @@ const ALL_VIEWS: Array<{ key: ViewKey; to: string; label: string; matches: (p: s
 ]
 
 const VIEWS_BY_ROLE: Record<EmployeePermissions, ViewKey[]> = {
-  manager:    ['manager', 'dashboard', 'vehicles', 'warehouse', 'technician'],
+  manager:    ['calls', 'dashboard', 'vehicles', 'warehouse', 'technician'],
   warehouse:  ['warehouse', 'vehicles'],
   technician: ['vehicles', 'technician'],
   // Like a manager but without the old manager home and the warehouse.
@@ -165,6 +167,17 @@ export function AppHeader({ subtitle, showLogo, wide }: { subtitle?: string; sho
                   </span>
                 )}
               </span>
+            )}
+
+            {employee.permissions === 'manager' && (
+              <Link
+                to="/manager"
+                aria-label="הגדרות וניהול"
+                title="הגדרות וניהול"
+                className={`${CHIP_BASE} ${CHIP_NEUTRAL} ${CHIP_ICON} text-base`}
+              >
+                ⚙️
+              </Link>
             )}
 
             <span className="inline-flex items-center">

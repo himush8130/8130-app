@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'הרשאת "מפקד צופה" חדשה (לוח בקרה + ספר רק״ם + טכנאי, ללא ניהול/מחסנאי/הערות). כפתור הערות מוצג למנהלים בלבד.'
+export const LATEST_NOTE = 'בסרגל הניווט: "מנהל" הוחלף ב"קריאות". נוסף אייקון הגדרות ⚙️ (מנהל בלבד) שמוביל לדף הניהול.'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build
