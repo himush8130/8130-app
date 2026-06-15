@@ -160,7 +160,7 @@ function TankIcon({ color = '#666', size = 64 }: { color?: string; size?: number
 }
 
 /* ================================================================== */
-/*  SECTION 1 — Top Stats Bar                                         */
+/*  SECTION 1 — Top Stats (two rows)                                  */
 /* ================================================================== */
 
 function TopStatsBar({ d }: { d: DashboardData }) {
@@ -168,49 +168,54 @@ function TopStatsBar({ d }: { d: DashboardData }) {
   const employee = useAuthStore((s) => s.employee)
   const canLinkCalls = employee?.permissions === 'manager'
 
-  // Order is RTL right→left: highlighted open-calls (right), then the
-  // four metrics, ending with the placeholder "חריגות טיפול" (left).
-  const STATS: Array<{ key: string; icon: ReactNode; value: ReactNode; label: string; sub?: ReactNode; highlight?: boolean; to?: string }> = [
-    { key: 'open',  icon: <IconClipboard size={20} color="#fff" />, value: d.totalOpenCalls,                label: 'קריאות פתוחות', highlight: true, to: canLinkCalls ? '/manager/calls' : undefined },
-    { key: 'dis',   icon: <IconWrench size={16} />,    value: d.totalDisabling,                label: 'משביתות' },
+  const SECONDARY: Array<{ key: string; icon: ReactNode; value: ReactNode; label: string }> = [
+    { key: 'dis',     icon: <IconWrench size={18} />,   value: d.totalDisabling,                label: 'משביתות' },
     {
       key: 'monthly',
-      icon: <IconCalendar size={16} />,
-      value: <span className="text-xs sm:text-sm lg:text-xl whitespace-nowrap">{mm?.thisWeekCompany ?? 'אין'}</span>,
+      icon: <IconCalendar size={18} />,
+      value: <span className="whitespace-nowrap">{mm?.thisWeekCompany ?? 'אין'}</span>,
       label: 'טיפול חודשי',
     },
-    { key: 'ready', icon: <IconShield size={16} />,    value: `${d.overallTankReadinessPct}%`, label: 'כשירות כוללת' },
-    { key: 'dev',   icon: <IconWarning size={16} />,   value: d.treatmentDeviations ?? 0,      label: 'חריגות טיפול' },
+    { key: 'ready',   icon: <IconShield size={18} />,   value: `${d.overallTankReadinessPct}%`, label: 'כשירות כוללת' },
+    { key: 'dev',     icon: <IconWarning size={18} />,  value: d.treatmentDeviations ?? 0,      label: 'חריגות טיפול' },
   ]
+
+  const heroContent = (
+    <div className="flex items-center justify-center gap-3">
+      <IconClipboard size={28} color="#fff" />
+      <span className="text-3xl sm:text-5xl font-extrabold text-white leading-none">{d.totalOpenCalls}</span>
+      <span className="text-sm sm:text-lg text-white/80 font-medium">קריאות פתוחות</span>
+    </div>
+  )
+
   return (
-    // Single row of 5 at every width; sizes scale down on phones so the
-    // whole bar fits. `gap-px` over a border-coloured background paints
-    // the divider lines between segments automatically.
-    <nav className="grid grid-cols-[1.4fr_1fr_1fr_1fr_1fr] gap-px bg-border rounded-2xl border border-border overflow-hidden">
-      {STATS.map((s) => {
-        const cls = `flex flex-col items-center px-1 sm:px-3 py-6 lg:py-8 ${
-          s.highlight ? 'text-white' : 'bg-card'
-        }`
-        const style = s.highlight ? { backgroundColor: STAT_NAVY } : undefined
-        const content = (
-          <>
-            <div className="flex-1 flex flex-col items-center justify-center gap-0.5">
-              <div className="flex items-center justify-center gap-1">
-                {s.icon}
-                <span className={`font-bold leading-none ${s.highlight ? 'text-xl sm:text-3xl lg:text-4xl' : 'text-lg sm:text-2xl lg:text-3xl text-foreground'}`}>{s.value}</span>
-              </div>
-              {s.sub && <span className="text-[9px] sm:text-[10px] text-muted text-center leading-tight">{s.sub}</span>}
-            </div>
-            <span className={`text-[10px] sm:text-xs lg:text-sm text-center mt-0.5 leading-tight ${s.highlight ? 'opacity-90' : 'text-muted'}`}>{s.label}</span>
-          </>
-        )
-        return s.to ? (
-          <Link key={s.key} to={s.to} className={cls} style={style}>{content}</Link>
-        ) : (
-          <div key={s.key} className={cls} style={style}>{content}</div>
-        )
-      })}
-    </nav>
+    <div className="flex flex-col gap-2">
+      {/* Row 1 — Open calls hero */}
+      {canLinkCalls ? (
+        <Link
+          to="/manager/calls"
+          className="block rounded-2xl px-4 py-5 sm:py-6 text-center transition-opacity hover:opacity-90"
+          style={{ backgroundColor: STAT_NAVY }}
+        >
+          {heroContent}
+        </Link>
+      ) : (
+        <div className="rounded-2xl px-4 py-5 sm:py-6 text-center" style={{ backgroundColor: STAT_NAVY }}>
+          {heroContent}
+        </div>
+      )}
+
+      {/* Row 2 — Secondary metrics */}
+      <div className="grid grid-cols-4 gap-px bg-border rounded-xl border border-border overflow-hidden">
+        {SECONDARY.map((s) => (
+          <div key={s.key} className="bg-card flex flex-col items-center px-1 sm:px-3 py-3 sm:py-4">
+            <span className="text-muted mb-1">{s.icon}</span>
+            <span className="text-lg sm:text-2xl font-bold text-foreground leading-none">{s.value}</span>
+            <span className="text-[10px] sm:text-xs text-muted mt-1 text-center leading-tight">{s.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }
 
@@ -268,7 +273,6 @@ function CompanyCard({ co }: { co: DashboardCompany }) {
 export function PriorityCompanySection({ d }: { d: DashboardData }) {
   const { weights, importance } = usePriorityConfig()
 
-  // Score every company and pick the highest.
   const ranked = useMemo(() => {
     return d.companies
       .map(c => ({
@@ -284,70 +288,52 @@ export function PriorityCompanySection({ d }: { d: DashboardData }) {
   const co = top.co
   const t = ct(co.label)
 
-  // RTL right→left: משביתות, קריאות פתוחות, חשיבות מבצעית,
-  // קצב סגירה, חלקים שהתקבלו.
   const metrics = [
-    { icon: <IconWrench size={18} />, label: 'משביתות',          value: co.disabledTanks },
-    { icon: <IconChat size={18} />,   label: 'קריאות פתוחות',     value: co.openCalls },
-    { icon: <IconStar size={18} />,   label: 'חשיבות מבצעית',     value: `${top.rating}/${MAX_IMPORTANCE}` },
-    { icon: <IconClock size={18} />,  label: 'קצב סגירה',          value: co.closedLast14 },
-    { icon: <IconBox size={18} />,    label: 'חלקים שהתקבלו',     value: co.receivedCalls },
+    { icon: <IconWrench size={20} />, label: 'משביתות',          value: co.disabledTanks },
+    { icon: <IconChat size={20} />,   label: 'קריאות פתוחות',     value: co.openCalls },
+    { icon: <IconStar size={20} />,   label: 'חשיבות מבצעית',     value: `${top.rating}/${MAX_IMPORTANCE}` },
+    { icon: <IconClock size={20} />,  label: 'קצב סגירה',          value: co.closedLast14 },
+    { icon: <IconBox size={20} />,    label: 'חלקים שהתקבלו',     value: co.receivedCalls },
   ]
 
   return (
-    <Card>
-      <CardBody className="px-1 sm:px-2">
-        {/* Single row at every width: target + score, then the metrics. */}
-        <div className="flex items-stretch gap-0 sm:gap-0.5">
-          {/* Priority company + score (right side in RTL). */}
-          <div className="dev-cube flex items-center gap-1.5 sm:gap-3 flex-1 min-w-0">
-            <IconTarget size={36} color={t.fill} />
-            <div className="min-w-0 flex-1">
-              <div className="text-[9px] sm:text-xs text-muted leading-tight">פלוגה לתיעדוף</div>
-              <div className={`text-sm sm:text-xl font-bold leading-tight ${t.text}`}>{co.label}</div>
-              <div className="flex items-baseline gap-1 mt-1">
-                <span className="hidden sm:inline text-xs text-muted shrink-0">ציון תיעדוף</span>
-                <span dir="ltr" className="font-bold">
-                  <span className={`text-base sm:text-lg ${t.text}`}>{top.score}</span>
-                  <span className="text-muted text-[10px] sm:text-xs font-normal">/100</span>
-                </span>
-              </div>
-              <div dir="ltr" className="w-4/5 max-w-48 bg-border rounded-full h-1.5 sm:h-2 mt-1">
-                <div className="h-full rounded-full" style={{ width: `${top.score}%`, backgroundColor: t.fill }} />
-              </div>
+    <div className="flex flex-col gap-2">
+      {/* Row 1 — Priority company headline */}
+      <div className="rounded-xl border border-border overflow-hidden" style={{ borderColor: t.fill + '40' }}>
+        <div className="h-1" style={{ backgroundColor: t.fill }} />
+        <div className="bg-card px-4 sm:px-5 py-4 sm:py-5 flex items-center gap-3 sm:gap-4">
+          <IconTarget size={44} color={t.fill} />
+          <div className="flex-1 min-w-0">
+            <div className="text-xs text-muted leading-tight">פלוגה לתיעדוף</div>
+            <div className={`text-lg sm:text-2xl font-bold leading-tight ${t.text}`}>{co.label}</div>
+          </div>
+          <div className="flex flex-col items-center gap-1">
+            <span dir="ltr" className="font-bold">
+              <span className={`text-2xl sm:text-3xl ${t.text}`}>{top.score}</span>
+              <span className="text-muted text-xs font-normal">/100</span>
+            </span>
+            <span className="text-[10px] sm:text-xs text-muted">ציון תיעדוף</span>
+            <div dir="ltr" className="w-24 sm:w-32 bg-border rounded-full h-1.5 sm:h-2">
+              <div className="h-full rounded-full transition-all" style={{ width: `${top.score}%`, backgroundColor: t.fill }} />
             </div>
           </div>
-
-          {/* Prominent divider separating the score block from the metrics. */}
-          <span aria-hidden className="dev-divider w-0.5 bg-border self-stretch rounded-full shrink-0" />
-
-          {/* Metric strip — fixed width so the equal cells give small,
-              symmetric centre↔divider gaps; the cube takes the rest. */}
-          <div className="shrink-0 w-[250px] flex items-stretch">
-            {metrics.map((m, i) => (
-              <Fragment key={m.label}>
-                {i > 0 && <span aria-hidden className="dev-divider my-1 w-px bg-border" />}
-                <MetricBox {...m} />
-              </Fragment>
-            ))}
-          </div>
         </div>
-      </CardBody>
-    </Card>
-  )
-}
+      </div>
 
-function MetricBox({ icon, label, value, sub, className = '' }: { icon: ReactNode; label: string; value: ReactNode; sub?: string; className?: string }) {
-  return (
-    <div className={`dev-metric flex-1 min-w-0 flex flex-col items-center gap-0.5 sm:gap-1 px-0 sm:px-0.5 text-center ${className}`}>
-      <span className="text-muted">{icon}</span>
-      {/* Fixed two-line height so every metric's number sits on the same row. */}
-      <span className="text-[9px] sm:text-[11px] text-muted leading-tight min-h-[2.4em] flex items-center justify-center">{label}</span>
-      <span className="text-sm sm:text-lg font-bold text-foreground leading-tight">{value}</span>
-      {sub && <span className="text-[9px] sm:text-[10px] text-muted">{sub}</span>}
+      {/* Row 2 — Metrics breakdown */}
+      <div className="grid grid-cols-5 gap-px bg-border rounded-xl border border-border overflow-hidden">
+        {metrics.map((m) => (
+          <div key={m.label} className="bg-card flex flex-col items-center px-1 sm:px-2 py-3 sm:py-4">
+            <span className="text-muted mb-1">{m.icon}</span>
+            <span className="text-[9px] sm:text-[11px] text-muted leading-tight text-center min-h-[2.2em] flex items-center">{m.label}</span>
+            <span className="text-sm sm:text-lg font-bold text-foreground leading-tight mt-0.5">{m.value}</span>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
+
 
 /* ================================================================== */
 /*  SECTION 4 — Engine Hours Alerts                                   */
