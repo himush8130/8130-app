@@ -15,9 +15,9 @@ import { Badge } from '../components/ui/Badge'
 import type { Employee, EmployeePermissions, TankSpecialty } from '../types/db'
 import { TANK_SPECIALTIES } from '../types/db'
 
-const PERMS: EmployeePermissions[] = ['technician', 'manager', 'warehouse']
+const PERMS: EmployeePermissions[] = ['technician', 'manager', 'warehouse', 'commander_viewer']
 const PERM_LABEL: Record<EmployeePermissions, string> = {
-  technician: 'טכנאי', manager: 'מנהל', warehouse: 'מחסנאי',
+  technician: 'טכנאי', manager: 'מנהל', warehouse: 'מחסנאי', commander_viewer: 'מפקד צופה',
 }
 
 export function SettingsEmployeesPage() {

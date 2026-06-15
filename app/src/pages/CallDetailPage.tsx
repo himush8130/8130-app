@@ -26,6 +26,7 @@ const homeRouteByPermissions: Record<EmployeePermissions, string> = {
   technician: '/technician',
   manager:    '/manager',
   warehouse:  '/warehouse',
+  commander_viewer: '/manager/dashboard',
 }
 
 const statusLabel: Record<CallStatus, string> = {

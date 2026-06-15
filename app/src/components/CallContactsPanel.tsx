@@ -10,12 +10,14 @@ const permLabel: Record<EmployeePermissions, string> = {
   technician: 'טכנאי',
   manager:    'מנהל',
   warehouse:  'מחסנאי',
+  commander_viewer: 'מפקד צופה',
 }
 
 const permTone: Record<EmployeePermissions, 'info' | 'neutral'> = {
   technician: 'info',
   manager:    'neutral',
   warehouse:  'neutral',
+  commander_viewer: 'neutral',
 }
 
 export function CallContactsPanel({

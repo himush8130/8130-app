@@ -5,7 +5,7 @@
 // Future improvement: generate from Supabase via `supabase gen types`.
 // =====================================================================
 
-export type EmployeePermissions = 'technician' | 'manager' | 'warehouse'
+export type EmployeePermissions = 'technician' | 'manager' | 'warehouse' | 'commander_viewer'
 
 /** Backwards-compatible alias for code paths that haven't been renamed. */
 export type EmployeeRole = EmployeePermissions

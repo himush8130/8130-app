@@ -6,6 +6,7 @@ import { useFeedbackNotes } from '../hooks/useFeedbackNotes'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import { hardReload } from '../lib/hardReload'
 import { BUILD_TIME } from '../releaseNotes'
+import type { EmployeePermissions } from '../types/db'
 
 type ViewKey = 'manager' | 'dashboard' | 'vehicles' | 'warehouse' | 'technician'
 
@@ -48,10 +49,12 @@ const ALL_VIEWS: Array<{ key: ViewKey; to: string; label: string; matches: (p: s
   { key: 'technician', to: '/technician',         label: 'טכנאי',          matches: (p) => p.startsWith('/technician') },
 ]
 
-const VIEWS_BY_ROLE: Record<'manager' | 'warehouse' | 'technician', ViewKey[]> = {
+const VIEWS_BY_ROLE: Record<EmployeePermissions, ViewKey[]> = {
   manager:    ['manager', 'dashboard', 'vehicles', 'warehouse', 'technician'],
   warehouse:  ['warehouse', 'vehicles'],
   technician: ['vehicles', 'technician'],
+  // Like a manager but without the old manager home and the warehouse.
+  commander_viewer: ['dashboard', 'vehicles', 'technician'],
 }
 
 // Shared button styling so every chip in the header row (יציאה,
@@ -138,29 +141,31 @@ export function AppHeader({ subtitle, showLogo, wide }: { subtitle?: string; sho
           <div className="flex items-center gap-3">
             <span className="text-sm text-muted hidden sm:inline">{employee.name}</span>
 
-            <span className="inline-flex items-center relative">
-              <ComponentBadge id={1004} />
-              <Link
-                to="/notes"
-                aria-label={openOthersCount > 0 ? `לוג הערות (${openOthersCount} פתוחות)` : 'לוג הערות'}
-                title={openOthersCount > 0 ? `לוג הערות (${openOthersCount} פתוחות)` : 'לוג הערות'}
-                className={`${CHIP_BASE} ${CHIP_ICON} text-base ${
-                  openOthersCount > 0
-                    ? 'bg-warning/15 text-warning border-warning hover:bg-warning/25'
-                    : CHIP_NEUTRAL
-                }`}
-              >
-                📝
-              </Link>
-              {openOthersCount > 0 && (
-                <span
-                  className="absolute -top-1 -start-1 min-w-[1.1rem] h-[1.1rem] px-1 inline-flex items-center justify-center rounded-full bg-warning text-white text-[10px] font-bold leading-none border border-card"
-                  aria-hidden
+            {employee.permissions === 'manager' && (
+              <span className="inline-flex items-center relative">
+                <ComponentBadge id={1004} />
+                <Link
+                  to="/notes"
+                  aria-label={openOthersCount > 0 ? `לוג הערות (${openOthersCount} פתוחות)` : 'לוג הערות'}
+                  title={openOthersCount > 0 ? `לוג הערות (${openOthersCount} פתוחות)` : 'לוג הערות'}
+                  className={`${CHIP_BASE} ${CHIP_ICON} text-base ${
+                    openOthersCount > 0
+                      ? 'bg-warning/15 text-warning border-warning hover:bg-warning/25'
+                      : CHIP_NEUTRAL
+                  }`}
                 >
-                  {openOthersCount}
-                </span>
-              )}
-            </span>
+                  📝
+                </Link>
+                {openOthersCount > 0 && (
+                  <span
+                    className="absolute -top-1 -start-1 min-w-[1.1rem] h-[1.1rem] px-1 inline-flex items-center justify-center rounded-full bg-warning text-white text-[10px] font-bold leading-none border border-card"
+                    aria-hidden
+                  >
+                    {openOthersCount}
+                  </span>
+                )}
+              </span>
+            )}
 
             <span className="inline-flex items-center">
               <ComponentBadge id={1005} />

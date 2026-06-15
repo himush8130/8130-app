@@ -68,7 +68,7 @@ createRoot(document.getElementById('root')!).render(
 
           <Route path="/technician" element={
             <Resilient scope="technician">
-              <ProtectedRoute allow={['technician', 'manager']}>
+              <ProtectedRoute allow={['technician', 'manager', 'commander_viewer']}>
                 <TechnicianByCompanyPage />
               </ProtectedRoute>
             </Resilient>
@@ -82,7 +82,7 @@ createRoot(document.getElementById('root')!).render(
           } />
           <Route path="/manager/dashboard" element={
             <Resilient scope="manager-dashboard">
-              <ProtectedRoute allow={['manager']}><ManagerDashboardPage /></ProtectedRoute>
+              <ProtectedRoute allow={['manager', 'commander_viewer']}><ManagerDashboardPage /></ProtectedRoute>
             </Resilient>
           } />
           <Route path="/manager/dev" element={
@@ -171,7 +171,7 @@ createRoot(document.getElementById('root')!).render(
 
           <Route path="/notes" element={
             <Resilient scope="notes">
-              <ProtectedRoute><NotesPage /></ProtectedRoute>
+              <ProtectedRoute allow={['manager']}><NotesPage /></ProtectedRoute>
             </Resilient>
           } />
 

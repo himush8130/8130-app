@@ -24,6 +24,7 @@ const homeRouteByPermissions: Record<EmployeePermissions, string> = {
   technician: '/technician',
   manager:    '/manager',
   warehouse:  '/warehouse',
+  commander_viewer: '/manager/dashboard',
 }
 
 function isClosed(c: ServiceCall): boolean {

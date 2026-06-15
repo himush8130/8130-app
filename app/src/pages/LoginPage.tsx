@@ -24,6 +24,7 @@ const homeRouteByPermissions: Record<EmployeePermissions, string> = {
   technician: '/manager/vehicles',
   manager:    '/manager',
   warehouse:  '/warehouse',
+  commander_viewer: '/manager/dashboard',
 }
 
 export function LoginPage() {

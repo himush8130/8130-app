@@ -47,7 +47,7 @@ export interface EmployeeUpdates {
   name?: string
   phone?: string | null
   profession_name?: string | null
-  permissions?: 'technician' | 'manager' | 'warehouse'
+  permissions?: 'technician' | 'manager' | 'warehouse' | 'commander_viewer'
   specialty?: string | null
   exclude_from_availability_report?: boolean
 }
