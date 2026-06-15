@@ -228,9 +228,22 @@ export function InventoryCountPage() {
 
             {/* SKU quick search */}
             <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold text-foreground">חיפוש מהיר לפי מק״ט</h3>
+                  {skuSearch.trim() && (
+                    <button
+                      type="button"
+                      onClick={() => setSkuSearch('')}
+                      className="text-xs text-primary hover:underline"
+                    >
+                      נקה
+                    </button>
+                  )}
+                </div>
+              </CardHeader>
               <CardBody>
                 <Input
-                  label="חיפוש מהיר לפי מק״ט"
                   name="ic-sku-search"
                   value={skuSearch}
                   onChange={(e) => setSkuSearch(e.target.value)}
