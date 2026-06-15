@@ -468,7 +468,7 @@ export function TechnicianByCompanyPage() {
                   <span className="text-sm font-semibold text-foreground">רכבים גלגליים</span>
                   {(() => {
                     return (
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5">
+                      <div className="grid grid-cols-4 gap-1.5">
                         {wheeledDepts.map((name, i) => {
                           const count = wheeledByDept.get(name)?.length ?? 0
                           const active = selectedWDept === name
