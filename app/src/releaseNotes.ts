@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'מסך הפיתוח הוסתר בינתיים מהתפריט והכותרת.'
+export const LATEST_NOTE = 'טבלת התראות שעות מנוע: ניקוי טקסט (בלי "שעות"/"עוד") ועמודת פלוגה בשורה אחת.'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build

@@ -361,7 +361,7 @@ function devLabel(raw: number | null): string {
   if (raw == null) return '—'
   if (raw > 0) return `חריגה ב-${raw} שעות`
   if (raw === 0) return 'על הסף'
-  return `עוד ${-raw} שעות לחריגה`
+  return `${-raw} שעות לחריגה`
 }
 
 function EngineAlertsSection({ d }: { d: DashboardData }) {
@@ -417,8 +417,8 @@ function EngineAlertsSection({ d }: { d: DashboardData }) {
                         {a.vehicleNumber}
                       </span>
                     </td>
-                    <td className="px-3 py-2">{a.company}</td>
-                    <td className="px-3 py-2 font-mono">{a.engineHours != null ? `${a.engineHours} שעות` : '—'}</td>
+                    <td className="px-3 py-2 whitespace-nowrap">{a.company}</td>
+                    <td className="px-3 py-2 font-mono">{a.engineHours != null ? a.engineHours : '—'}</td>
                     <td className={`px-3 py-2 ${tone.text}`}>{devLabel(a.rawDeviation)}</td>
                   </tr>
                 )
