@@ -689,7 +689,7 @@ function VehicleCallsLayer({
 
         {buckets.disabling.length > 0 && (
           <CollapsibleSection title="תקלות משביתות" count={buckets.disabling.length} defaultOpen countTone="text-danger">
-            <div className="flex flex-col gap-2 p-2">
+            <div className="flex flex-col gap-2 p-1">
               {buckets.disabling.map(c => (
                 <CallCard key={c.id} call={c} partsSummary={partsMap?.get(c.id) ?? null} vehicle={vehiclesMap.get(c.vehicle_number ?? '') ?? null} hasComments={commentsSet?.has(c.id) ?? false} />
               ))}
@@ -699,7 +699,7 @@ function VehicleCallsLayer({
 
         {buckets.regular.length > 0 && (
           <CollapsibleSection title="תקלות פתוחות" count={buckets.regular.length} defaultOpen>
-            <div className="flex flex-col gap-2 p-2">
+            <div className="flex flex-col gap-2 p-1">
               {buckets.regular.map(c => (
                 <CallCard key={c.id} call={c} partsSummary={partsMap?.get(c.id) ?? null} vehicle={vehiclesMap.get(c.vehicle_number ?? '') ?? null} hasComments={commentsSet?.has(c.id) ?? false} />
               ))}
@@ -709,7 +709,7 @@ function VehicleCallsLayer({
 
         {buckets.closed.length > 0 && (
           <CollapsibleSection title="תקלות סגורות" count={buckets.closed.length}>
-            <div className="flex flex-col gap-2 p-2">
+            <div className="flex flex-col gap-2 p-1">
               {buckets.closed.map(c => (
                 <CallCard key={c.id} call={c} partsSummary={partsMap?.get(c.id) ?? null} vehicle={vehiclesMap.get(c.vehicle_number ?? '') ?? null} hasComments={commentsSet?.has(c.id) ?? false} />
               ))}

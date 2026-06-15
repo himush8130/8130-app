@@ -112,55 +112,50 @@ export function CallCard({ call, partsSummary, vehicle, hasComments }: Props) {
           <div className="w-1.5 shrink-0" style={{ backgroundColor: accentColor }} />
 
           <div className="flex-1 flex flex-col gap-1.5 px-3 py-2.5">
-            {/* Row 1: ID + status + date */}
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-sm font-mono font-semibold text-foreground">{call.display_id}</span>
-                <Badge tone={effectiveTone}>{effectiveLabel}</Badge>
+            {/* Row 1: ID + status badge */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-mono font-semibold text-foreground">{call.display_id}</span>
+              <Badge tone={effectiveTone}>{effectiveLabel}</Badge>
+            </div>
+
+            {/* Row 2: vehicle · company · date · anomalies · comments · parts */}
+            <div className="flex items-center gap-1.5 text-xs text-muted flex-wrap">
+              <span className="font-mono">{call.vehicle_number ?? '—'}</span>
+              {vehicle?.sub_department && <span>· {vehicle.sub_department}</span>}
+              {!vehicle && call.vehicle_name && <span>· {call.vehicle_name}</span>}
+              <span>· {date}</span>
+              {(call.anomaly_flags?.length ?? 0) > 0 && (
+                <Badge tone="warning">{call.anomaly_flags!.length} חריגות</Badge>
+              )}
+              {hasComments && (
+                <span
+                  title="לקריאה זו קיימות הערות"
+                  className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-warning text-white text-[10px] font-bold leading-none"
+                >i</span>
+              )}
+              {secondary?.kind === 'badge' && (
+                <Badge tone={partsStatusOverride[secondary.status]}>
+                  {partsStatusBadgeLabel[secondary.status]}
+                </Badge>
+              )}
+              {secondary?.kind === 'warning' && (
+                <span title="חלקים בסטטוסים שונים" className="text-warning text-sm">⚠</span>
+              )}
+            </div>
+
+            {/* Row 3: description + disabling */}
+            {(call.description || call.is_disabling) && (
+              <div className="flex items-center gap-2">
+                {call.description && (
+                  <p className="text-xs text-foreground/80 line-clamp-1 min-w-0 flex-1">{call.description}</p>
+                )}
                 {call.is_disabling && (
                   <Badge tone="danger">משביתה</Badge>
                 )}
               </div>
-              <span className="text-xs text-muted shrink-0">{date}</span>
-            </div>
-
-            {/* Row 2: Vehicle + profession + secondary indicators */}
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 text-xs text-muted min-w-0 truncate">
-                <span className="font-mono">{call.vehicle_number ?? '—'}</span>
-                {vehicle?.sub_department && <span>· {vehicle.sub_department}</span>}
-                {!vehicle && call.vehicle_name && <span>· {call.vehicle_name}</span>}
-              </div>
-              <div className="flex items-center gap-1.5 shrink-0">
-                {call.profession_name && (
-                  <Badge tone="neutral">{call.profession_name}</Badge>
-                )}
-                {secondary?.kind === 'badge' && (
-                  <Badge tone={partsStatusOverride[secondary.status]}>
-                    {partsStatusBadgeLabel[secondary.status]}
-                  </Badge>
-                )}
-                {secondary?.kind === 'warning' && (
-                  <span title="חלקים בסטטוסים שונים" className="text-warning text-sm">⚠</span>
-                )}
-                {(call.anomaly_flags?.length ?? 0) > 0 && (
-                  <Badge tone="warning">{call.anomaly_flags!.length} חריגות</Badge>
-                )}
-                {hasComments && (
-                  <span
-                    title="לקריאה זו קיימות הערות"
-                    className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-warning text-white text-[10px] font-bold leading-none"
-                  >i</span>
-                )}
-              </div>
-            </div>
-
-            {/* Row 3: description (if present) */}
-            {call.description && (
-              <p className="text-xs text-foreground/80 line-clamp-1">{call.description}</p>
             )}
 
-            {/* Closed date (if applicable) */}
+            {/* Row 4: closed date */}
             {call.closed_at && (call.status === 'closed' || call.status === 'cancelled') && (
               <span className="text-[11px] text-muted">
                 נסגרה {new Date(call.closed_at).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' })}
