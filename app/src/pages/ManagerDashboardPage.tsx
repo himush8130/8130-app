@@ -316,8 +316,9 @@ export function PriorityCompanySection({ d }: { d: DashboardData }) {
           {/* Prominent divider separating the score block from the metrics. */}
           <span aria-hidden className="w-0.5 bg-border self-stretch rounded-full shrink-0" />
 
-          {/* Metric strip with thin vertical dividers between cells. */}
-          <div className="flex-1 flex items-stretch min-w-0">
+          {/* Metric strip with thin vertical dividers between cells.
+              Nudged 1 dot (10px) left for alignment. */}
+          <div className="flex-1 flex items-stretch min-w-0 -translate-x-2.5">
             {metrics.map((m, i) => (
               <Fragment key={m.label}>
                 {i > 0 && <span aria-hidden className="my-1 w-px bg-border" />}
