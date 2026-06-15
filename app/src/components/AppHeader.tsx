@@ -142,6 +142,17 @@ export function AppHeader({ subtitle, showLogo, wide }: { subtitle?: string; sho
             <span className="text-sm text-muted hidden sm:inline">{employee.name}</span>
 
             {employee.permissions === 'manager' && (
+              <Link
+                to="/manager/dashboard-v2"
+                aria-label="לוח בקרה v2"
+                title="לוח בקרה v2"
+                className={`${CHIP_BASE} ${CHIP_ICON} text-base ${CHIP_NEUTRAL}`}
+              >
+                🧪
+              </Link>
+            )}
+
+            {employee.permissions === 'manager' && (
               <span className="inline-flex items-center relative">
                 <ComponentBadge id={1004} />
                 <Link

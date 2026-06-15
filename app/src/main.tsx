@@ -29,6 +29,7 @@ const RequiredPartDetailPage   = lazy(() => import('./pages/RequiredPartDetailPa
 const TankMaintenancePage      = lazy(() => import('./pages/TankMaintenancePage').then(m => ({ default: m.TankMaintenancePage })))
 const InventoryCountPage       = lazy(() => import('./pages/InventoryCountPage').then(m => ({ default: m.InventoryCountPage })))
 const ManagerDashboardPage     = lazy(() => import('./pages/ManagerDashboardPage').then(m => ({ default: m.ManagerDashboardPage })))
+const ManagerDashboardV2Page   = lazy(() => import('./pages/ManagerDashboardV2Page').then(m => ({ default: m.ManagerDashboardV2Page })))
 const SettingsPriorityPage     = lazy(() => import('./pages/SettingsPriorityPage').then(m => ({ default: m.SettingsPriorityPage })))
 const DevelopmentPage          = lazy(() => import('./pages/DevelopmentPage').then(m => ({ default: m.DevelopmentPage })))
 
@@ -83,6 +84,11 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/manager/dashboard" element={
             <Resilient scope="manager-dashboard">
               <ProtectedRoute allow={['manager', 'commander_viewer']}><ManagerDashboardPage /></ProtectedRoute>
+            </Resilient>
+          } />
+          <Route path="/manager/dashboard-v2" element={
+            <Resilient scope="manager-dashboard-v2">
+              <ProtectedRoute allow={['manager', 'commander_viewer']}><ManagerDashboardV2Page /></ProtectedRoute>
             </Resilient>
           } />
           <Route path="/manager/dev" element={

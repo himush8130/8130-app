@@ -74,7 +74,7 @@ export function AllCallsPage() {
 
       <main className="max-w-3xl mx-auto p-4 flex flex-col gap-3">
         <ComponentBadge id={3012} />
-        <Link to="/manager" className="text-sm text-primary">→ חזור לפאנל</Link>
+        <Link to="/manager/dashboard" className="text-sm text-primary">→ חזור לפאנל</Link>
 
         <Card>
           <CardBody className="flex flex-col gap-3">
