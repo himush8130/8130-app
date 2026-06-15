@@ -172,7 +172,7 @@ function TopStatsBar({ d }: { d: DashboardData }) {
     {
       key: 'monthly',
       icon: <IconCalendar />,
-      value: <span className="text-2xl">{mm?.thisWeekCompany ?? 'אין'}</span>,
+      value: <span className="text-sm sm:text-lg lg:text-2xl">{mm?.thisWeekCompany ?? 'אין'}</span>,
       label: 'טיפול חודשי',
       sub: mm?.nextWeekCompany
         ? <>שבוע הבא: <span className="font-semibold text-foreground">{mm.nextWeekCompany}</span></>
@@ -182,33 +182,30 @@ function TopStatsBar({ d }: { d: DashboardData }) {
     { key: 'dev',   icon: <IconWarning />,   value: d.treatmentDeviations ?? 0,      label: 'חריגות טיפול' },
   ]
   return (
-    <nav className="flex items-stretch rounded-2xl border border-border bg-card overflow-hidden min-h-44">
-      {STATS.map((s, i) => {
-        const prevHi = i > 0 && STATS[i - 1].highlight
-        return (
-          <Fragment key={s.key}>
-            {i > 0 && (
-              <span aria-hidden className={`my-7 w-px ${s.highlight || prevHi ? 'bg-transparent' : 'bg-border'}`} />
-            )}
-            <div
-              className={`flex-1 flex flex-col items-center px-3 py-7 ${s.highlight ? 'text-white' : ''}`}
-              style={s.highlight ? { backgroundColor: STAT_NAVY } : undefined}
-            >
-              {/* Value (and optional sub-line) fill the upper area; the
-                  label is pinned to the bottom so every card's label
-                  lines up at the same height. */}
-              <div className="flex-1 flex flex-col items-center justify-center gap-2">
-                <div className="flex items-center justify-center gap-3">
-                  {s.icon}
-                  <span className={`font-bold leading-none ${s.highlight ? 'text-5xl' : 'text-4xl text-foreground'}`}>{s.value}</span>
-                </div>
-                {s.sub && <span className="text-[10px] text-muted text-center">{s.sub}</span>}
-              </div>
-              <span className={`text-sm text-center ${s.highlight ? 'opacity-90' : 'text-muted'}`}>{s.label}</span>
+    // Single row of 5 at every width; sizes scale down on phones so the
+    // whole bar fits. `gap-px` over a border-coloured background paints
+    // the divider lines between segments automatically.
+    <nav className="grid grid-cols-5 gap-px bg-border rounded-2xl border border-border overflow-hidden">
+      {STATS.map((s) => (
+        <div
+          key={s.key}
+          className={`flex flex-col items-center px-1 sm:px-3 py-4 lg:py-7 min-h-28 lg:min-h-44 ${
+            s.highlight ? 'text-white' : 'bg-card'
+          }`}
+          style={s.highlight ? { backgroundColor: STAT_NAVY } : undefined}
+        >
+          {/* Value (and optional sub-line) fill the upper area; the label
+              is pinned to the bottom so labels line up across the row. */}
+          <div className="flex-1 flex flex-col items-center justify-center gap-1">
+            <div className="flex items-center justify-center gap-1.5 lg:gap-3">
+              <span className="hidden sm:block">{s.icon}</span>
+              <span className={`font-bold leading-none ${s.highlight ? 'text-2xl sm:text-3xl lg:text-5xl' : 'text-xl sm:text-2xl lg:text-4xl text-foreground'}`}>{s.value}</span>
             </div>
-          </Fragment>
-        )
-      })}
+            {s.sub && <span className="text-[9px] sm:text-[10px] text-muted text-center leading-tight">{s.sub}</span>}
+          </div>
+          <span className={`text-[10px] sm:text-xs lg:text-sm text-center mt-1 leading-tight ${s.highlight ? 'opacity-90' : 'text-muted'}`}>{s.label}</span>
+        </div>
+      ))}
     </nav>
   )
 }
@@ -219,7 +216,7 @@ function TopStatsBar({ d }: { d: DashboardData }) {
 
 function CompanyStatusSection({ d }: { d: DashboardData }) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+    <div className="grid grid-cols-4 gap-2 sm:gap-4">
       {d.companies.map(c => <CompanyCard key={c.label} co={c} />)}
     </div>
   )
@@ -232,32 +229,32 @@ function CompanyCard({ co }: { co: DashboardCompany }) {
   // disabling (משביתות) and the rest (פתוחות).
   const regular = Math.max(0, co.openCalls - disabling)
   return (
-    <div className={`rounded-2xl border border-border overflow-hidden flex flex-col ${t.bg}`}>
+    <div className={`rounded-xl sm:rounded-2xl border border-border overflow-hidden flex flex-col ${t.bg}`}>
       {/* top accent line */}
-      <div className="h-1.5" style={{ backgroundColor: t.fill }} />
+      <div className="h-1 sm:h-1.5" style={{ backgroundColor: t.fill }} />
 
-      <span className={`px-4 pt-3 text-center text-base font-bold ${t.text}`}>{co.label}</span>
+      <span className={`px-1 sm:px-4 pt-2 sm:pt-3 text-center text-xs sm:text-base font-bold ${t.text}`}>{co.label}</span>
 
-      <div className="px-4 pt-2 pb-3 flex flex-col items-center gap-1">
-        <TankIcon color={t.fill} size={64} />
-        <span className={`text-4xl font-bold ${t.text}`}>{co.openCalls}</span>
+      <div className="px-1 sm:px-4 pt-1 sm:pt-2 pb-2 sm:pb-3 flex flex-col items-center gap-0.5 sm:gap-1">
+        <TankIcon color={t.fill} size={44} />
+        <span className={`text-2xl sm:text-4xl font-bold ${t.text}`}>{co.openCalls}</span>
       </div>
 
-      <div className="px-5">
-        <div className="border-t border-black/10 pt-3 pb-2 flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <span className={`text-2xl font-bold ${t.text}`}>{disabling}</span>
-            <span className="text-sm text-foreground">משביתות</span>
+      <div className="px-2 sm:px-5">
+        <div className="border-t border-black/10 pt-2 sm:pt-3 pb-1 sm:pb-2 flex flex-col gap-1 sm:gap-2">
+          <div className="flex items-center justify-between gap-1">
+            <span className={`text-base sm:text-2xl font-bold ${t.text}`}>{disabling}</span>
+            <span className="text-[10px] sm:text-sm text-foreground">משביתות</span>
           </div>
-          <div className="flex items-center justify-between">
-            <span className={`text-2xl font-bold ${t.text}`}>{regular}</span>
-            <span className="text-sm text-foreground">פתוחות</span>
+          <div className="flex items-center justify-between gap-1">
+            <span className={`text-base sm:text-2xl font-bold ${t.text}`}>{regular}</span>
+            <span className="text-[10px] sm:text-sm text-foreground">פתוחות</span>
           </div>
         </div>
       </div>
 
       {/* bottom accent pill */}
-      <div className="mx-4 mt-2 mb-3 h-1.5 rounded-full" style={{ backgroundColor: t.fill }} />
+      <div className="mx-2 sm:mx-4 mt-2 mb-2 sm:mb-3 h-1 sm:h-1.5 rounded-full" style={{ backgroundColor: t.fill }} />
     </div>
   )
 }
@@ -450,25 +447,25 @@ function TankReadinessSection({ d }: { d: DashboardData }) {
             const t = ct(r.company)
             return (
               <Fragment key={r.company}>
-                {i > 0 && <span aria-hidden className="my-8 w-px bg-border" />}
-                <div className="flex-1 flex flex-col items-center justify-between pt-4 pb-3 gap-4">
-                  <span className={`text-sm font-bold ${t.text}`}>{r.company}</span>
-                  <div className="flex items-center justify-center gap-3">
+                {i > 0 && <span aria-hidden className="my-6 lg:my-8 w-px bg-border" />}
+                <div className="flex-1 flex flex-col items-center justify-between pt-3 sm:pt-4 pb-3 gap-3 sm:gap-4">
+                  <span className={`text-xs sm:text-sm font-bold ${t.text}`}>{r.company}</span>
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-3">
                     <DonutChart
                       segments={[
                         { value: r.operational, color: t.fill },
                         { value: r.total - r.operational, color: 'var(--color-border)' },
                       ]}
                       centerLabel=""
-                      size={88}
-                      thickness={15}
+                      size={64}
+                      thickness={16}
                     />
-                    <div className="flex flex-col leading-none">
-                      <span className="text-3xl font-bold text-foreground">{r.pct}%</span>
-                      <span className="text-xs text-muted mt-1.5">{r.operational}/{r.total}</span>
+                    <div className="flex flex-col items-center sm:items-start leading-none">
+                      <span className="text-xl sm:text-3xl font-bold text-foreground">{r.pct}%</span>
+                      <span className="text-[10px] sm:text-xs text-muted mt-1 sm:mt-1.5">{r.operational}/{r.total}</span>
                     </div>
                   </div>
-                  <div className="self-stretch mx-5 h-1.5 rounded-full" style={{ backgroundColor: t.fill }} />
+                  <div className="self-stretch mx-2 sm:mx-5 h-1.5 rounded-full" style={{ backgroundColor: t.fill }} />
                 </div>
               </Fragment>
             )

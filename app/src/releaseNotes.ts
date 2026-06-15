@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'דף מנהל חדש (לוח בקרה): שורת סטטיסטיקות, סטטוס פלוגות, טיפול חודשי, כשירות טנקים/גלגלי, התראות שעות מנוע, ותיעדוף פלוגה אוטומטי לפי נוסחה הניתנת להגדרה בהגדרות.'
+export const LATEST_NOTE = 'לוח בקרה: התאמה למסך נייד (אייפון) — שורת סטטיסטיקות, כרטיסי פלוגות וכשירות טנקים מוצגים בשורה אחת עם גדלים מותאמים.'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build
