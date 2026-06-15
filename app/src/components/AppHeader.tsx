@@ -162,6 +162,17 @@ export function AppHeader({ subtitle, showLogo, wide }: { subtitle?: string; sho
               )}
             </span>
 
+            {employee.permissions === 'manager' && (
+              <Link
+                to="/manager/dev"
+                aria-label="מסך פיתוח"
+                title="מסך פיתוח"
+                className={`${CHIP_BASE} ${CHIP_NEUTRAL} ${CHIP_ICON} text-sm`}
+              >
+                🛠
+              </Link>
+            )}
+
             <span className="inline-flex items-center">
               <ComponentBadge id={1005} />
               <button

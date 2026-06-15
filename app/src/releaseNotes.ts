@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'נוסף מסך "פיתוח" (מנהל בלבד) — שורת התיעדוף עם סרגל נקודות וקווי יישור אנכיים לכוונון מדויק של מיקום הרכיבים.'
+export const LATEST_NOTE = 'מסך פיתוח: קווי אמצע ממוספרים לכל רכיב, נקודות חצי בסרגל, וגישה מהירה מהכותרת (🛠, מנהל בלבד).'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build
