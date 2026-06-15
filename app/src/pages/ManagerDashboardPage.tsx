@@ -291,9 +291,9 @@ function PriorityCompanySection({ d }: { d: DashboardData }) {
 
   return (
     <Card>
-      <CardBody className="px-2 sm:px-4">
+      <CardBody className="px-1 sm:px-2">
         {/* Single row at every width: target + score, then the metrics. */}
-        <div className="flex items-stretch gap-1 sm:gap-3">
+        <div className="flex items-stretch gap-0.5 sm:gap-1.5">
           {/* Priority company + score (right side in RTL). */}
           <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 max-w-[50%] sm:max-w-none sm:min-w-96">
             <IconTarget size={36} color={t.fill} />

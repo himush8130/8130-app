@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'סקטור תיעדוף: קוביית הציון הורחבה, אייקונים ומספרים קטנים יותר, הציון מוצג כ-59/100 ופס ההתקדמות מתמלא משמאל.'
+export const LATEST_NOTE = 'סקטור תיעדוף: צומצם המרווח מגבולות הכרטיס לניצול רוחב טוב יותר (בלי שינוי בגודל הכתב).'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build
