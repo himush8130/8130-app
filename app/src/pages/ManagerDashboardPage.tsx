@@ -474,8 +474,8 @@ function TankReadinessSection({ d }: { d: DashboardData }) {
                       thickness={16}
                     />
                     <div className="flex flex-col items-center sm:items-start leading-none">
-                      <span className="text-xl sm:text-3xl font-bold text-foreground">{r.pct}%</span>
-                      <span className="text-[10px] sm:text-xs text-muted mt-1 sm:mt-1.5">{r.operational}/{r.total}</span>
+                      <span className="text-lg sm:text-2xl font-bold text-foreground">{r.pct}%</span>
+                      <span className="text-xs sm:text-sm text-muted mt-1 sm:mt-1.5">{r.operational}/{r.total}</span>
                     </div>
                   </div>
                   <div className="self-stretch mx-2 sm:mx-5 h-1.5 rounded-full" style={{ backgroundColor: t.fill }} />
