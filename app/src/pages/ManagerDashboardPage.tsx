@@ -188,7 +188,7 @@ function TopStatsBar({ d }: { d: DashboardData }) {
     // the divider lines between segments automatically.
     <nav className="grid grid-cols-[1.4fr_1fr_1fr_1fr_1fr] gap-px bg-border rounded-2xl border border-border overflow-hidden">
       {STATS.map((s) => {
-        const cls = `flex flex-col items-center px-1 sm:px-3 py-3 lg:py-4 ${
+        const cls = `flex flex-col items-center px-1 sm:px-3 py-4 lg:py-5 ${
           s.highlight ? 'text-white' : 'bg-card'
         }`
         const style = s.highlight ? { backgroundColor: STAT_NAVY } : undefined
