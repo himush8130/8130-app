@@ -30,6 +30,7 @@ const TankMaintenancePage      = lazy(() => import('./pages/TankMaintenancePage'
 const InventoryCountPage       = lazy(() => import('./pages/InventoryCountPage').then(m => ({ default: m.InventoryCountPage })))
 const ManagerDashboardPage     = lazy(() => import('./pages/ManagerDashboardPage').then(m => ({ default: m.ManagerDashboardPage })))
 const SettingsPriorityPage     = lazy(() => import('./pages/SettingsPriorityPage').then(m => ({ default: m.SettingsPriorityPage })))
+const DevelopmentPage          = lazy(() => import('./pages/DevelopmentPage').then(m => ({ default: m.DevelopmentPage })))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -82,6 +83,11 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/manager/dashboard" element={
             <Resilient scope="manager-dashboard">
               <ProtectedRoute allow={['manager']}><ManagerDashboardPage /></ProtectedRoute>
+            </Resilient>
+          } />
+          <Route path="/manager/dev" element={
+            <Resilient scope="manager-dev">
+              <ProtectedRoute allow={['manager']}><DevelopmentPage /></ProtectedRoute>
             </Resilient>
           } />
           <Route path="/manager/vehicles" element={

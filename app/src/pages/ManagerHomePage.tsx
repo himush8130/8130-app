@@ -25,6 +25,7 @@ const SETTINGS_LINKS: SettingsLink[] = [
   { to: '/manager/settings/availability',label: 'ניהול זמינות עובדים', desc: 'ימי חופש / מילואים / מחלה לכל עובד' },
   { to: '/manager/settings/copy-format', label: 'פורמט העתקה',         desc: 'תוויות קבועות + חטיבה/גדוד שמופיעים בהעתקה מהירה' },
   { to: '/manager/settings/priority',    label: 'תיעדוף פלוגה',        desc: 'חלוקת משקלים לחישוב הפלוגה לתיעדוף + חשיבות מבצעית' },
+  { to: '/manager/dev',                  label: 'פיתוח',               desc: 'כלי יישור רכיבים — סרגל נקודות וקווי עזר' },
 ]
 
 export function ManagerHomePage() {

@@ -260,7 +260,7 @@ function CompanyCard({ co }: { co: DashboardCompany }) {
 /*  SECTION 3 — Priority Company                                      */
 /* ================================================================== */
 
-function PriorityCompanySection({ d }: { d: DashboardData }) {
+export function PriorityCompanySection({ d }: { d: DashboardData }) {
   const { weights, importance } = usePriorityConfig()
 
   // Score every company and pick the highest.
