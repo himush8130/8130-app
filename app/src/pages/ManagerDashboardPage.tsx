@@ -295,7 +295,7 @@ export function PriorityCompanySection({ d }: { d: DashboardData }) {
         {/* Single row at every width: target + score, then the metrics. */}
         <div className="flex items-stretch gap-0 sm:gap-0.5">
           {/* Priority company + score (right side in RTL). */}
-          <div className="dev-cube flex items-center gap-1.5 sm:gap-3 shrink-0 max-w-[64%] sm:max-w-none sm:min-w-[30rem]">
+          <div className="dev-cube flex items-center gap-1.5 sm:gap-3 flex-1 min-w-0">
             <IconTarget size={36} color={t.fill} />
             <div className="min-w-0 flex-1">
               <div className="text-[9px] sm:text-xs text-muted leading-tight">פלוגה לתיעדוף</div>
@@ -316,9 +316,9 @@ export function PriorityCompanySection({ d }: { d: DashboardData }) {
           {/* Prominent divider separating the score block from the metrics. */}
           <span aria-hidden className="dev-divider w-0.5 bg-border self-stretch rounded-full shrink-0" />
 
-          {/* Metric strip — equal flex cells keep the centre↔divider gaps
-              symmetric; width is driven by the cube's size. */}
-          <div className="flex-1 flex items-stretch min-w-0">
+          {/* Metric strip — fixed width so the equal cells give small,
+              symmetric centre↔divider gaps; the cube takes the rest. */}
+          <div className="shrink-0 w-48 flex items-stretch">
             {metrics.map((m, i) => (
               <Fragment key={m.label}>
                 {i > 0 && <span aria-hidden className="dev-divider my-1 w-px bg-border" />}
