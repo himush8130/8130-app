@@ -345,18 +345,14 @@ export function TechnicianByCompanyPage() {
                             onClick={() => pickCompany(name)}
                             aria-expanded={active}
                             title={name}
-                            className={`min-w-0 rounded-xl overflow-hidden transition-all flex flex-col items-center text-center ${
+                            className={`min-w-0 rounded-xl overflow-hidden transition-all flex flex-col items-center text-center bg-card ${
                               active ? 'ring-2 ring-offset-1 shadow-md' : 'border border-border hover:shadow-sm'
                             }`}
-                            style={{
-                              background: tint.bg,
-                              color: tint.text,
-                              ...(active ? { ringColor: tint.border } : {}),
-                            }}
+                            style={active ? { '--tw-ring-color': tint.border } as React.CSSProperties : undefined}
                           >
                             <div className="w-full h-1" style={{ backgroundColor: tint.border }} />
-                            <span className="text-[11px] leading-tight truncate w-full px-1 pt-2">{name}</span>
-                            <span className="text-xl font-bold leading-none pb-2.5 pt-0.5">{count}</span>
+                            <span className="text-[11px] leading-tight truncate w-full px-1 pt-2 text-muted">{name}</span>
+                            <span className="text-xl font-bold leading-none pb-2.5 pt-0.5 text-foreground">{count}</span>
                           </button>
                         )
                       })}
@@ -492,14 +488,14 @@ export function TechnicianByCompanyPage() {
                       const tint = companyTints.get(name) ?? COMPANY_PALETTE[(companies.length + i) % COMPANY_PALETTE.length]
                       return (
                         <button key={name} type="button" onClick={() => pickWDept(name)} aria-expanded={active} title={name}
-                          className={`min-w-0 rounded-xl overflow-hidden transition-all flex flex-col items-center text-center ${
+                          className={`min-w-0 rounded-xl overflow-hidden transition-all flex flex-col items-center text-center bg-card ${
                             active ? 'ring-2 ring-offset-1 shadow-md' : 'border border-border hover:shadow-sm'
                           }`}
-                          style={{ background: tint.bg, color: tint.text, ...(active ? { ringColor: tint.border } : {}) }}
+                          style={active ? { '--tw-ring-color': tint.border } as React.CSSProperties : undefined}
                         >
                           <div className="w-full h-1" style={{ backgroundColor: tint.border }} />
-                          <span className="text-[11px] leading-tight truncate w-full px-1 pt-2">{name}</span>
-                          <span className="text-xl font-bold leading-none pb-2.5 pt-0.5">{count}</span>
+                          <span className="text-[11px] leading-tight truncate w-full px-1 pt-2 text-muted">{name}</span>
+                          <span className="text-xl font-bold leading-none pb-2.5 pt-0.5 text-foreground">{count}</span>
                         </button>
                       )
                     })}
