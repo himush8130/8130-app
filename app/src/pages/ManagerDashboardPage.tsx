@@ -174,9 +174,6 @@ function TopStatsBar({ d }: { d: DashboardData }) {
       icon: <IconCalendar size={22} />,
       value: <span className="text-xs sm:text-base lg:text-2xl whitespace-nowrap">{mm?.thisWeekCompany ?? 'אין'}</span>,
       label: 'טיפול חודשי',
-      sub: mm?.nextWeekCompany
-        ? <span className="font-semibold text-foreground">{mm.nextWeekCompany}</span>
-        : undefined,
     },
     { key: 'ready', icon: <IconShield size={22} />,    value: `${d.overallTankReadinessPct}%`, label: 'כשירות כוללת' },
     { key: 'dev',   icon: <IconWarning size={22} />,   value: d.treatmentDeviations ?? 0,      label: 'חריגות טיפול' },
@@ -314,6 +311,9 @@ function PriorityCompanySection({ d }: { d: DashboardData }) {
             </div>
           </div>
 
+          {/* Prominent divider separating the score block from the metrics. */}
+          <span aria-hidden className="w-0.5 bg-border self-stretch rounded-full shrink-0" />
+
           {/* Metric strip with thin vertical dividers between cells. */}
           <div className="flex-1 flex items-stretch min-w-0">
             {metrics.map((m, i) => (
@@ -331,9 +331,10 @@ function PriorityCompanySection({ d }: { d: DashboardData }) {
 
 function MetricBox({ icon, label, value, sub }: { icon: ReactNode; label: string; value: ReactNode; sub?: string }) {
   return (
-    <div className="flex-1 min-w-0 flex flex-col items-center justify-start gap-0.5 sm:gap-1 px-0.5 sm:px-1 text-center">
-      <span className="text-muted hidden sm:block">{icon}</span>
-      <span className="text-[9px] sm:text-[11px] text-muted leading-tight">{label}</span>
+    <div className="flex-1 min-w-0 flex flex-col items-center gap-0.5 sm:gap-1 px-0.5 sm:px-1 text-center">
+      <span className="text-muted">{icon}</span>
+      {/* Fixed two-line height so every metric's number sits on the same row. */}
+      <span className="text-[9px] sm:text-[11px] text-muted leading-tight min-h-[2.4em] flex items-center justify-center">{label}</span>
       <span className="text-base sm:text-xl font-bold text-foreground leading-tight">{value}</span>
       {sub && <span className="text-[9px] sm:text-[10px] text-muted">{sub}</span>}
     </div>

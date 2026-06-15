@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'לוח בקרה (נייד): אייקונים חזרו לצד המספר בשורת הסטטיסטיקות, וסקטור תיעדוף פלוגה מוצג כולו בשורה אחת.'
+export const LATEST_NOTE = 'לוח בקרה: סקטור תיעדוף — אייקונים מעל המדדים, מספרים מיושרים, וקו הפרדה לקוביית הציון. שורת סטטיסטיקה — הוסר השבוע הבא מטיפול חודשי.'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build
