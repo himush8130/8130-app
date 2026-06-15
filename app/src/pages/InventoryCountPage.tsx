@@ -228,7 +228,7 @@ export function InventoryCountPage() {
 
             {/* SKU quick search */}
             <Card>
-              <CardBody className="flex flex-col gap-2">
+              <CardBody>
                 <Input
                   label="חיפוש מהיר לפי מק״ט"
                   name="ic-sku-search"
@@ -236,8 +236,21 @@ export function InventoryCountPage() {
                   onChange={(e) => setSkuSearch(e.target.value)}
                   placeholder="הקלד מק״ט..."
                 />
-                {skuMatches.length > 0 && (
-                  <ul className="bg-card border border-border rounded-md max-h-80 overflow-y-auto">
+              </CardBody>
+            </Card>
+
+            {skuMatches.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-sm font-semibold text-foreground">פריטים ({skuMatches.length})</h3>
+                    <span className="text-xs text-muted">
+                      {skuMatches.filter((p) => entries.has(p.id)).length}/{skuMatches.length} נספרו
+                    </span>
+                  </div>
+                </CardHeader>
+                <CardBody className="p-0">
+                  <ul>
                     {skuMatches.map((p) => (
                       <CountRow
                         key={p.id}
@@ -250,9 +263,9 @@ export function InventoryCountPage() {
                       />
                     ))}
                   </ul>
-                )}
-              </CardBody>
-            </Card>
+                </CardBody>
+              </Card>
+            )}
 
             {/* Cascading location filter */}
             <Card>
