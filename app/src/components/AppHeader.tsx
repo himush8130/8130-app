@@ -8,26 +8,20 @@ import { hardReload } from '../lib/hardReload'
 import { BUILD_TIME } from '../releaseNotes'
 import type { EmployeePermissions } from '../types/db'
 
-type ViewKey = 'calls' | 'dashboard' | 'vehicles' | 'warehouse' | 'technician'
+type ViewKey = 'dashboard' | 'warehouse' | 'technician'
 
 const SVG = 'w-4 h-4 shrink-0'
+const HOME_ICON: ReactNode = (
+  <svg className={SVG} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" />
+    <path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+  </svg>
+)
 const NAV_ICONS: Record<ViewKey, ReactNode> = {
-  calls: (
-    <svg className={SVG} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <rect x="8" y="2" width="8" height="4" rx="1" />
-      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
-      <path d="M9 12h6M9 16h4" />
-    </svg>
-  ),
   dashboard: (
     <svg className={SVG} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
       <rect x="3" y="3" width="7" height="9" rx="1" /><rect x="14" y="3" width="7" height="5" rx="1" />
       <rect x="14" y="12" width="7" height="9" rx="1" /><rect x="3" y="16" width="7" height="5" rx="1" />
-    </svg>
-  ),
-  vehicles: (
-    <svg className={SVG} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M12 7v14" /><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" />
     </svg>
   ),
   warehouse: (
@@ -44,19 +38,16 @@ const NAV_ICONS: Record<ViewKey, ReactNode> = {
 }
 
 const ALL_VIEWS: Array<{ key: ViewKey; to: string; label: string; matches: (p: string) => boolean }> = [
-  { key: 'calls',      to: '/manager/calls',      label: 'קריאות',         matches: (p) => p.startsWith('/manager/calls') },
-  { key: 'dashboard',  to: '/manager/dashboard',  label: 'לוח בקרה',       matches: (p) => p.startsWith('/manager/dashboard') },
-  { key: 'vehicles',   to: '/manager/vehicles',   label: 'ספר רק״ם/כלי',   matches: (p) => p.startsWith('/manager/vehicles') },
-  { key: 'warehouse',  to: '/warehouse',          label: 'מחסנאי',         matches: (p) => p.startsWith('/warehouse') },
-  { key: 'technician', to: '/technician',         label: 'טכנאי',          matches: (p) => p.startsWith('/technician') },
+  { key: 'dashboard',  to: '/manager/dashboard',  label: 'לוח בקרה',  matches: (p) => p.startsWith('/manager/dashboard') },
+  { key: 'warehouse',  to: '/warehouse',          label: 'מחסנאי',    matches: (p) => p.startsWith('/warehouse') },
+  { key: 'technician', to: '/technician',         label: 'כלים',      matches: (p) => p.startsWith('/technician') },
 ]
 
 const VIEWS_BY_ROLE: Record<EmployeePermissions, ViewKey[]> = {
-  manager:    ['calls', 'dashboard', 'vehicles', 'warehouse', 'technician'],
-  warehouse:  ['warehouse', 'vehicles'],
-  technician: ['vehicles', 'technician'],
-  // Like a manager but without the old manager home and the warehouse.
-  commander_viewer: ['dashboard', 'vehicles', 'technician'],
+  manager:          ['dashboard', 'warehouse', 'technician'],
+  warehouse:        ['warehouse', 'technician'],
+  technician:       ['technician'],
+  commander_viewer: ['dashboard', 'technician'],
 }
 
 // Shared button styling so every chip in the header row (יציאה,
@@ -225,7 +216,7 @@ export function AppHeader({ subtitle, showLogo, wide }: { subtitle?: string; sho
       {/* Row 2: per-role view switcher — one rounded segmented bar with
           partial dividers between inactive segments (the active segment
           is filled and butts flush against its neighbours). */}
-      {roleViews.length > 0 && (
+      {roleViews.length > 1 && (
         <div className={`${maxW} mx-auto px-4 pb-3`}>
           <ComponentBadge id={3020} />
           <nav className="flex items-stretch rounded-lg border border-border bg-card overflow-hidden">
@@ -250,8 +241,8 @@ export function AppHeader({ subtitle, showLogo, wide }: { subtitle?: string; sho
                         : 'text-foreground hover:bg-muted-surface'
                     }`}
                   >
-                    <span className="hidden sm:flex">{NAV_ICONS[v.key]}</span>
-                    <span className="whitespace-nowrap">{v.label}</span>
+                    <span className="hidden sm:flex">{i === 0 ? HOME_ICON : NAV_ICONS[v.key]}</span>
+                    <span className="whitespace-nowrap">{i === 0 ? 'בית' : v.label}</span>
                   </Link>
                 </Fragment>
               )

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '../store/auth'
 import { useTechnicianCalls } from '../hooks/useTechnicianCalls'
@@ -98,6 +98,20 @@ export function TechnicianByCompanyPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const selectedCompany = searchParams.get('company')
   const selectedVehicle = searchParams.get('vehicle')
+
+  const navTo = useNavigate()
+  const [vehicleSearch, setVehicleSearch] = useState('')
+  const vehicleSearchResults = useMemo(() => {
+    const q = vehicleSearch.trim().toLowerCase()
+    if (!q || q.length < 2) return []
+    return [...vehiclesMap.values()]
+      .filter(v =>
+        v.vehicle_number.toLowerCase().includes(q) ||
+        (v.type_name ?? '').toLowerCase().includes(q) ||
+        (v.sub_department ?? '').toLowerCase().includes(q)
+      )
+      .slice(0, 6)
+  }, [vehicleSearch, vehiclesMap])
 
   function updateParams(updates: { company?: string | null; vehicle?: string | null }) {
     const sp = new URLSearchParams(searchParams)
@@ -222,6 +236,39 @@ export function TechnicianByCompanyPage() {
 
         {!isLoading && !error && (
           <>
+            {/* Vehicle search */}
+            <div className="relative">
+              <form
+                onSubmit={(e) => { e.preventDefault(); const q = vehicleSearch.trim(); if (q) navTo(`/vehicle/${encodeURIComponent(q)}`) }}
+                className="flex gap-2"
+              >
+                <input
+                  type="text"
+                  placeholder="חיפוש רכב לפי מספר..."
+                  value={vehicleSearch}
+                  onChange={(e) => setVehicleSearch(e.target.value)}
+                  className="flex-1 h-9 px-3 rounded-md border border-border bg-card text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+              </form>
+              {vehicleSearchResults.length > 0 && (
+                <div className="absolute z-10 top-full mt-1 inset-x-0 bg-card border border-border rounded-md shadow-lg overflow-hidden">
+                  {vehicleSearchResults.map((v) => (
+                    <Link
+                      key={v.vehicle_number}
+                      to={`/vehicle/${encodeURIComponent(v.vehicle_number)}`}
+                      onClick={() => setVehicleSearch('')}
+                      className="flex items-center justify-between gap-2 px-3 py-2 text-sm hover:bg-muted-surface border-b border-border last:border-0"
+                    >
+                      <span className="font-mono text-foreground">{v.vehicle_number}</span>
+                      <span className="text-xs text-muted truncate">
+                        {v.type_name}{v.sub_department ? ` · ${v.sub_department}` : ''}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Layer 1 — total + per-company tiles */}
             <Card>
               <CardBody className="flex flex-col gap-3">

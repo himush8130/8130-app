@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'בסרגל הניווט: "מנהל" הוחלף ב"קריאות". נוסף אייקון הגדרות ⚙️ (מנהל בלבד) שמוביל לדף הניהול.'
+export const LATEST_NOTE = 'לשונית ראשונה בסרגל נקראת "בית" לכל הרשאה. הוסר ספר רקם — חיפוש רכב נוסף לדף טכנאי. לחיצה על קריאות פתוחות בדשבורד מובילה לדף קריאות.'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build

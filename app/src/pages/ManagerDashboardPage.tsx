@@ -1,5 +1,7 @@
 import { useState, useMemo, Fragment, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import { AppHeader } from '../components/AppHeader'
+import { useAuthStore } from '../store/auth'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { DonutChart } from '../components/DonutChart'
 import { useDashboardData, type DashboardData, type DashboardCompany } from '../hooks/useDashboardData'
@@ -163,11 +165,13 @@ function TankIcon({ color = '#666', size = 64 }: { color?: string; size?: number
 
 function TopStatsBar({ d }: { d: DashboardData }) {
   const { data: mm } = useMonthlyMaintenanceCompany()
+  const employee = useAuthStore((s) => s.employee)
+  const canLinkCalls = employee?.permissions === 'manager'
 
   // Order is RTL right→left: highlighted open-calls (right), then the
   // four metrics, ending with the placeholder "חריגות טיפול" (left).
-  const STATS: Array<{ key: string; icon: ReactNode; value: ReactNode; label: string; sub?: ReactNode; highlight?: boolean }> = [
-    { key: 'open',  icon: <IconClipboard size={20} color="#fff" />, value: d.totalOpenCalls,                label: 'קריאות פתוחות', highlight: true },
+  const STATS: Array<{ key: string; icon: ReactNode; value: ReactNode; label: string; sub?: ReactNode; highlight?: boolean; to?: string }> = [
+    { key: 'open',  icon: <IconClipboard size={20} color="#fff" />, value: d.totalOpenCalls,                label: 'קריאות פתוחות', highlight: true, to: canLinkCalls ? '/manager/calls' : undefined },
     { key: 'dis',   icon: <IconWrench size={16} />,    value: d.totalDisabling,                label: 'משביתות' },
     {
       key: 'monthly',
@@ -183,26 +187,29 @@ function TopStatsBar({ d }: { d: DashboardData }) {
     // whole bar fits. `gap-px` over a border-coloured background paints
     // the divider lines between segments automatically.
     <nav className="grid grid-cols-[1.4fr_1fr_1fr_1fr_1fr] gap-px bg-border rounded-2xl border border-border overflow-hidden">
-      {STATS.map((s) => (
-        <div
-          key={s.key}
-          className={`flex flex-col items-center px-1 sm:px-3 py-2 lg:py-3 ${
-            s.highlight ? 'text-white' : 'bg-card'
-          }`}
-          style={s.highlight ? { backgroundColor: STAT_NAVY } : undefined}
-        >
-          {/* Value fills the upper area; the label is pinned to the
-              bottom so labels line up across the row. */}
-          <div className="flex-1 flex flex-col items-center justify-center gap-0.5">
-            <div className="flex items-center justify-center gap-1">
-              {s.icon}
-              <span className={`font-bold leading-none ${s.highlight ? 'text-xl sm:text-3xl lg:text-4xl' : 'text-lg sm:text-2xl lg:text-3xl text-foreground'}`}>{s.value}</span>
+      {STATS.map((s) => {
+        const cls = `flex flex-col items-center px-1 sm:px-3 py-2 lg:py-3 ${
+          s.highlight ? 'text-white' : 'bg-card'
+        }`
+        const style = s.highlight ? { backgroundColor: STAT_NAVY } : undefined
+        const content = (
+          <>
+            <div className="flex-1 flex flex-col items-center justify-center gap-0.5">
+              <div className="flex items-center justify-center gap-1">
+                {s.icon}
+                <span className={`font-bold leading-none ${s.highlight ? 'text-xl sm:text-3xl lg:text-4xl' : 'text-lg sm:text-2xl lg:text-3xl text-foreground'}`}>{s.value}</span>
+              </div>
+              {s.sub && <span className="text-[9px] sm:text-[10px] text-muted text-center leading-tight">{s.sub}</span>}
             </div>
-            {s.sub && <span className="text-[9px] sm:text-[10px] text-muted text-center leading-tight">{s.sub}</span>}
-          </div>
-          <span className={`text-[10px] sm:text-xs lg:text-sm text-center mt-0.5 leading-tight ${s.highlight ? 'opacity-90' : 'text-muted'}`}>{s.label}</span>
-        </div>
-      ))}
+            <span className={`text-[10px] sm:text-xs lg:text-sm text-center mt-0.5 leading-tight ${s.highlight ? 'opacity-90' : 'text-muted'}`}>{s.label}</span>
+          </>
+        )
+        return s.to ? (
+          <Link key={s.key} to={s.to} className={cls} style={style}>{content}</Link>
+        ) : (
+          <div key={s.key} className={cls} style={style}>{content}</div>
+        )
+      })}
     </nav>
   )
 }

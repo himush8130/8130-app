@@ -23,9 +23,9 @@ import { deleteCall } from '../lib/managerActions'
 import type { CallStatus, EmployeePermissions } from '../types/db'
 
 const homeRouteByPermissions: Record<EmployeePermissions, string> = {
-  technician: '/technician',
-  manager:    '/manager',
-  warehouse:  '/warehouse',
+  technician:       '/technician',
+  manager:          '/manager/dashboard',
+  warehouse:        '/warehouse',
   commander_viewer: '/manager/dashboard',
 }
 

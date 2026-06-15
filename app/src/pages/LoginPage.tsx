@@ -19,11 +19,9 @@ const BUILD_TIME_LABEL = new Date(BUILD_TIME).toLocaleString('he-IL', {
 })
 
 const homeRouteByPermissions: Record<EmployeePermissions, string> = {
-  // Technicians land on the vehicle book; the dedicated /technician
-  // page stays reachable from the header view switcher.
-  technician: '/manager/vehicles',
-  manager:    '/manager',
-  warehouse:  '/warehouse',
+  technician:       '/technician',
+  manager:          '/manager/dashboard',
+  warehouse:        '/warehouse',
   commander_viewer: '/manager/dashboard',
 }
 
