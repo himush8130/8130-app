@@ -46,7 +46,7 @@ export function LoginPage() {
 
     const num = parseInt(employeeNumber, 10)
     if (Number.isNaN(num)) {
-      setError('מספר עובד לא תקין')
+      setError('מספר אישי לא תקין')
       return
     }
 
@@ -63,7 +63,7 @@ export function LoginPage() {
       return
     }
     if (!data) {
-      setError('מספר עובד לא נמצא')
+      setError('מספר אישי לא נמצא')
       return
     }
 
@@ -87,7 +87,7 @@ export function LoginPage() {
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <Input
-              label="מספר עובד"
+              label="מספר אישי"
               name="employeeNumber"
               type="number"
               inputMode="numeric"

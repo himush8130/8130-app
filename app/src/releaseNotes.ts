@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'סקטור תיעדוף: צומצם המרווח מגבולות הכרטיס לניצול רוחב טוב יותר (בלי שינוי בגודל הכתב).'
+export const LATEST_NOTE = 'מסך כניסה: "מספר עובד" שונה ל"מספר אישי".'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build
