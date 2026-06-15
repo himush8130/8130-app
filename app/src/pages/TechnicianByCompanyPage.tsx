@@ -201,18 +201,6 @@ export function TechnicianByCompanyPage() {
       })
   }, [groupedByCompany, selectedCompany, vehicleStats, vehiclesMap])
 
-  // Calls for the picked vehicle, sorted with disabling first.
-  const callsForVehicle = useMemo(() => {
-    if (!selectedCompany || !selectedVehicle) return [] as ServiceCall[]
-    const all = groupedByCompany.get(selectedCompany) ?? []
-    return all
-      .filter((c) => (c.vehicle_number ?? '—') === selectedVehicle)
-      .sort((a, b) => {
-        if (a.is_disabling !== b.is_disabling) return a.is_disabling ? -1 : 1
-        return (b.created_at ?? '').localeCompare(a.created_at ?? '')
-      })
-  }, [groupedByCompany, selectedCompany, selectedVehicle])
-
   function pickCompany(name: string) {
     updateParams({ company: selectedCompany === name ? null : name, vehicle: null })
   }
