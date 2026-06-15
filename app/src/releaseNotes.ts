@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'סקטור תיעדוף: המרחקים בין המדדים הוגדלו ל-25px.'
+export const LATEST_NOTE = 'מסך הפיתוח הוסתר בינתיים מהתפריט והכותרת.'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build
