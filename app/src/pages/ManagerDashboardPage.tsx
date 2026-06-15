@@ -282,11 +282,11 @@ function PriorityCompanySection({ d }: { d: DashboardData }) {
   // RTL right→left: משביתות, קריאות פתוחות, חשיבות מבצעית,
   // קצב סגירה, חלקים שהתקבלו.
   const metrics = [
-    { icon: <IconWrench size={24} />, label: 'משביתות',          value: co.disabledTanks },
-    { icon: <IconChat />,             label: 'קריאות פתוחות',     value: co.openCalls },
-    { icon: <IconStar />,             label: 'חשיבות מבצעית',     value: `${top.rating}/${MAX_IMPORTANCE}` },
-    { icon: <IconClock />,            label: 'קצב סגירה (שבועיים)', value: co.closedLast14 },
-    { icon: <IconBox />,              label: 'חלקים שהתקבלו',     value: co.receivedCalls },
+    { icon: <IconWrench size={18} />, label: 'משביתות',          value: co.disabledTanks },
+    { icon: <IconChat size={18} />,   label: 'קריאות פתוחות',     value: co.openCalls },
+    { icon: <IconStar size={18} />,   label: 'חשיבות מבצעית',     value: `${top.rating}/${MAX_IMPORTANCE}` },
+    { icon: <IconClock size={18} />,  label: 'קצב סגירה (שבועיים)', value: co.closedLast14 },
+    { icon: <IconBox size={18} />,    label: 'חלקים שהתקבלו',     value: co.receivedCalls },
   ]
 
   return (
@@ -295,17 +295,19 @@ function PriorityCompanySection({ d }: { d: DashboardData }) {
         {/* Single row at every width: target + score, then the metrics. */}
         <div className="flex items-stretch gap-1 sm:gap-3">
           {/* Priority company + score (right side in RTL). */}
-          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 max-w-[40%] sm:max-w-none sm:min-w-72">
-            <IconTarget size={32} color={t.fill} />
-            <div className="min-w-0">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 max-w-[50%] sm:max-w-none sm:min-w-96">
+            <IconTarget size={36} color={t.fill} />
+            <div className="min-w-0 flex-1">
               <div className="text-[9px] sm:text-xs text-muted leading-tight">פלוגה לתיעדוף</div>
               <div className={`text-sm sm:text-xl font-bold leading-tight ${t.text}`}>{co.label}</div>
               <div className="flex items-baseline gap-1 mt-1">
                 <span className="hidden sm:inline text-xs text-muted shrink-0">ציון תיעדוף</span>
-                <span className={`text-base sm:text-lg font-bold ${t.text}`}>{top.score}</span>
-                <span className="text-muted text-[10px] sm:text-xs">/100</span>
+                <span dir="ltr" className="font-bold">
+                  <span className={`text-base sm:text-lg ${t.text}`}>{top.score}</span>
+                  <span className="text-muted text-[10px] sm:text-xs font-normal">/100</span>
+                </span>
               </div>
-              <div className="w-full bg-border rounded-full h-1.5 sm:h-2 mt-1">
+              <div dir="ltr" className="w-full bg-border rounded-full h-1.5 sm:h-2 mt-1">
                 <div className="h-full rounded-full" style={{ width: `${top.score}%`, backgroundColor: STAT_NAVY }} />
               </div>
             </div>
@@ -335,7 +337,7 @@ function MetricBox({ icon, label, value, sub }: { icon: ReactNode; label: string
       <span className="text-muted">{icon}</span>
       {/* Fixed two-line height so every metric's number sits on the same row. */}
       <span className="text-[9px] sm:text-[11px] text-muted leading-tight min-h-[2.4em] flex items-center justify-center">{label}</span>
-      <span className="text-base sm:text-xl font-bold text-foreground leading-tight">{value}</span>
+      <span className="text-sm sm:text-lg font-bold text-foreground leading-tight">{value}</span>
       {sub && <span className="text-[9px] sm:text-[10px] text-muted">{sub}</span>}
     </div>
   )
