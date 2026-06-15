@@ -138,6 +138,7 @@ export function PendingActionRow({ row, highlight, showWithdrawal, copyFormatTex
         <StatusBadgeMenu
           rowId={row.id}
           partId={row.part_id}
+          quantity={row.quantity}
           currentStatus={row.status}
           isSkuBlocked={isBlocked}
         />

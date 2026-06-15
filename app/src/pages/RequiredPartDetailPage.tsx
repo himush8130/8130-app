@@ -367,15 +367,24 @@ export function RequiredPartDetailPage() {
               <StatusBadgeMenu
                 rowId={row.id}
                 partId={row.part_id}
+                quantity={row.quantity}
                 currentStatus={row.status}
                 isSkuBlocked={isBlocked}
                 onChanged={refresh}
               />
             </div>
             <div>
-              <div className="text-xs text-muted">כמות</div>
+              <div className="text-xs text-muted">כמות שהוזמנה</div>
               <span className="text-foreground font-medium">{row.quantity}</span>
             </div>
+            {row.received_quantity != null && row.received_quantity !== row.quantity && (
+              <div>
+                <div className="text-xs text-muted">כמות שהתקבלה</div>
+                <span className={`font-medium ${row.received_quantity < row.quantity ? 'text-warning' : 'text-success'}`}>
+                  {row.received_quantity}
+                </span>
+              </div>
+            )}
             {data.call && (
               <div className="col-span-2">
                 <div className="text-xs text-muted">קריאה</div>
@@ -611,6 +620,7 @@ export function RequiredPartDetailPage() {
         {receiveOpen && (
           <ReceiveDestinationDialog
             partId={row.part_id}
+            orderedQuantity={row.quantity}
             busy={busy}
             subtitle={part?.name ? `${part.name} · ${part.sku}` : undefined}
             onClose={() => setReceiveOpen(false)}

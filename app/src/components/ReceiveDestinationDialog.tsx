@@ -12,14 +12,11 @@ const NEW      = '__new__'
 
 interface Props {
   partId:   string
+  orderedQuantity: number
   busy:     boolean
   onClose:  () => void
   onConfirm:(dest: ReceiveDestination) => void
-  /** Optional header chip — e.g. "1 מתוך 3" when running the dialog
-   *  across a bulk selection. */
   progress?: string
-  /** Optional subtitle line — usually the part name + SKU so the user
-   *  knows which item they're filing a destination for. */
   subtitle?: string
 }
 
@@ -27,7 +24,7 @@ interface Props {
  *  Pick an existing parts row that shares the same SKU, pick the
  *  external warehouse, or create a new parts row from scratch. */
 export function ReceiveDestinationDialog({
-  partId, busy, onClose, onConfirm, progress, subtitle,
+  partId, orderedQuantity, busy, onClose, onConfirm, progress, subtitle,
 }: Props) {
   const { data: locations } = useQuery({
     queryKey: ['parts_same_sku', partId],
@@ -40,6 +37,7 @@ export function ReceiveDestinationDialog({
   })
 
   const [pick, setPick] = useState<string>('')
+  const [receivedQty, setReceivedQty] = useState(String(orderedQuantity))
   const [warehouse, setWarehouse] = useState('')
   const [cabinet, setCabinet] = useState('')
   const [storageType, setStorageType] = useState('')
@@ -55,10 +53,13 @@ export function ReceiveDestinationDialog({
 
   function submit() {
     if (!pick) return
-    if (pick === EXTERNAL) { onConfirm({ receive_to: 'external' }); return }
+    const rq = parseInt(receivedQty, 10)
+    const received_quantity = (!Number.isNaN(rq) && rq >= 0 && rq !== orderedQuantity) ? rq : undefined
+    if (pick === EXTERNAL) { onConfirm({ receive_to: 'external', received_quantity }); return }
     if (pick === NEW) {
       onConfirm({
         receive_to: 'new',
+        received_quantity,
         receive_new_location: {
           warehouse:      warehouse.trim() || null,
           cabinet:        nullableInt(cabinet),
@@ -69,7 +70,7 @@ export function ReceiveDestinationDialog({
       })
       return
     }
-    onConfirm({ receive_to: 'existing', receive_part_id: pick })
+    onConfirm({ receive_to: 'existing', receive_part_id: pick, received_quantity })
   }
 
   function locLabel(p: Part): string {
@@ -93,6 +94,18 @@ export function ReceiveDestinationDialog({
           {progress && <span className="text-xs text-muted font-mono">{progress}</span>}
         </div>
         {subtitle && <p className="text-xs text-muted -mt-2">{subtitle}</p>}
+
+        <div className="flex items-center gap-3">
+          <Input
+            label="כמות שהתקבלה"
+            name="received-qty"
+            type="number"
+            value={receivedQty}
+            onChange={(e) => setReceivedQty(e.target.value)}
+            className="max-w-[8rem]"
+          />
+          <span className="text-xs text-muted mt-5">הוזמנו: {orderedQuantity}</span>
+        </div>
 
         <ul className="flex flex-col gap-1">
           {(locations ?? []).map((loc) => (

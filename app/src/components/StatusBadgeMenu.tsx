@@ -53,14 +53,14 @@ const MENU_STATUSES: RequiredPartStatus[] = [
 interface Props {
   rowId:           string
   partId:          string
+  quantity:        number
   currentStatus:   RequiredPartStatus
   isSkuBlocked:    boolean
-  /** Optional extra refresh hook called after a status change. */
   onChanged?:      () => void
 }
 
 export function StatusBadgeMenu({
-  rowId, partId, currentStatus, isSkuBlocked, onChanged,
+  rowId, partId, quantity, currentStatus, isSkuBlocked, onChanged,
 }: Props) {
   const employee = useAuthStore((s) => s.employee)
   const canChange = employee?.permissions === 'warehouse' || employee?.permissions === 'manager'
@@ -181,6 +181,7 @@ export function StatusBadgeMenu({
       {receiveOpen && (
         <ReceiveDestinationDialog
           partId={partId}
+          orderedQuantity={quantity}
           busy={busy}
           onClose={() => setReceiveOpen(false)}
           onConfirm={(dest) => setStatus('received', dest)}

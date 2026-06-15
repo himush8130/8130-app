@@ -132,7 +132,6 @@ export function PartsCatalogList({ parts }: { parts: Part[] }) {
   }, [parts, f])
 
   const active = isActive(f)
-  const VISIBLE_LIMIT = 100
 
   return (
     <Card id="catalog">
@@ -256,7 +255,7 @@ export function PartsCatalogList({ parts }: { parts: Part[] }) {
                 </tr>
               </thead>
               <tbody>
-                {filtered.slice(0, VISIBLE_LIMIT).map((p) => (
+                {filtered.map((p) => (
                   <PartRow
                     key={p.id}
                     part={p}
@@ -266,11 +265,6 @@ export function PartsCatalogList({ parts }: { parts: Part[] }) {
                 ))}
               </tbody>
             </table>
-            {filtered.length > VISIBLE_LIMIT && (
-              <p className="text-xs text-muted text-center py-2 border-t border-border">
-                מוצגים {VISIBLE_LIMIT} מתוך {filtered.length} — צמצם את הסינון לראות יותר.
-              </p>
-            )}
           </div>
         )}
       </CardBody>

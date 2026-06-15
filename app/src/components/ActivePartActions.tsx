@@ -195,6 +195,7 @@ export function ActivePartActions() {
         partId:  r.part_id,
         name:    r.parts?.name ?? '?',
         sku:     r.parts?.sku ?? '',
+        quantity: r.quantity,
         ...(orderNumber ? { orderNumber } : {}),
       }))
     setReceiveQueue(items)
@@ -423,6 +424,7 @@ export function ActivePartActions() {
       {receiveQueue.length > 0 && (
         <ReceiveDestinationDialog
           partId={receiveQueue[0].partId}
+          orderedQuantity={receiveQueue[0].quantity}
           busy={busy}
           progress={`${receiveTotal - receiveQueue.length + 1} מתוך ${receiveTotal}`}
           subtitle={`${receiveQueue[0].name} · ${receiveQueue[0].sku}`}

@@ -32,11 +32,8 @@ export function addRequiredPart(
 }
 
 export interface ReceiveDestination {
-  /** Where the received goods land. */
   receive_to:           'existing' | 'external' | 'new'
-  /** When 'existing': which catalog row id to bump. Defaults to the row's part_id. */
   receive_part_id?:     string
-  /** When 'new': the location fields for the new catalog row. */
   receive_new_location?: {
     warehouse?:      string | null
     cabinet?:        number | null
@@ -44,6 +41,7 @@ export interface ReceiveDestination {
     storage_number?: number | null
     cell_number?:    number | null
   }
+  received_quantity?: number
 }
 
 export function updateRequiredPartStatus(

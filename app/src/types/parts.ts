@@ -30,6 +30,7 @@ export interface CallRequiredPart {
   warehouse_order_id: string | null
   part_id: string                   // UUID FK to parts.id
   quantity: number
+  received_quantity: number | null
   status: RequiredPartStatus
   requested_by: number | null
   requested_at: string

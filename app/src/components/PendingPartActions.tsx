@@ -310,6 +310,7 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
       {returnRow && (
         <ReceiveDestinationDialog
           partId={returnRow.part_id}
+          orderedQuantity={returnRow.quantity}
           busy={busyId === returnRow.id}
           subtitle={`${returnRow.parts?.name ?? ''} · ${returnRow.parts?.sku ?? ''}`}
           onClose={() => setReturnRow(null)}

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useParts } from '../hooks/useParts'
 import { useAuthStore } from '../store/auth'
-import { createWarehouseOrder } from '../lib/warehouseActions'
+import { createWarehouseOrder, createPart } from '../lib/warehouseActions'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { ExchangeBadge } from './ExchangeBadge'
@@ -17,13 +17,7 @@ interface Draft {
   quantity: number
 }
 
-/**
- * Inline form for creating a "הזמנת מחסן כללית" — a parts order that
- * doesn't belong to any service call. Picks items from the existing
- * catalog (no free-form SKU here; that's what "+ הוסף חלק חדש" is for)
- * and submits them as a single warehouse_order with one
- * call_required_parts row per item in 'awaiting_order'.
- */
+/** Inline form for creating a warehouse order — picks from catalog or creates a new part on the fly. */
 export function AddWarehouseOrderForm({
   onDone, onCancel,
 }: {
@@ -77,6 +71,28 @@ export function AddWarehouseOrderForm({
     resetPickerRow()
   }
 
+  async function createAndPick() {
+    setError(null)
+    const sku  = skuQ.trim()
+    const name = nameQ.trim()
+    const q    = parseInt(qty, 10)
+    if (!sku && !name) { setError('הזן מק״ט או שם כדי ליצור פריט חדש'); return }
+    if (Number.isNaN(q) || q <= 0) { setError('כמות לא תקינה'); return }
+    setBusy(true)
+    const created: any = await createPart(employee.employee_number, { sku: sku || name, name: name || sku, quantity: 0 })
+    setBusy(false)
+    if (!created.ok || !created.part) {
+      setError(created.detail || created.error || 'שגיאה ביצירת פריט')
+      return
+    }
+    queryClient.invalidateQueries({ queryKey: ['parts'] })
+    setDrafts((d) => [...d, {
+      key: `${Date.now()}-${created.part.id}`,
+      partId: created.part.id, sku: created.part.sku, name: created.part.name, quantity: q,
+    }])
+    resetPickerRow()
+  }
+
   function remove(key: string) {
     setDrafts((d) => d.filter((x) => x.key !== key))
   }
@@ -101,7 +117,7 @@ export function AddWarehouseOrderForm({
     <div className="flex flex-col gap-3">
       <ComponentBadge id={4015} />
       <p className="text-xs text-muted">
-        בחר חלקים מהקטלוג שמיועדים להזמנה. הפעולה תיצור הזמנת מחסן כללית עם מספר רץ ("WO-…"), וכל חלק ייכנס לסטטוס "הוזמן".
+        בחר חלקים מהקטלוג או צור פריט חדש. הפעולה תיצור הזמנת מחסן כללית עם מספר רץ ("WO-…"), וכל חלק ייכנס לסטטוס "הוזמן".
       </p>
 
       {drafts.length > 0 && (
@@ -158,7 +174,14 @@ export function AddWarehouseOrderForm({
           + הוסף לרשימה
         </Button>
         {!picked && (skuQ.trim() || nameQ.trim()) && matches.length === 0 && (
-          <span className="text-[11px] text-muted">לא נמצאו פריטים — להוספת פריט חדש לקטלוג השתמש ב"+ הוסף חלק חדש".</span>
+          <Button
+            variant="secondary"
+            onClick={createAndPick}
+            disabled={busy || !(parseInt(qty, 10) > 0)}
+            className="text-xs px-3 py-1"
+          >
+            + צור פריט חדש והוסף
+          </Button>
         )}
       </div>
 

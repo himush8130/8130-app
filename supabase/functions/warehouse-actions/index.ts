@@ -189,7 +189,7 @@ async function updateRequiredPartStatus(params: any): Promise<Response> {
   // Read the existing row first so we can detect the transition.
   const { data: before, error: beforeErr } = await admin
     .from('call_required_parts')
-    .select('id, call_id, part_id, quantity, status, rejection_reason, order_number')
+    .select('id, call_id, part_id, quantity, received_quantity, status, rejection_reason, order_number')
     .eq('id', required_part_id)
     .maybeSingle()
   if (beforeErr) return json(500, { ok: false, error: 'lookup_failed', detail: beforeErr.message })
@@ -197,6 +197,12 @@ async function updateRequiredPartStatus(params: any): Promise<Response> {
 
   // Build the update patch.
   const patch: Record<string, unknown> = { status }
+
+  // received_quantity: set when the actual received amount differs from ordered.
+  const incomingReceivedQty = typeof params?.received_quantity === 'number' ? params.received_quantity : null
+  if (status === 'received' && incomingReceivedQty !== null && incomingReceivedQty >= 0) {
+    patch.received_quantity = incomingReceivedQty
+  }
   // Rejection reason: optional. Carries across rejected→pending_special_approval/rejected_final.
   // Cleared when leaving the rejected family.
   const REJECTED = ['rejected', 'pending_special_approval', 'rejected_final']
@@ -318,13 +324,17 @@ async function updateRequiredPartStatus(params: any): Promise<Response> {
         .maybeSingle()
       if (wd) await admin.from('part_withdrawals').delete().eq('id', wd.id)
     }
-    const err = await applyReceiveDestination(before.quantity)
+    const effectiveQty = incomingReceivedQty !== null && incomingReceivedQty >= 0
+      ? incomingReceivedQty
+      : before.quantity
+    const err = await applyReceiveDestination(effectiveQty)
     if (err) return json(500, { ok: false, error: 'receive_failed', detail: err })
   } else if (before.status === 'received' && status === 'awaiting_receipt') {
-    // Reverse correction.
+    // Reverse correction — use received_quantity if it was recorded.
+    const reverseQty = before.received_quantity ?? before.quantity
     const { data: stockRow } = await admin
       .from('parts').select('quantity').eq('id', before.part_id).maybeSingle()
-    await admin.from('parts').update({ quantity: Math.max(0, (stockRow?.quantity ?? 0) - before.quantity) })
+    await admin.from('parts').update({ quantity: Math.max(0, (stockRow?.quantity ?? 0) - reverseQty) })
       .eq('id', before.part_id)
   } else if (
     before.status === 'delivered'

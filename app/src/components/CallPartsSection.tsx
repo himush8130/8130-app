@@ -407,6 +407,7 @@ function RequiredPartRow({
           <StatusBadgeMenu
             rowId={row.id}
             partId={row.part_id}
+            quantity={row.quantity}
             currentStatus={row.status}
             isSkuBlocked={isBlocked}
             onChanged={onChange}
