@@ -34,6 +34,7 @@ function PinInput({ value, onChange, autoFocus }: {
   autoFocus?: boolean
 }) {
   const ref = useRef<HTMLInputElement>(null)
+  const [focused, setFocused] = useState(false)
   const digits = value.padEnd(4, ' ').slice(0, 4).split('')
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -52,6 +53,8 @@ function PinInput({ value, onChange, autoFocus }: {
         autoFocus={autoFocus}
         value={value}
         onChange={handleChange}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
         className="sr-only"
         autoComplete="one-time-code"
       />
@@ -59,11 +62,9 @@ function PinInput({ value, onChange, autoFocus }: {
         <div
           key={i}
           className={`w-12 h-14 flex items-center justify-center text-2xl font-bold rounded-xl border-2 transition-colors select-none ${
-            i === value.length && document.activeElement === ref.current
+            focused && i === value.length
               ? 'border-primary ring-1 ring-primary'
-              : d.trim()
-                ? 'border-border bg-card'
-                : 'border-border bg-card'
+              : 'border-border bg-card'
           }`}
         >
           {d.trim() ? '●' : ''}
