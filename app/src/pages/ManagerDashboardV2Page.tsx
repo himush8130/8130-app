@@ -4,7 +4,7 @@ import { AppHeader } from '../components/AppHeader'
 import { useAuthStore } from '../store/auth'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { DonutChart } from '../components/DonutChart'
-import { useDashboardData, type DashboardData, type DashboardCompany } from '../hooks/useDashboardData'
+import { useDashboardData, type DashboardData, type DashboardCompany, type DisablingCall } from '../hooks/useDashboardData'
 import { useMonthlyMaintenanceCompany } from '../hooks/useTankMaintenance'
 import { usePriorityConfig, priorityScore, DEFAULT_IMPORTANCE, MAX_IMPORTANCE } from '../hooks/usePriorityConfig'
 
@@ -167,9 +167,10 @@ function TopStatsBar({ d }: { d: DashboardData }) {
   const { data: mm } = useMonthlyMaintenanceCompany()
   const employee = useAuthStore((s) => s.employee)
   const canLinkCalls = employee?.permissions === 'manager'
+  const [showDisabling, setShowDisabling] = useState(false)
 
-  const SECONDARY: Array<{ key: string; icon: ReactNode; value: ReactNode; label: string }> = [
-    { key: 'dis',     icon: <IconWrench size={18} />,   value: d.totalDisabling,                label: 'משביתות' },
+  const SECONDARY: Array<{ key: string; icon: ReactNode; value: ReactNode; label: string; onClick?: () => void }> = [
+    { key: 'dis',     icon: <IconWrench size={18} />,   value: d.totalDisabling,                label: 'משביתות', onClick: () => setShowDisabling(v => !v) },
     {
       key: 'monthly',
       icon: <IconCalendar size={18} />,
@@ -189,31 +190,89 @@ function TopStatsBar({ d }: { d: DashboardData }) {
   )
 
   return (
-    <div className="rounded-2xl border border-border overflow-hidden">
-      {canLinkCalls ? (
-        <Link
-          to="/manager/calls"
-          className="block px-4 py-5 sm:py-6 text-center transition-opacity hover:opacity-90"
-          style={{ backgroundColor: STAT_NAVY }}
-        >
-          {heroContent}
-        </Link>
-      ) : (
-        <div className="px-4 py-5 sm:py-6 text-center" style={{ backgroundColor: STAT_NAVY }}>
-          {heroContent}
-        </div>
-      )}
-
-      <div className="grid grid-cols-4 gap-px bg-border">
-        {SECONDARY.map((s) => (
-          <div key={s.key} className="bg-card flex flex-col items-center px-1 sm:px-3 py-3 sm:py-4">
-            <span className="text-muted mb-1">{s.icon}</span>
-            <span className="text-lg sm:text-2xl font-bold text-foreground leading-none">{s.value}</span>
-            <span className="text-[10px] sm:text-xs text-muted mt-1 text-center leading-tight">{s.label}</span>
+    <div className="flex flex-col gap-2">
+      <div className="rounded-2xl border border-border overflow-hidden">
+        {canLinkCalls ? (
+          <Link
+            to="/manager/calls"
+            className="block px-4 py-5 sm:py-6 text-center transition-opacity hover:opacity-90"
+            style={{ backgroundColor: STAT_NAVY }}
+          >
+            {heroContent}
+          </Link>
+        ) : (
+          <div className="px-4 py-5 sm:py-6 text-center" style={{ backgroundColor: STAT_NAVY }}>
+            {heroContent}
           </div>
-        ))}
+        )}
+
+        <div className="grid grid-cols-4 gap-px bg-border">
+          {SECONDARY.map((s) => {
+            const active = s.key === 'dis' && showDisabling
+            return (
+              <button
+                key={s.key}
+                type="button"
+                onClick={s.onClick}
+                disabled={!s.onClick}
+                className={`bg-card flex flex-col items-center px-1 sm:px-3 py-3 sm:py-4 transition-colors ${
+                  s.onClick ? 'cursor-pointer hover:bg-muted-surface/50' : 'cursor-default'
+                } ${active ? 'bg-danger/5' : ''}`}
+              >
+                <span className={active ? 'text-danger' : 'text-muted'}>{s.icon}</span>
+                <span className={`text-lg sm:text-2xl font-bold leading-none mt-1 ${active ? 'text-danger' : 'text-foreground'}`}>{s.value}</span>
+                <span className={`text-[10px] sm:text-xs mt-1 text-center leading-tight ${active ? 'text-danger' : 'text-muted'}`}>{s.label}</span>
+              </button>
+            )
+          })}
+        </div>
       </div>
+
+      {showDisabling && <DisablingCallsTable calls={d.disablingCalls} />}
     </div>
+  )
+}
+
+function DisablingCallsTable({ calls }: { calls: DisablingCall[] }) {
+  if (calls.length === 0) {
+    return (
+      <Card>
+        <CardBody>
+          <p className="text-sm text-muted text-center py-3">אין תקלות משביתות פעילות</p>
+        </CardBody>
+      </Card>
+    )
+  }
+  return (
+    <Card>
+      <CardHeader>
+        <h2 className="text-sm font-semibold text-foreground">תקלות משביתות ({calls.length})</h2>
+      </CardHeader>
+      <CardBody className="p-0">
+        <table className="w-full text-xs">
+          <thead className="bg-muted-surface text-muted">
+            <tr>
+              <th className="text-start px-3 py-2">מספר כלי</th>
+              <th className="text-start px-3 py-2">פלוגה</th>
+              <th className="text-start px-3 py-2">תיאור תקלה</th>
+              <th className="px-3 py-2" />
+            </tr>
+          </thead>
+          <tbody>
+            {calls.map((c) => (
+              <tr key={c.id} className="border-t border-border">
+                <td className="px-3 py-2 font-mono font-medium text-foreground">{c.vehicleNumber}</td>
+                <td className="px-3 py-2 whitespace-nowrap">{c.company}</td>
+                <td className="px-3 py-2 text-foreground">{c.description}</td>
+                <td className="px-3 py-2">
+                  <Link to={`/call/${c.id}`} className="text-primary hover:underline whitespace-nowrap">פתח →</Link>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </CardBody>
+    </Card>
   )
 }
 

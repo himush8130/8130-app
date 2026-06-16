@@ -60,9 +60,17 @@ export interface WheeledRow {
   pct: number
 }
 
+export interface DisablingCall {
+  id: string
+  vehicleNumber: string
+  company: string
+  description: string
+}
+
 export interface DashboardData {
   totalOpenCalls: number
   totalDisabling: number
+  disablingCalls: DisablingCall[]
   overallTankReadinessPct: number
   companies: DashboardCompany[]
   engineAlerts: EngineAlert[]
@@ -86,7 +94,7 @@ export function useDashboardData() {
       const [callsRes, tanksRes, wheeledRes, closedRes, receivedRes] = await Promise.all([
         supabase
           .from('service_calls')
-          .select('id, vehicle_number, is_disabling, status, created_at')
+          .select('id, vehicle_number, is_disabling, status, created_at, description')
           .in('status', ACTIVE_STATUSES),
         supabase
           .from('vehicles')
@@ -122,14 +130,27 @@ export function useDashboardData() {
         tanksPerCo.set(co, (tanksPerCo.get(co) ?? 0) + 1)
       }
 
+      const vehicleCompany = new Map<string, string>()
+      for (const t of tanks) vehicleCompany.set(t.vehicle_number, t.sub_department || '—')
+      for (const w of wheeled) vehicleCompany.set(w.vehicle_number, w.sub_department || w.department || '—')
+
       let totalDisabling = 0
+      const disablingCalls: DisablingCall[] = []
       type Acc = { open: number; dis: number; wp: number; totalMin: number; n: number }
       const coAcc = new Map<string, Acc>()
       const vCalls = new Map<string, { dis: boolean }>()
       const now = Date.now()
 
       for (const c of calls) {
-        if (c.is_disabling) totalDisabling++
+        if (c.is_disabling) {
+          totalDisabling++
+          disablingCalls.push({
+            id: c.id,
+            vehicleNumber: c.vehicle_number || '—',
+            company: c.vehicle_number ? vehicleCompany.get(c.vehicle_number) || '—' : '—',
+            description: (c as any).description || '—',
+          })
+        }
         if (c.vehicle_number) {
           const vc = vCalls.get(c.vehicle_number) ?? { dis: false }
           if (c.is_disabling) vc.dis = true
@@ -297,6 +318,7 @@ export function useDashboardData() {
       return {
         totalOpenCalls: calls.length,
         totalDisabling,
+        disablingCalls,
         overallTankReadinessPct: tanks.length > 0 ? Math.round((totalTankOp / tanks.length) * 100) : 0,
         companies,
         engineAlerts,

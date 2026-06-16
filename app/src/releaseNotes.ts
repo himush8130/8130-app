@@ -6,6 +6,6 @@
 // opened the app. Build time below is injected automatically by Vite.
 // =====================================================================
 
-export const LATEST_NOTE = 'מנהלים נדרשים להגדיר סיסמה בת 4 ספרות בכניסה הראשונה. ניתן לאפס סיסמה של מנהל אחר דרך הגדרות עובדים.'
+export const LATEST_NOTE = 'לחיצה על משביתות בלוח הבקרה פותחת טבלה עם פרטי התקלות וקישור ישיר לדף התקלה.'
 
 export const BUILD_TIME = __BUILD_TIME__  // ISO string injected at build
