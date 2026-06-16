@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, type FormEvent } from 'react'
+import { useState, useRef, useCallback, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/auth'
@@ -35,12 +35,6 @@ function PinInput({ value, onChange, autoFocus }: {
 }) {
   const ref = useRef<HTMLInputElement>(null)
   const digits = value.padEnd(4, ' ').slice(0, 4).split('')
-
-  useEffect(() => {
-    if (autoFocus) {
-      setTimeout(() => ref.current?.focus(), 50)
-    }
-  }, [autoFocus])
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/\D/g, '').slice(0, 4)
