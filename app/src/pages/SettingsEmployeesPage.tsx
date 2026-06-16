@@ -5,7 +5,7 @@ import { useEmployees } from '../hooks/useEmployees'
 import { useProfessions } from '../hooks/useProfessions'
 import { useAuthStore } from '../store/auth'
 import {
-  createEmployee, updateEmployee, deleteEmployee,
+  createEmployee, updateEmployee, deleteEmployee, resetPin,
 } from '../lib/adminActions'
 import { AppHeader } from '../components/AppHeader'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
@@ -195,6 +195,16 @@ function EmployeeRow({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [pinReset, setPinReset] = useState(false)
+
+  async function handleResetPin() {
+    setBusy(true)
+    const res = await resetPin(managerNum, emp.employee_number)
+    setBusy(false)
+    if (!res.ok) { setError('שגיאה באיפוס סיסמה'); return }
+    setPinReset(true)
+    setTimeout(() => setPinReset(false), 3000)
+  }
 
   async function save() {
     setError(null); setBusy(true)
@@ -251,7 +261,12 @@ function EmployeeRow({
             )}
           </div>
           {!confirmDelete && (
-            <div className="flex gap-1">
+            <div className="flex gap-1 items-center">
+              {emp.permissions === 'manager' && (
+                pinReset
+                  ? <span className="text-xs text-success">אופסה</span>
+                  : <Button variant="ghost" onClick={handleResetPin} disabled={busy}>אפס סיסמה</Button>
+              )}
               <Button variant="secondary" onClick={() => setEditing(true)}>ערוך</Button>
               <Button variant="ghost" onClick={() => setConfirmDelete(true)}>מחק</Button>
             </div>

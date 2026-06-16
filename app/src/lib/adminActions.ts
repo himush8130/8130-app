@@ -209,3 +209,37 @@ export function deleteClassOrder(employeeNumber: number, id: string) {
     params: { id },
   })
 }
+
+// ----- Manager PIN -----
+
+export async function checkPinStatus(employeeNumber: number): Promise<{ ok: boolean; has_pin?: boolean }> {
+  return invoke({
+    employee_number: employeeNumber,
+    action: 'check_pin_status',
+    params: {},
+  }) as Promise<{ ok: boolean; has_pin?: boolean }>
+}
+
+export async function setPin(employeeNumber: number, pin: string): Promise<AdminResult> {
+  return invoke({
+    employee_number: employeeNumber,
+    action: 'set_pin',
+    params: { pin },
+  })
+}
+
+export async function verifyPin(employeeNumber: number, pin: string): Promise<{ ok: boolean; verified?: boolean }> {
+  return invoke({
+    employee_number: employeeNumber,
+    action: 'verify_pin',
+    params: { pin },
+  }) as Promise<{ ok: boolean; verified?: boolean }>
+}
+
+export async function resetPin(employeeNumber: number, targetEmployeeNumber: number): Promise<AdminResult> {
+  return invoke({
+    employee_number: employeeNumber,
+    action: 'reset_pin',
+    params: { target_employee_number: targetEmployeeNumber },
+  })
+}

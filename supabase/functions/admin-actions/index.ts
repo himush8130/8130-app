@@ -61,6 +61,9 @@ Deno.serve(async (req: Request) => {
     'upsert_class_order',
     'delete_class_order',
     'set_tank_reading',
+    'check_pin_status',
+    'set_pin',
+    'verify_pin',
   ])
   if (!TECH_ALLOWED_ACTIONS.has(action) && caller.permissions !== 'manager') {
     return json(403, { ok: false, error: 'requires_manager' })
@@ -98,6 +101,13 @@ Deno.serve(async (req: Request) => {
     // dispatches via the table on the manager home.
     case 'upsert_class_order':  return await upsertClassOrder(params, employee_number)
     case 'delete_class_order':  return await deleteClassOrder(params)
+
+    // PIN management — accessible by any employee for their own PIN,
+    // reset_pin is manager-only (handled above by the permission check).
+    case 'check_pin_status':    return await checkPinStatus(employee_number)
+    case 'set_pin':             return await setPin(employee_number, params)
+    case 'verify_pin':          return await verifyPin(employee_number, params)
+    case 'reset_pin':           return await resetPin(params)
     default:
       return json(400, { ok: false, error: 'unknown_action', action })
   }
@@ -555,6 +565,61 @@ async function deleteClassOrder(params: any): Promise<Response> {
 }
 
 // ----- helpers -----
+
+// ----- PIN management -----
+
+async function hashPin(employeeNumber: number, pin: string): Promise<string> {
+  const raw = `${employeeNumber}:${pin}`
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw))
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
+async function checkPinStatus(employeeNumber: number): Promise<Response> {
+  const { data, error } = await admin
+    .from('employees')
+    .select('pin_hash')
+    .eq('employee_number', employeeNumber)
+    .maybeSingle()
+  if (error || !data) return json(404, { ok: false, error: 'not_found' })
+  return json(200, { ok: true, has_pin: data.pin_hash != null })
+}
+
+async function setPin(employeeNumber: number, params: any): Promise<Response> {
+  const pin = String(params?.pin ?? '')
+  if (!/^\d{4}$/.test(pin)) return json(400, { ok: false, error: 'pin_must_be_4_digits' })
+  const hash = await hashPin(employeeNumber, pin)
+  const { error } = await admin
+    .from('employees')
+    .update({ pin_hash: hash })
+    .eq('employee_number', employeeNumber)
+  if (error) return json(500, { ok: false, error: 'update_failed', detail: error.message })
+  return json(200, { ok: true })
+}
+
+async function verifyPin(employeeNumber: number, params: any): Promise<Response> {
+  const pin = String(params?.pin ?? '')
+  if (!/^\d{4}$/.test(pin)) return json(400, { ok: false, error: 'pin_must_be_4_digits' })
+  const { data, error } = await admin
+    .from('employees')
+    .select('pin_hash')
+    .eq('employee_number', employeeNumber)
+    .maybeSingle()
+  if (error || !data) return json(404, { ok: false, error: 'not_found' })
+  if (!data.pin_hash) return json(400, { ok: false, error: 'pin_not_set' })
+  const hash = await hashPin(employeeNumber, pin)
+  return json(200, { ok: true, verified: hash === data.pin_hash })
+}
+
+async function resetPin(params: any): Promise<Response> {
+  const target = params?.target_employee_number
+  if (typeof target !== 'number') return json(400, { ok: false, error: 'missing_target' })
+  const { error } = await admin
+    .from('employees')
+    .update({ pin_hash: null })
+    .eq('employee_number', target)
+  if (error) return json(500, { ok: false, error: 'update_failed', detail: error.message })
+  return json(200, { ok: true })
+}
 
 function json(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
