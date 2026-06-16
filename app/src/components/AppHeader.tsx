@@ -3,6 +3,9 @@ import { createPortal } from 'react-dom'
 import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../store/auth'
 import { useFeedbackNotes } from '../hooks/useFeedbackNotes'
+import { useEmployees } from '../hooks/useEmployees'
+import { useTodayUnavailable } from '../hooks/useTodayUnavailable'
+import { buildAttendanceText } from '../lib/attendanceReport'
 import { ComponentBadge } from '../feedback/ComponentBadge'
 import { hardReload } from '../lib/hardReload'
 import { BUILD_TIME } from '../releaseNotes'
@@ -152,6 +155,8 @@ export function AppHeader({ subtitle, showLogo, wide }: { subtitle?: string; sho
               </Link>
             )}
 
+            {employee.permissions === 'manager' && <AttendanceCopyIcon />}
+
             {employee.permissions === 'manager' && (
               <span className="inline-flex items-center relative">
                 <ComponentBadge id={1004} />
@@ -258,5 +263,45 @@ export function AppHeader({ subtitle, showLogo, wide }: { subtitle?: string; sho
         </div>
       )}
     </header>
+  )
+}
+
+function AttendanceCopyIcon() {
+  const { data: employees } = useEmployees()
+  const { data: unavail } = useTodayUnavailable()
+  const [state, setState] = useState<'idle' | 'copied' | 'error'>('idle')
+
+  const ready = !!employees && !!unavail
+
+  async function handleCopy() {
+    if (!ready) return
+    try {
+      const text = buildAttendanceText(employees!, unavail!)
+      await navigator.clipboard.writeText(text)
+      setState('copied')
+      setTimeout(() => setState('idle'), 2000)
+    } catch {
+      setState('error')
+      setTimeout(() => setState('idle'), 2000)
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      disabled={!ready}
+      aria-label="העתק דוח נוכחות"
+      title={state === 'copied' ? 'הועתק!' : 'העתק דוח נוכחות'}
+      className={`${CHIP_BASE} ${CHIP_ICON} text-base ${
+        state === 'copied'
+          ? 'bg-success/15 text-success border-success'
+          : state === 'error'
+            ? 'bg-danger/15 text-danger border-danger'
+            : CHIP_NEUTRAL
+      } disabled:opacity-40`}
+    >
+      {state === 'copied' ? '✓' : '📋'}
+    </button>
   )
 }
