@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, type FormEvent } from 'react'
+import { useState, useRef, useCallback, useEffect, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/auth'
@@ -124,7 +124,7 @@ export function LoginPage() {
       return
     }
 
-    if (data.permissions !== 'manager') {
+    if (data.permissions !== 'manager' && data.permissions !== 'warehouse') {
       completeLogin(data)
       return
     }
@@ -189,6 +189,18 @@ export function LoginPage() {
     setConfirmPin('')
     setError(null)
   }
+
+  useEffect(() => {
+    if (stage === 'pin-verify' && pin.length === 4 && !loading) {
+      handlePinVerify({ preventDefault: () => {} } as FormEvent)
+    }
+  }, [pin])
+
+  useEffect(() => {
+    if (stage === 'pin-setup' && pin.length === 4 && confirmPin.length === 4 && !loading) {
+      handlePinSetup({ preventDefault: () => {} } as FormEvent)
+    }
+  }, [confirmPin])
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-surface p-4">

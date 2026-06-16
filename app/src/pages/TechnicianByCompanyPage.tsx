@@ -22,6 +22,8 @@ import type { CallPartsSummary } from '../hooks/useCallsPartsStatus'
 
 const ACTIVE_STATUSES = ['in_treatment', 'waiting_for_parts']
 const STAT_NAVY = '#232150'
+const ENGINE_THRESHOLD_OFFSET = 200
+const ENGINE_NEAR_BAND = 50
 
 // Sentinel for vehicles that aren't tagged with a sub_department.
 // Kept as a real value so React keys stay stable; users never see it.
@@ -419,6 +421,13 @@ export function TechnicianByCompanyPage() {
                           const v = vehiclesMap.get(vehicleNumber)
                           const active = selectedVehicle === vehicleNumber
                           const disabled = !!vehicleStats?.get(vehicleNumber)?.disabled
+                          const eThreshold = v?.initial_engine_hours != null ? v.initial_engine_hours + ENGINE_THRESHOLD_OFFSET : null
+                          const eCurrent = v?.current_engine_hours ?? null
+                          const eAlert: 'red' | 'yellow' | null =
+                            eCurrent != null && eThreshold != null
+                              ? eCurrent > eThreshold ? 'red'
+                              : eCurrent >= eThreshold - ENGINE_NEAR_BAND ? 'yellow'
+                              : null : null
                           return (
                             <button
                               key={vehicleNumber}
@@ -430,8 +439,13 @@ export function TechnicianByCompanyPage() {
                                   ? 'ring-2 ring-primary shadow-md'
                                   : disabled
                                     ? 'border border-danger/50 hover:shadow-sm'
-                                    : 'border border-border hover:shadow-sm'
+                                    : eAlert === 'red'
+                                      ? 'border border-danger/40 hover:shadow-sm'
+                                      : eAlert === 'yellow'
+                                        ? 'border border-warning/40 hover:shadow-sm'
+                                        : 'border border-border hover:shadow-sm'
                               }`}
+                              style={!active && eAlert === 'red' ? { backgroundColor: 'rgba(239,68,68,0.06)' } : !active && eAlert === 'yellow' ? { backgroundColor: 'rgba(234,179,8,0.06)' } : undefined}
                             >
                               <div className="w-1.5 shrink-0" style={{ backgroundColor: disabled ? 'var(--color-danger)' : tint.border }} />
                               <div className="flex-1 flex items-center justify-between gap-3 px-3 py-2.5">
@@ -443,6 +457,16 @@ export function TechnicianByCompanyPage() {
                                     {disabled && (
                                       <span className="text-[10px] font-bold text-white bg-danger px-1.5 py-0.5 rounded-full whitespace-nowrap">
                                         מושבת
+                                      </span>
+                                    )}
+                                    {eAlert === 'red' && (
+                                      <span className="text-[10px] font-bold text-white bg-danger px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                                        חריגת שעמ
+                                      </span>
+                                    )}
+                                    {eAlert === 'yellow' && (
+                                      <span className="text-[10px] font-bold text-white bg-warning px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                                        קרוב לחריגה
                                       </span>
                                     )}
                                   </div>

@@ -69,7 +69,7 @@ createRoot(document.getElementById('root')!).render(
 
           <Route path="/technician" element={
             <Resilient scope="technician">
-              <ProtectedRoute allow={['technician', 'manager', 'commander_viewer']}>
+              <ProtectedRoute allow={['technician', 'manager', 'commander_viewer', 'warehouse']}>
                 <TechnicianByCompanyPage />
               </ProtectedRoute>
             </Resilient>

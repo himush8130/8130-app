@@ -262,7 +262,7 @@ function EmployeeRow({
           </div>
           {!confirmDelete && (
             <div className="flex gap-1 items-center">
-              {emp.permissions === 'manager' && (
+              {(emp.permissions === 'manager' || emp.permissions === 'warehouse') && (
                 pinReset
                   ? <span className="text-xs text-success">אופסה</span>
                   : <Button variant="ghost" onClick={handleResetPin} disabled={busy}>אפס סיסמה</Button>
