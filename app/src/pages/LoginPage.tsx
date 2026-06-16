@@ -43,7 +43,7 @@ function PinInput({ value, onChange, autoFocus }: {
   }, [onChange])
 
   return (
-    <div className="flex justify-center gap-3" dir="ltr" onClick={() => ref.current?.focus()}>
+    <div className="relative flex justify-center gap-3" dir="ltr">
       <input
         ref={ref}
         type="tel"
@@ -55,7 +55,7 @@ function PinInput({ value, onChange, autoFocus }: {
         onChange={handleChange}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
-        className="sr-only"
+        className="absolute inset-0 w-full h-full opacity-0 z-10 cursor-pointer"
         autoComplete="one-time-code"
       />
       {digits.map((d, i) => (

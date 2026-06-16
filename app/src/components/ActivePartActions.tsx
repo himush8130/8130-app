@@ -25,11 +25,11 @@ const TAB_LABEL: Record<Tab, string> = {
   wear:             'בלאי',
 }
 
-const TAB_BASE: Record<Tab, string> = {
-  awaiting_order:   'bg-danger/10  text-danger  border-danger  hover:bg-danger/15',
-  awaiting_receipt: 'bg-warning/10 text-warning border-warning hover:bg-warning/15',
-  received:         'bg-info/10    text-info    border-info    hover:bg-info/15',
-  wear:             'bg-success/10 text-success border-success hover:bg-success/15',
+const TAB_COLOR: Record<Tab, string> = {
+  awaiting_order:   '#dc2626',
+  awaiting_receipt: '#f59e0b',
+  received:         '#3b82f6',
+  wear:             '#16a34a',
 }
 
 const HOUR = 60 * 60 * 1000
@@ -301,18 +301,21 @@ export function ActivePartActions() {
       <div className="px-3 py-3 grid grid-cols-4 gap-2">
         {(Object.keys(TAB_LABEL) as Tab[]).map((t) => {
           const active = tab === t
+          const color = TAB_COLOR[t]
           return (
             <button
               key={t}
               type="button"
               onClick={() => clickTab(t)}
               aria-expanded={active}
-              className={`aspect-square rounded-md transition-colors flex flex-col items-center justify-center gap-1 px-2 text-center ${
-                TAB_BASE[t]
-              } ${active ? 'border-[3px] font-semibold' : 'border'}`}
+              className={`min-w-0 rounded-xl overflow-hidden transition-all flex flex-col items-center text-center bg-card ${
+                active ? 'ring-2 ring-offset-1 shadow-md' : 'border border-border hover:shadow-sm'
+              }`}
+              style={active ? { '--tw-ring-color': color } as React.CSSProperties : undefined}
             >
-              <span className="text-sm leading-tight">{TAB_LABEL[t]}</span>
-              <span className="text-2xl font-bold leading-none">{counts[t]}</span>
+              <div className="w-full h-1" style={{ backgroundColor: color }} />
+              <span className="text-[11px] leading-tight truncate w-full px-1 pt-2 text-muted">{TAB_LABEL[t]}</span>
+              <span className="text-xl font-bold leading-none pb-2.5 pt-0.5 text-foreground">{counts[t]}</span>
             </button>
           )
         })}
