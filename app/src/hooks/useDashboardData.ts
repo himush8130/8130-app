@@ -275,7 +275,7 @@ export function useDashboardData() {
       allTanksEngine.sort((a, b) => (b.rawDeviation ?? -Infinity) - (a.rawDeviation ?? -Infinity))
 
       const treatmentDeviations = allTanksEngine.filter(
-        t => t.rawDeviation != null && t.rawDeviation > 150,
+        t => t.rawDeviation != null && t.rawDeviation >= -50,
       ).length
 
       const readMap = new Map<string, { total: number; op: number }>()

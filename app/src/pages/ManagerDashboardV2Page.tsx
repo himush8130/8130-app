@@ -413,13 +413,12 @@ export function PriorityCompanySection({ d }: { d: DashboardData }) {
 /*  SECTION 4 — Engine Hours Alerts                                   */
 /* ================================================================== */
 
-const RED_OVER = 200    // חריגה אדומה: מעל 200 שעות
-const YELLOW_OVER = 150 // חריגה צהובה: מעל 150 שעות
+const NEAR_BAND = 50
 
-function devTone(raw: number | null): { dot: string; text: string } {
-  if (raw != null && raw > RED_OVER)    return { dot: 'bg-danger',  text: 'text-danger font-medium' }
-  if (raw != null && raw > YELLOW_OVER) return { dot: 'bg-warning', text: 'text-warning font-medium' }
-  return { dot: 'bg-muted', text: 'text-muted' }
+function devTone(raw: number | null): { dot: string; text: string; row: string } {
+  if (raw != null && raw > 0)        return { dot: 'bg-danger',  text: 'text-danger font-medium',  row: 'bg-danger/5' }
+  if (raw != null && raw >= -NEAR_BAND) return { dot: 'bg-warning', text: 'text-warning font-medium', row: 'bg-warning/5' }
+  return { dot: 'bg-muted', text: 'text-muted', row: '' }
 }
 
 function devLabel(raw: number | null): string {
@@ -432,13 +431,10 @@ function devLabel(raw: number | null): string {
 function EngineAlertsSection({ d }: { d: DashboardData }) {
   const [showAll, setShowAll] = useState(false)
 
-  // allTanksEngine is pre-sorted by rawDeviation desc. Alerts = red+yellow
-  // (raw > 150). If fewer than 3 alerts, top up to 3 with the next-closest
-  // tanks so the table always shows at least three rows.
   const rows = useMemo(() => {
     const known = d.allTanksEngine.filter(t => t.rawDeviation != null)
     if (showAll) return known
-    const alerts = known.filter(t => (t.rawDeviation as number) > YELLOW_OVER)
+    const alerts = known.filter(t => (t.rawDeviation as number) >= -NEAR_BAND)
     return alerts.length >= 3 ? alerts : known.slice(0, 3)
   }, [d.allTanksEngine, showAll])
 
@@ -475,7 +471,7 @@ function EngineAlertsSection({ d }: { d: DashboardData }) {
               {rows.map(a => {
                 const tone = devTone(a.rawDeviation)
                 return (
-                  <tr key={a.vehicleNumber} className="border-t border-border">
+                  <tr key={a.vehicleNumber} className={`border-t border-border ${tone.row}`}>
                     <td className="px-3 py-2 font-mono">
                       <span className="flex items-center gap-2">
                         <span className={`w-2.5 h-2.5 rounded-full inline-block shrink-0 ${tone.dot}`} />
