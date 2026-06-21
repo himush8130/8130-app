@@ -32,6 +32,7 @@ const ManagerDashboardPage     = lazy(() => import('./pages/ManagerDashboardPage
 const ManagerDashboardV2Page   = lazy(() => import('./pages/ManagerDashboardV2Page').then(m => ({ default: m.ManagerDashboardV2Page })))
 const SettingsPriorityPage     = lazy(() => import('./pages/SettingsPriorityPage').then(m => ({ default: m.SettingsPriorityPage })))
 const DevelopmentPage          = lazy(() => import('./pages/DevelopmentPage').then(m => ({ default: m.DevelopmentPage })))
+const WarehouseDashboardPage   = lazy(() => import('./pages/WarehouseDashboardPage').then(m => ({ default: m.WarehouseDashboardPage })))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -147,6 +148,11 @@ createRoot(document.getElementById('root')!).render(
             </Resilient>
           } />
 
+          <Route path="/warehouse/dashboard" element={
+            <Resilient scope="warehouse-dashboard">
+              <ProtectedRoute allow={['warehouse', 'manager']}><WarehouseDashboardPage /></ProtectedRoute>
+            </Resilient>
+          } />
           <Route path="/warehouse" element={
             <Resilient scope="warehouse">
               <ProtectedRoute allow={['warehouse', 'manager']}><WarehouseHomePage /></ProtectedRoute>

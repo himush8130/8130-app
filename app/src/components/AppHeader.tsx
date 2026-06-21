@@ -48,7 +48,7 @@ const NAV_ICONS: Record<ViewKey, ReactNode> = {
 
 const ALL_VIEWS: Array<{ key: ViewKey; to: string; label: string; matches: (p: string) => boolean }> = [
   { key: 'dashboard',  to: '/manager/dashboard',  label: 'לוח בקרה',  matches: (p) => p.startsWith('/manager/dashboard') },
-  { key: 'warehouse',  to: '/warehouse',          label: 'מחסן',    matches: (p) => p.startsWith('/warehouse') },
+  { key: 'warehouse',  to: '/warehouse/dashboard', label: 'מחסן',    matches: (p) => p.startsWith('/warehouse') },
   { key: 'technician', to: '/technician',         label: 'כלים',      matches: (p) => p.startsWith('/technician') },
   { key: 'settings',   to: '/manager',            label: 'הגדרות',    matches: (p) => p === '/manager' || p.startsWith('/manager/settings') },
 ]
