@@ -204,90 +204,111 @@ export function LoginPage() {
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-surface p-4">
-      <Card className="w-full max-w-sm">
-        <CardBody>
-          <ComponentBadge id={2001} />
-          <header className="text-center mb-6 flex flex-col items-center gap-3">
-            <img
-              src="/logo.png"
-              alt="חימוש 8130"
-              className="w-40 h-auto"
-            />
-            <p className="text-sm text-muted">
-              {stage === 'number' && 'כניסה למערכת'}
-              {stage === 'pin-verify' && `שלום, ${pendingEmployee?.name}`}
-              {stage === 'pin-setup' && 'הגדרת סיסמה ראשונית'}
-            </p>
-          </header>
+      <div className="w-full max-w-sm flex flex-col items-center">
+        {/* Shield protruding above the card */}
+        <img
+          src="/logo.png"
+          alt="חימוש 8130"
+          className="w-44 h-auto relative z-10 -mb-10 drop-shadow-lg"
+        />
 
-          {stage === 'number' && (
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-              <Input
-                label="מספר אישי"
-                name="employeeNumber"
-                type="number"
-                inputMode="numeric"
-                autoFocus
-                value={employeeNumber}
-                onChange={(e) => setEmployeeNumber(e.target.value)}
-                error={error ?? undefined}
-              />
-              <Button type="submit" disabled={loading}>
-                {loading ? 'מתחבר...' : 'כניסה'}
-              </Button>
-            </form>
-          )}
+        <Card className="w-full relative overflow-hidden">
+          {/* Decorative atmosphere lines */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" aria-hidden>
+            <line x1="0" y1="30%" x2="100%" y2="28%" stroke="var(--color-border)" strokeWidth="0.5" opacity="0.4" />
+            <line x1="0" y1="60%" x2="100%" y2="62%" stroke="var(--color-border)" strokeWidth="0.5" opacity="0.3" />
+            <line x1="15%" y1="0" x2="12%" y2="100%" stroke="var(--color-border)" strokeWidth="0.5" opacity="0.25" />
+            <line x1="85%" y1="0" x2="88%" y2="100%" stroke="var(--color-border)" strokeWidth="0.5" opacity="0.25" />
+            <line x1="0" y1="0" x2="35%" y2="50%" stroke="var(--color-border)" strokeWidth="0.5" opacity="0.15" />
+            <line x1="100%" y1="0" x2="65%" y2="50%" stroke="var(--color-border)" strokeWidth="0.5" opacity="0.15" />
+            <line x1="50%" y1="20%" x2="20%" y2="90%" stroke="var(--color-border)" strokeWidth="0.5" opacity="0.12" />
+            <line x1="50%" y1="20%" x2="80%" y2="90%" stroke="var(--color-border)" strokeWidth="0.5" opacity="0.12" />
+            <circle cx="50%" cy="35%" r="60" fill="none" stroke="var(--color-border)" strokeWidth="0.5" opacity="0.15" />
+            <circle cx="50%" cy="35%" r="90" fill="none" stroke="var(--color-border)" strokeWidth="0.5" opacity="0.1" />
+          </svg>
 
-          {stage === 'pin-verify' && (
-            <form onSubmit={handlePinVerify} className="flex flex-col gap-4">
-              <label className="text-sm text-center text-foreground font-medium">הזן סיסמה</label>
-              <PinInput value={pin} onChange={setPinVal} autoFocus />
-              {error && <p className="text-sm text-danger text-center">{error}</p>}
-              <Button type="submit" disabled={loading || pin.length < 4}>
-                {loading ? 'מאמת...' : 'אישור'}
-              </Button>
-              <button type="button" onClick={goBack} className="text-xs text-muted hover:text-foreground text-center">
-                ← חזור
-              </button>
-            </form>
-          )}
+          <CardBody className="relative z-[1]">
+            <ComponentBadge id={2001} />
+            {/* Spacer for the protruding logo */}
+            <div className="h-14" />
 
-          {stage === 'pin-setup' && (
-            <form onSubmit={handlePinSetup} className="flex flex-col gap-5">
-              <p className="text-xs text-muted text-center">בחר סיסמה בת 4 ספרות לכניסה למערכת</p>
-              <div className="flex flex-col gap-1">
-                <label className="text-sm text-foreground font-medium text-center">סיסמה</label>
+            <header className="text-center mb-6">
+              <p className="text-sm text-muted">
+                {stage === 'number' && 'כניסה למערכת'}
+                {stage === 'pin-verify' && `שלום, ${pendingEmployee?.name}`}
+                {stage === 'pin-setup' && 'הגדרת סיסמה ראשונית'}
+              </p>
+            </header>
+
+            {stage === 'number' && (
+              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                <Input
+                  label="מספר אישי"
+                  name="employeeNumber"
+                  type="number"
+                  inputMode="numeric"
+                  autoFocus
+                  value={employeeNumber}
+                  onChange={(e) => setEmployeeNumber(e.target.value)}
+                  error={error ?? undefined}
+                />
+                <Button type="submit" disabled={loading}>
+                  {loading ? 'מתחבר...' : 'כניסה'}
+                </Button>
+              </form>
+            )}
+
+            {stage === 'pin-verify' && (
+              <form onSubmit={handlePinVerify} className="flex flex-col gap-4">
+                <label className="text-sm text-center text-foreground font-medium">הזן סיסמה</label>
                 <PinInput value={pin} onChange={setPinVal} autoFocus />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-sm text-foreground font-medium text-center">אימות סיסמה</label>
-                <PinInput value={confirmPin} onChange={setConfirmPin} />
-              </div>
-              {error && <p className="text-sm text-danger text-center">{error}</p>}
-              <Button type="submit" disabled={loading || pin.length < 4 || confirmPin.length < 4}>
-                {loading ? 'שומר...' : 'שמור והיכנס'}
-              </Button>
-              <button type="button" onClick={goBack} className="text-xs text-muted hover:text-foreground text-center">
-                ← חזור
-              </button>
-            </form>
-          )}
+                {error && <p className="text-sm text-danger text-center">{error}</p>}
+                <Button type="submit" disabled={loading || pin.length < 4}>
+                  {loading ? 'מאמת...' : 'אישור'}
+                </Button>
+                <button type="button" onClick={goBack} className="text-xs text-muted hover:text-foreground text-center">
+                  ← חזור
+                </button>
+              </form>
+            )}
 
-          <div className="mt-4 flex items-center justify-center gap-3">
-            <button
-              type="button"
-              onClick={handleRefresh}
-              disabled={refreshing}
-              aria-label="רענן נתונים ובדוק עדכון לאפליקציה"
-              title="רענן נתונים ובדוק עדכון לאפליקציה"
-              className="text-base text-muted hover:text-foreground border border-border rounded-md w-7 h-7 inline-flex items-center justify-center disabled:opacity-50"
-            >
-              ⟳
-            </button>
-            <span className="text-xs text-muted font-mono" dir="ltr">{BUILD_TIME_LABEL}</span>
-          </div>
-        </CardBody>
-      </Card>
+            {stage === 'pin-setup' && (
+              <form onSubmit={handlePinSetup} className="flex flex-col gap-5">
+                <p className="text-xs text-muted text-center">בחר סיסמה בת 4 ספרות לכניסה למערכת</p>
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-foreground font-medium text-center">סיסמה</label>
+                  <PinInput value={pin} onChange={setPinVal} autoFocus />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-foreground font-medium text-center">אימות סיסמה</label>
+                  <PinInput value={confirmPin} onChange={setConfirmPin} />
+                </div>
+                {error && <p className="text-sm text-danger text-center">{error}</p>}
+                <Button type="submit" disabled={loading || pin.length < 4 || confirmPin.length < 4}>
+                  {loading ? 'שומר...' : 'שמור והיכנס'}
+                </Button>
+                <button type="button" onClick={goBack} className="text-xs text-muted hover:text-foreground text-center">
+                  ← חזור
+                </button>
+              </form>
+            )}
+
+            <div className="mt-4 flex items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={handleRefresh}
+                disabled={refreshing}
+                aria-label="רענן נתונים ובדוק עדכון לאפליקציה"
+                title="רענן נתונים ובדוק עדכון לאפליקציה"
+                className="text-base text-muted hover:text-foreground border border-border rounded-md w-7 h-7 inline-flex items-center justify-center disabled:opacity-50"
+              >
+                ⟳
+              </button>
+              <span className="text-xs text-muted font-mono" dir="ltr">{BUILD_TIME_LABEL}</span>
+            </div>
+          </CardBody>
+        </Card>
+      </div>
     </main>
   )
 }
