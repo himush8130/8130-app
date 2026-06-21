@@ -71,7 +71,7 @@ const COMPANY_PALETTE: Array<{ bg: string; border: string; text: string }> = [
  */
 export function TechnicianByCompanyPage() {
   const employee = useAuthStore((s) => s.employee)!
-  const seeAll = employee.permissions === 'manager' || employee.permissions === 'commander_viewer'
+  const seeAll = employee.permissions === 'manager' || employee.permissions === 'commander_viewer' || employee.permissions === 'warehouse'
   const isTankProfession = employee.profession_name === 'טנק'
   const showTanks = seeAll || isTankProfession
   const showWheeled = seeAll || !isTankProfession
