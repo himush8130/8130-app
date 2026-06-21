@@ -10,6 +10,7 @@ export interface PriorityWeights {
 
 export const PRIORITY_WEIGHT_KEY = 'priority_weights'
 export const PRIORITY_IMPORTANCE_KEY = 'priority_importance'
+export const PRIORITY_COMMANDER_KEY = 'priority_commander_bonus'
 
 /** Even split across the five parameters (sums to 100). */
 export const DEFAULT_WEIGHTS: PriorityWeights = {
@@ -50,6 +51,16 @@ export function parseImportance(raw: string | undefined): Record<string, number>
   }
 }
 
+export function parseCommanderBonus(raw: string | undefined): Record<string, number> {
+  if (!raw) return {}
+  try {
+    const v = JSON.parse(raw)
+    return typeof v === 'object' && v ? v : {}
+  } catch {
+    return {}
+  }
+}
+
 /** Reads the manager-configured priority weights + per-company importance. */
 export function usePriorityConfig() {
   const { data: settings, isLoading } = useAppSettings()
@@ -57,6 +68,7 @@ export function usePriorityConfig() {
     isLoading,
     weights: parseWeights(settings?.[PRIORITY_WEIGHT_KEY]),
     importance: parseImportance(settings?.[PRIORITY_IMPORTANCE_KEY]),
+    commanderBonus: parseCommanderBonus(settings?.[PRIORITY_COMMANDER_KEY]),
   }
 }
 
@@ -69,6 +81,7 @@ export function priorityScore(
   c: { scoreDisabling: number; scoreOpenCalls: number; scoreCloseRate: number; scoreReceived: number },
   weights: PriorityWeights,
   importanceRating: number,
+  commanderBonus = 0,
 ): number {
   const importanceScore = Math.min(importanceRating, MAX_IMPORTANCE) / MAX_IMPORTANCE
   return Math.round(
@@ -76,6 +89,7 @@ export function priorityScore(
     weights.openCalls     * c.scoreOpenCalls +
     weights.importance    * importanceScore +
     weights.closeRate     * c.scoreCloseRate +
-    weights.receivedParts * c.scoreReceived,
+    weights.receivedParts * c.scoreReceived +
+    commanderBonus,
   )
 }

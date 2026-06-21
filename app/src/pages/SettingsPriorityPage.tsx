@@ -5,8 +5,8 @@ import { useAuthStore } from '../store/auth'
 import { useAppSettings } from '../hooks/useAppSettings'
 import { useDashboardData } from '../hooks/useDashboardData'
 import {
-  parseWeights, parseImportance, priorityScore, DEFAULT_IMPORTANCE, MAX_IMPORTANCE,
-  PRIORITY_WEIGHT_KEY, PRIORITY_IMPORTANCE_KEY, type PriorityWeights,
+  parseWeights, parseImportance, parseCommanderBonus, priorityScore, DEFAULT_IMPORTANCE, MAX_IMPORTANCE,
+  PRIORITY_WEIGHT_KEY, PRIORITY_IMPORTANCE_KEY, PRIORITY_COMMANDER_KEY, type PriorityWeights,
 } from '../hooks/usePriorityConfig'
 import { setAppSetting } from '../lib/adminActions'
 import { AppHeader } from '../components/AppHeader'
@@ -30,6 +30,7 @@ export function SettingsPriorityPage() {
 
   const [weights, setWeights] = useState<PriorityWeights>(() => parseWeights(undefined))
   const [importance, setImportance] = useState<Record<string, number>>({})
+  const [cmdBonus, setCmdBonus] = useState<Record<string, number>>({})
   const [busy, setBusy] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -38,6 +39,7 @@ export function SettingsPriorityPage() {
     if (settings) {
       setWeights(parseWeights(settings[PRIORITY_WEIGHT_KEY]))
       setImportance(parseImportance(settings[PRIORITY_IMPORTANCE_KEY]))
+      setCmdBonus(parseCommanderBonus(settings[PRIORITY_COMMANDER_KEY]))
     }
   }, [settings])
 
@@ -51,6 +53,10 @@ export function SettingsPriorityPage() {
     const n = v === '' ? DEFAULT_IMPORTANCE : Math.min(MAX_IMPORTANCE, Math.max(1, parseInt(v, 10) || DEFAULT_IMPORTANCE))
     setImportance(m => ({ ...m, [label]: n }))
   }
+  function setBonus(label: string, v: string) {
+    const n = v === '' ? 0 : Math.max(0, parseInt(v, 10) || 0)
+    setCmdBonus(m => ({ ...m, [label]: n }))
+  }
 
   async function save() {
     setBusy(true); setError(null); setSaved(false)
@@ -58,6 +64,8 @@ export function SettingsPriorityPage() {
       let res = await setAppSetting(employee.employee_number, PRIORITY_WEIGHT_KEY, JSON.stringify(weights))
       if (!res.ok) throw new Error(res.error || 'שגיאה')
       res = await setAppSetting(employee.employee_number, PRIORITY_IMPORTANCE_KEY, JSON.stringify(importance))
+      if (!res.ok) throw new Error(res.error || 'שגיאה')
+      res = await setAppSetting(employee.employee_number, PRIORITY_COMMANDER_KEY, JSON.stringify(cmdBonus))
       if (!res.ok) throw new Error(res.error || 'שגיאה')
       queryClient.invalidateQueries({ queryKey: ['app_settings'] })
       setSaved(true)
@@ -129,6 +137,32 @@ export function SettingsPriorityPage() {
           </CardBody>
         </Card>
 
+        <Card>
+          <CardHeader>
+            <h3 className="text-sm font-semibold text-foreground">תיעדוף מפקד</h3>
+            <p className="text-xs text-muted mt-1">תוספת נקודות ישירה לציון הסופי של פלוגה. למשל 20 נקודות לפלוגה שהמפקד רוצה לתעדף.</p>
+          </CardHeader>
+          <CardBody>
+            {companies.length === 0 ? (
+              <p className="text-sm text-muted">טוען פלוגות…</p>
+            ) : (
+              <div className="flex flex-wrap gap-3">
+                {companies.map(c => (
+                  <div key={c.label} className="flex flex-col gap-1 items-center">
+                    <label className="text-xs font-medium text-foreground">{c.label}</label>
+                    <input
+                      type="number"
+                      value={String(cmdBonus[c.label] ?? 0)}
+                      onChange={(e) => setBonus(c.label, e.target.value)}
+                      className="w-16 text-center px-1 py-1.5 bg-card border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardBody>
+        </Card>
+
         {companies.length > 0 && (
           <Card>
             <CardHeader>
@@ -139,18 +173,20 @@ export function SettingsPriorityPage() {
               {companies
                 .map(c => ({
                   company: c,
-                  total: priorityScore(c, weights, importance[c.label] ?? DEFAULT_IMPORTANCE),
+                  total: priorityScore(c, weights, importance[c.label] ?? DEFAULT_IMPORTANCE, cmdBonus[c.label] ?? 0),
                 }))
                 .sort((a, b) => b.total - a.total)
                 .map(({ company: c, total }) => {
                   const impRating = importance[c.label] ?? DEFAULT_IMPORTANCE
                   const impScore = Math.min(impRating, MAX_IMPORTANCE) / MAX_IMPORTANCE
+                  const bonus = cmdBonus[c.label] ?? 0
                   const params = [
-                    { label: 'משביתות',           raw: c.scoreDisabling, w: weights.disabling },
-                    { label: 'קריאות פתוחות',      raw: c.scoreOpenCalls, w: weights.openCalls },
-                    { label: 'חשיבות מבצעית',      raw: impScore,         w: weights.importance },
-                    { label: 'קצב סגירה',          raw: c.scoreCloseRate, w: weights.closeRate },
-                    { label: 'חלקים שהתקבלו',      raw: c.scoreReceived,  w: weights.receivedParts },
+                    { label: 'משביתות',           raw: c.scoreDisabling, w: weights.disabling, contrib: c.scoreDisabling * weights.disabling },
+                    { label: 'קריאות פתוחות',      raw: c.scoreOpenCalls, w: weights.openCalls, contrib: c.scoreOpenCalls * weights.openCalls },
+                    { label: 'חשיבות מבצעית',      raw: impScore,         w: weights.importance, contrib: impScore * weights.importance },
+                    { label: 'קצב סגירה',          raw: c.scoreCloseRate, w: weights.closeRate, contrib: c.scoreCloseRate * weights.closeRate },
+                    { label: 'חלקים שהתקבלו',      raw: c.scoreReceived,  w: weights.receivedParts, contrib: c.scoreReceived * weights.receivedParts },
+                    ...(bonus > 0 ? [{ label: 'תיעדוף מפקד', raw: null as number | null, w: null as number | null, contrib: bonus }] : []),
                   ]
                   return (
                     <div key={c.label} className="border-b border-border last:border-0">
@@ -171,9 +207,9 @@ export function SettingsPriorityPage() {
                           {params.map(p => (
                             <tr key={p.label} className="border-t border-border">
                               <td className="px-4 py-1.5 text-foreground">{p.label}</td>
-                              <td className="px-3 py-1.5 font-mono text-muted">{p.raw.toFixed(2)}</td>
-                              <td className="px-3 py-1.5 font-mono text-muted">{p.w}</td>
-                              <td className="px-3 py-1.5 font-mono font-medium text-foreground">{(p.raw * p.w).toFixed(1)}</td>
+                              <td className="px-3 py-1.5 font-mono text-muted">{p.raw != null ? p.raw.toFixed(2) : '—'}</td>
+                              <td className="px-3 py-1.5 font-mono text-muted">{p.w != null ? p.w : '—'}</td>
+                              <td className="px-3 py-1.5 font-mono font-medium text-foreground">{p.contrib.toFixed(1)}</td>
                             </tr>
                           ))}
                         </tbody>

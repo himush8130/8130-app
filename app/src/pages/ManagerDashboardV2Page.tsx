@@ -328,7 +328,7 @@ function CompanyCard({ co }: { co: DashboardCompany }) {
 /* ================================================================== */
 
 export function PriorityCompanySection({ d }: { d: DashboardData }) {
-  const { weights, importance } = usePriorityConfig()
+  const { weights, importance, commanderBonus } = usePriorityConfig()
   const [expanded, setExpanded] = useState(false)
 
   const ranked = useMemo(() => {
@@ -336,10 +336,10 @@ export function PriorityCompanySection({ d }: { d: DashboardData }) {
       .map(c => ({
         co: c,
         rating: importance[c.label] ?? DEFAULT_IMPORTANCE,
-        score: priorityScore(c, weights, importance[c.label] ?? DEFAULT_IMPORTANCE),
+        score: priorityScore(c, weights, importance[c.label] ?? DEFAULT_IMPORTANCE, commanderBonus[c.label] ?? 0),
       }))
       .sort((a, b) => b.score - a.score)
-  }, [d.companies, weights, importance])
+  }, [d.companies, weights, importance, commanderBonus])
 
   const top = ranked[0]
   if (!top) return null
