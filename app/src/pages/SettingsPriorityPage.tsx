@@ -5,7 +5,7 @@ import { useAuthStore } from '../store/auth'
 import { useAppSettings } from '../hooks/useAppSettings'
 import { useDashboardData } from '../hooks/useDashboardData'
 import {
-  parseWeights, parseImportance, DEFAULT_IMPORTANCE, MAX_IMPORTANCE,
+  parseWeights, parseImportance, priorityScore, DEFAULT_IMPORTANCE, MAX_IMPORTANCE,
   PRIORITY_WEIGHT_KEY, PRIORITY_IMPORTANCE_KEY, type PriorityWeights,
 } from '../hooks/usePriorityConfig'
 import { setAppSetting } from '../lib/adminActions'
@@ -122,6 +122,62 @@ export function SettingsPriorityPage() {
             )}
           </CardBody>
         </Card>
+
+        {companies.length > 0 && (
+          <Card>
+            <CardHeader>
+              <h3 className="text-sm font-semibold text-foreground">פירוט ציון לכל פלוגה</h3>
+              <p className="text-xs text-muted mt-1">הציון המשוקלל מחושב לפי המשקלים שלמעלה. ציון גולמי = ערך הפרמטר (0–1), תרומה = גולמי × משקל.</p>
+            </CardHeader>
+            <CardBody className="flex flex-col gap-4 p-0">
+              {companies
+                .map(c => ({
+                  company: c,
+                  total: priorityScore(c, weights, importance[c.label] ?? DEFAULT_IMPORTANCE),
+                }))
+                .sort((a, b) => b.total - a.total)
+                .map(({ company: c, total }) => {
+                  const impRating = importance[c.label] ?? DEFAULT_IMPORTANCE
+                  const impScore = Math.min(impRating, MAX_IMPORTANCE) / MAX_IMPORTANCE
+                  const params = [
+                    { label: 'משביתות',           raw: c.scoreDisabling, w: weights.disabling },
+                    { label: 'קריאות פתוחות',      raw: c.scoreOpenCalls, w: weights.openCalls },
+                    { label: 'חשיבות מבצעית',      raw: impScore,         w: weights.importance },
+                    { label: 'קצב סגירה',          raw: c.scoreCloseRate, w: weights.closeRate },
+                    { label: 'חלקים שהתקבלו',      raw: c.scoreReceived,  w: weights.receivedParts },
+                  ]
+                  return (
+                    <div key={c.label} className="border-b border-border last:border-0">
+                      <div className="flex items-center justify-between px-4 py-3 bg-muted-surface">
+                        <span className="text-sm font-semibold text-foreground">{c.label}</span>
+                        <span className="text-sm font-bold text-foreground">{total} / 100</span>
+                      </div>
+                      <table className="w-full text-xs">
+                        <thead className="text-muted">
+                          <tr>
+                            <th className="text-start px-4 py-1.5">פרמטר</th>
+                            <th className="text-start px-3 py-1.5">גולמי</th>
+                            <th className="text-start px-3 py-1.5">משקל</th>
+                            <th className="text-start px-3 py-1.5">תרומה</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {params.map(p => (
+                            <tr key={p.label} className="border-t border-border">
+                              <td className="px-4 py-1.5 text-foreground">{p.label}</td>
+                              <td className="px-3 py-1.5 font-mono text-muted">{p.raw.toFixed(2)}</td>
+                              <td className="px-3 py-1.5 font-mono text-muted">{p.w}</td>
+                              <td className="px-3 py-1.5 font-mono font-medium text-foreground">{(p.raw * p.w).toFixed(1)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )
+                })}
+            </CardBody>
+          </Card>
+        )}
 
         <div className="flex items-center gap-3">
           <Button onClick={save} disabled={busy}>{busy ? 'שומר…' : 'שמור'}</Button>
