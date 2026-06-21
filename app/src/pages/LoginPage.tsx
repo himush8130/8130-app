@@ -214,18 +214,12 @@ export function LoginPage() {
 
         <Card className="w-full relative overflow-hidden">
           {/* Decorative atmosphere lines */}
-          <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" aria-hidden>
-            <line x1="0" y1="30%" x2="100%" y2="28%" stroke="var(--color-border)" strokeWidth="0.5" opacity="0.4" />
-            <line x1="0" y1="60%" x2="100%" y2="62%" stroke="var(--color-border)" strokeWidth="0.5" opacity="0.3" />
-            <line x1="15%" y1="0" x2="12%" y2="100%" stroke="var(--color-border)" strokeWidth="0.5" opacity="0.25" />
-            <line x1="85%" y1="0" x2="88%" y2="100%" stroke="var(--color-border)" strokeWidth="0.5" opacity="0.25" />
-            <line x1="0" y1="0" x2="35%" y2="50%" stroke="var(--color-border)" strokeWidth="0.5" opacity="0.15" />
-            <line x1="100%" y1="0" x2="65%" y2="50%" stroke="var(--color-border)" strokeWidth="0.5" opacity="0.15" />
-            <line x1="50%" y1="20%" x2="20%" y2="90%" stroke="var(--color-border)" strokeWidth="0.5" opacity="0.12" />
-            <line x1="50%" y1="20%" x2="80%" y2="90%" stroke="var(--color-border)" strokeWidth="0.5" opacity="0.12" />
-            <circle cx="50%" cy="35%" r="60" fill="none" stroke="var(--color-border)" strokeWidth="0.5" opacity="0.15" />
-            <circle cx="50%" cy="35%" r="90" fill="none" stroke="var(--color-border)" strokeWidth="0.5" opacity="0.1" />
-          </svg>
+          <img
+            src="/login-lines.png"
+            alt=""
+            aria-hidden
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none opacity-60"
+          />
 
           <CardBody className="relative z-[1]">
             <ComponentBadge id={2001} />
