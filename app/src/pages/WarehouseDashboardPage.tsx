@@ -97,6 +97,36 @@ function IconList({ size = 24, color = '#64748b' }: IconProps) {
   )
 }
 
+function UrgentBanner({ rejected, blocked, lowStock, overdueReceipt }: {
+  rejected: number; blocked: number; lowStock: number; overdueReceipt: number
+}) {
+  const items: Array<{ label: string; count: number }> = [
+    { label: 'מק״טים שנדחו',           count: rejected },
+    { label: 'מק״טים חסומים',          count: blocked },
+    { label: 'מלאי נמוך',               count: lowStock },
+    { label: 'ממתינים זמן רב לקבלה',    count: overdueReceipt },
+  ]
+  const total = items.reduce((s, i) => s + i.count, 0)
+  if (total === 0) return null
+
+  return (
+    <div className="rounded-xl border border-danger/30 bg-danger/5 px-4 py-3">
+      <div className="flex items-center gap-2 mb-2">
+        <IconWarning size={18} />
+        <span className="text-sm font-semibold text-danger">דורש טיפול מיידי</span>
+      </div>
+      <div className="grid grid-cols-4 gap-2">
+        {items.map(i => (
+          <div key={i.label} className="flex flex-col items-center">
+            <span className="text-lg font-bold text-danger">{i.count}</span>
+            <span className="text-[9px] sm:text-xs text-danger/80 text-center leading-tight">{i.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function WarehouseDashboardPage() {
   const { data: pending, isLoading: loadingPending } = usePendingActions()
   const { data: parts, isLoading: loadingParts } = useParts()
@@ -129,6 +159,12 @@ export function WarehouseDashboardPage() {
       return d && new Date(d) >= monthStart
     })
 
+    const HOUR = 3_600_000
+    const overdueReceipt = awaitingReceipt.filter(r => {
+      const since = r.awaiting_receipt_since ?? r.requested_at
+      return (Date.now() - new Date(since).getTime()) / HOUR >= 48
+    })
+
     const blockedRows = rows.filter(r => r.parts?.is_sku_blocked && !r.parts?.hide_from_blocked_table)
 
     const catalog = parts ?? []
@@ -151,6 +187,7 @@ export function WarehouseDashboardPage() {
       deliveredThisMonth: deliveredThisMonth.length,
       wearCreditedThisMonth: wearCreditedThisMonth.length,
       rejectedFinalThisMonth: rejectedFinalThisMonth.length,
+      overdueReceipt: overdueReceipt.length,
     }
   }, [pending, parts])
 
@@ -164,6 +201,12 @@ export function WarehouseDashboardPage() {
           <p className="text-sm text-muted text-center py-8">טוען...</p>
         ) : (
           <>
+            <UrgentBanner
+              rejected={stats.rejected}
+              blocked={stats.blocked}
+              lowStock={stats.lowStock}
+              overdueReceipt={stats.overdueReceipt}
+            />
             <HeroBanner total={stats.totalPending} />
             <StatusTiles
               awaitingOrder={stats.awaitingOrder}
