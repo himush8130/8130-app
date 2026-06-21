@@ -113,13 +113,15 @@ export function SettingsPriorityPage() {
                 {companies.map(c => (
                   <div key={c.label} className="flex flex-col gap-1 items-center">
                     <label className="text-xs font-medium text-foreground">{c.label}</label>
-                    <input
-                      name={`imp_${c.label}`}
-                      type="number"
+                    <select
                       value={String(importance[c.label] ?? DEFAULT_IMPORTANCE)}
                       onChange={(e) => setRating(c.label, e.target.value)}
                       className="w-14 text-center px-1 py-1.5 bg-card border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
+                    >
+                      {[1, 2, 3, 4, 5].map(n => (
+                        <option key={n} value={n}>{n}</option>
+                      ))}
+                    </select>
                   </div>
                 ))}
               </div>
