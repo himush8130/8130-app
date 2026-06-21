@@ -150,7 +150,7 @@ export function SettingsPriorityPage() {
                     <div key={c.label} className="border-b border-border last:border-0">
                       <div className="flex items-center justify-between px-4 py-3 bg-muted-surface">
                         <span className="text-sm font-semibold text-foreground">{c.label}</span>
-                        <span className="text-sm font-bold text-foreground">{total} / 100</span>
+                        <span className="text-sm font-bold text-foreground">{total}</span>
                       </div>
                       <table className="w-full text-xs">
                         <thead className="text-muted">
