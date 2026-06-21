@@ -209,7 +209,7 @@ export function LoginPage() {
         <img
           src="/logo.png"
           alt="חימוש 8130"
-          className="w-44 h-auto relative z-10 -mb-10 drop-shadow-lg"
+          className="w-44 h-auto relative z-10 -mb-6 drop-shadow-lg"
         />
 
         <Card className="w-full relative overflow-hidden">
