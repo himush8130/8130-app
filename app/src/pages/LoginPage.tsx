@@ -211,7 +211,7 @@ export function LoginPage() {
             <img
               src="/logo.png"
               alt="חימוש 8130"
-              className="w-40 h-auto rounded-md bg-black p-2"
+              className="w-40 h-auto"
             />
             <p className="text-sm text-muted">
               {stage === 'number' && 'כניסה למערכת'}
