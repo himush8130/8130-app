@@ -209,7 +209,7 @@ export function LoginPage() {
         <img
           src="/logo.png"
           alt="חימוש 8130"
-          className="w-44 h-auto relative z-10 -mb-36 drop-shadow-lg"
+          className="w-52 h-auto relative z-10 -mb-40 drop-shadow-lg"
         />
 
         <Card className="w-full relative overflow-hidden">
@@ -224,7 +224,7 @@ export function LoginPage() {
           <CardBody className="relative z-[1]">
             <ComponentBadge id={2001} />
             {/* Spacer for the protruding logo */}
-            <div className="h-24" />
+            <div className="h-28" />
 
             <header className="text-center mb-6">
               <p className="text-sm text-muted">
