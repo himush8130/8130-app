@@ -28,6 +28,9 @@ const homeRouteByPermissions: Record<EmployeePermissions, string> = {
 
 type Stage = 'number' | 'pin-verify' | 'pin-setup'
 
+const NAVY = '#232150'
+const NAVY_BTN: React.CSSProperties = { backgroundColor: NAVY }
+
 function PinInput({ value, onChange, autoFocus }: {
   value: string
   onChange: (v: string) => void
@@ -63,9 +66,10 @@ function PinInput({ value, onChange, autoFocus }: {
           key={i}
           className={`w-12 h-14 flex items-center justify-center text-2xl font-bold rounded-xl border-2 transition-colors select-none ${
             focused && i === value.length
-              ? 'border-primary ring-1 ring-primary'
+              ? 'ring-1'
               : 'border-border bg-card'
           }`}
+          style={focused && i === value.length ? { borderColor: NAVY, '--tw-ring-color': NAVY } as React.CSSProperties : undefined}
         >
           {d.trim() ? '●' : ''}
         </div>
@@ -245,8 +249,9 @@ export function LoginPage() {
                   value={employeeNumber}
                   onChange={(e) => setEmployeeNumber(e.target.value)}
                   error={error ?? undefined}
+                  className="focus:ring-[#232150]"
                 />
-                <Button type="submit" disabled={loading}>
+                <Button type="submit" disabled={loading} style={NAVY_BTN}>
                   {loading ? 'מתחבר...' : 'כניסה'}
                 </Button>
               </form>
@@ -257,7 +262,7 @@ export function LoginPage() {
                 <label className="text-sm text-center text-foreground font-medium">הזן סיסמה</label>
                 <PinInput value={pin} onChange={setPinVal} autoFocus />
                 {error && <p className="text-sm text-danger text-center">{error}</p>}
-                <Button type="submit" disabled={loading || pin.length < 4}>
+                <Button type="submit" disabled={loading || pin.length < 4} style={NAVY_BTN}>
                   {loading ? 'מאמת...' : 'אישור'}
                 </Button>
                 <button type="button" onClick={goBack} className="text-xs text-muted hover:text-foreground text-center">
@@ -278,7 +283,7 @@ export function LoginPage() {
                   <PinInput value={confirmPin} onChange={setConfirmPin} />
                 </div>
                 {error && <p className="text-sm text-danger text-center">{error}</p>}
-                <Button type="submit" disabled={loading || pin.length < 4 || confirmPin.length < 4}>
+                <Button type="submit" disabled={loading || pin.length < 4 || confirmPin.length < 4} style={NAVY_BTN}>
                   {loading ? 'שומר...' : 'שמור והיכנס'}
                 </Button>
                 <button type="button" onClick={goBack} className="text-xs text-muted hover:text-foreground text-center">
