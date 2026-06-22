@@ -1,11 +1,20 @@
-import { useMemo, type ReactNode } from 'react'
+import { useState, useMemo, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { AppHeader } from '../components/AppHeader'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
-import { usePendingActions } from '../hooks/usePendingActions'
+import { PartsCatalogList } from '../components/PartsCatalogList'
+import { usePendingActions, type PendingPart } from '../hooks/usePendingActions'
 import { useParts } from '../hooks/useParts'
+import type { Part } from '../types/parts'
 
 const NAVY = '#232150'
+const HOUR = 3_600_000
+
+type Section =
+  | 'rejected' | 'blocked' | 'pending_special' | 'low_stock' | 'overdue_receipt'
+  | 'awaiting_order' | 'awaiting_receipt' | 'received' | 'wear'
+  | 'not_consumed' | 'delivered' | 'rejected_final' | 'wear_credited'
+  | 'catalog'
 
 interface IconProps { size?: number; color?: string }
 
@@ -79,7 +88,6 @@ function IconArrowLeft({ size = 16, color = 'currentColor' }: IconProps) {
   )
 }
 
-
 function IconList({ size = 24, color = '#64748b' }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color}
@@ -89,42 +97,9 @@ function IconList({ size = 24, color = '#64748b' }: IconProps) {
   )
 }
 
-function TopStatsBar({ total, rejected, blocked, lowStock, overdueReceipt, pendingSpecial }: {
-  total: number; rejected: number; blocked: number; lowStock: number; overdueReceipt: number; pendingSpecial: number
-}) {
-  const secondary: Array<{ icon: ReactNode; value: ReactNode; label: string }> = [
-    { icon: <IconWarning size={18} />,                   value: rejected,       label: 'מק״טים שנדחו' },
-    { icon: <IconBan size={18} color="#dc2626" />,       value: blocked,        label: 'מק״טים חסומים' },
-    { icon: <IconClipboard size={18} color="#f59e0b" />, value: pendingSpecial, label: 'ממתין לאישור מיוחד' },
-    { icon: <IconBox size={18} color="#f59e0b" />,       value: lowStock,       label: 'מלאי נמוך' },
-    { icon: <IconTruck size={18} color="#dc2626" />,     value: overdueReceipt, label: 'ממתינים זמן רב' },
-  ]
-
-  return (
-    <div className="rounded-2xl border border-border overflow-hidden">
-      <div className="px-4 py-5 sm:py-6 text-center" style={{ backgroundColor: NAVY }}>
-        <div className="flex items-center justify-center gap-3">
-          <IconBox size={28} color="#fff" />
-          <span className="text-3xl sm:text-5xl font-extrabold text-white leading-none">{total}</span>
-          <span className="text-sm sm:text-lg text-white/80 font-medium">פריטים ממתינים לטיפול</span>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-5 gap-px bg-border">
-        {secondary.map(s => (
-          <div
-            key={s.label}
-            className="bg-card flex flex-col items-center px-1 sm:px-3 py-3 sm:py-4"
-          >
-            <span className="text-muted">{s.icon}</span>
-            <span className="text-lg sm:text-2xl font-bold leading-none mt-1 text-foreground">{s.value}</span>
-            <span className="text-[10px] sm:text-xs mt-1 text-center leading-tight text-muted">{s.label}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
+/* ------------------------------------------------------------------ */
+/*  Data helpers                                                       */
+/* ------------------------------------------------------------------ */
 
 interface TopPart { sku: string; name: string; total: number }
 
@@ -134,11 +109,8 @@ function topDeliveredParts(delivered: Array<{ quantity: number; parts?: { sku: s
     if (!r.parts) continue
     const key = r.parts.sku
     const prev = map.get(key)
-    if (prev) {
-      prev.total += r.quantity
-    } else {
-      map.set(key, { name: r.parts.name, total: r.quantity })
-    }
+    if (prev) prev.total += r.quantity
+    else map.set(key, { name: r.parts.name, total: r.quantity })
   }
   return [...map.entries()]
     .map(([sku, v]) => ({ sku, name: v.name, total: v.total }))
@@ -146,155 +118,173 @@ function topDeliveredParts(delivered: Array<{ quantity: number; parts?: { sku: s
     .slice(0, 5)
 }
 
-export function WarehouseDashboardPage() {
-  const { data: pending, isLoading: loadingPending } = usePendingActions()
-  const { data: parts, isLoading: loadingParts } = useParts()
+function formatDate(s: string): string {
+  const d = new Date(s)
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`
+}
 
-  const stats = useMemo(() => {
-    const rows = pending ?? []
-    const now = new Date()
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+/* ------------------------------------------------------------------ */
+/*  Reusable inline list for pending-part rows                         */
+/* ------------------------------------------------------------------ */
 
-    const awaitingOrder   = rows.filter(r => r.status === 'awaiting_order')
-    const awaitingReceipt = rows.filter(r => r.status === 'awaiting_receipt')
-    const received        = rows.filter(r => r.status === 'received')
-    const wear            = rows.filter(r => r.status === 'wear')
-    const rejected        = rows.filter(r => r.status === 'rejected')
-    const pendingSpecial  = rows.filter(r => r.status === 'pending_special_approval')
-    const notConsumed     = rows.filter(r => r.status === 'not_consumed')
-    const delivered       = rows.filter(r => r.status === 'delivered')
-    const wearCredited    = rows.filter(r => r.status === 'wear_credited')
-    const rejectedFinal   = rows.filter(r => r.status === 'rejected_final')
-
-    const deliveredThisMonth = delivered.filter(r => {
-      const w = r.part_withdrawals?.[0]?.withdrawn_at
-      return w && new Date(w) >= monthStart
-    })
-    const wearCreditedThisMonth = wearCredited.filter(r => {
-      const d = r.requested_at
-      return d && new Date(d) >= monthStart
-    })
-    const rejectedFinalThisMonth = rejectedFinal.filter(r => {
-      const d = r.requested_at
-      return d && new Date(d) >= monthStart
-    })
-
-    const HOUR = 3_600_000
-    const overdueReceipt = awaitingReceipt.filter(r => {
-      const since = r.awaiting_receipt_since ?? r.requested_at
-      return (Date.now() - new Date(since).getTime()) / HOUR >= 48
-    })
-
-    const blockedRows = rows.filter(r => r.parts?.is_sku_blocked && !r.parts?.hide_from_blocked_table)
-
-    const catalog = parts ?? []
-    const lowStock = catalog.filter(p => p.quantity < p.min_threshold)
-    const totalSkus = new Set(catalog.map(p => p.sku)).size
-
-    const totalPending = awaitingOrder.length + awaitingReceipt.length + received.length + wear.length
-
-    return {
-      totalPending,
-      awaitingOrder: awaitingOrder.length,
-      awaitingReceipt: awaitingReceipt.length,
-      received: received.length,
-      wear: wear.length,
-      rejected: rejected.length,
-      notConsumed: notConsumed.length,
-      lowStock: lowStock.length,
-      blocked: blockedRows.length,
-      totalSkus,
-      deliveredThisMonth: deliveredThisMonth.length,
-      wearCreditedThisMonth: wearCreditedThisMonth.length,
-      rejectedFinalThisMonth: rejectedFinalThisMonth.length,
-      overdueReceipt: overdueReceipt.length,
-      pendingSpecial: pendingSpecial.length,
-      topDelivered: topDeliveredParts(delivered),
-    }
-  }, [pending, parts])
-
-  const isLoading = loadingPending || loadingParts
-
+function PendingList({ rows }: { rows: PendingPart[] }) {
+  if (rows.length === 0) return <p className="text-sm text-muted text-center py-4">אין פריטים</p>
   return (
-    <>
-      <AppHeader subtitle="לוח בקרה · מחסן" />
-      <main className="max-w-3xl mx-auto p-4 flex flex-col gap-3">
-        {isLoading ? (
-          <p className="text-sm text-muted text-center py-8">טוען...</p>
-        ) : (
-          <>
-            <TopStatsBar
-              total={stats.totalPending}
-              rejected={stats.rejected}
-              blocked={stats.blocked}
-              lowStock={stats.lowStock}
-              overdueReceipt={stats.overdueReceipt}
-              pendingSpecial={stats.pendingSpecial}
-            />
-            <StatusTiles
-              awaitingOrder={stats.awaitingOrder}
-              awaitingReceipt={stats.awaitingReceipt}
-              received={stats.received}
-              wear={stats.wear}
-            />
-            <InventoryOverview
-              notConsumed={stats.notConsumed}
-              delivered={stats.deliveredThisMonth}
-              rejectedFinal={stats.rejectedFinalThisMonth}
-              wearCredited={stats.wearCreditedThisMonth}
-            />
-            <TopDeliveredTable rows={stats.topDelivered} />
-            <QuickActions />
-          </>
-        )}
-      </main>
-    </>
+    <ul className="divide-y divide-border">
+      {rows.map(r => (
+        <li key={r.id}>
+          <Link
+            to={`/warehouse/required-part/${r.id}`}
+            className="flex items-center gap-3 px-4 py-3 hover:bg-muted-surface transition-colors"
+          >
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium text-foreground truncate">{r.parts?.name ?? '?'}</div>
+              <div className="text-xs text-muted font-mono">{r.parts?.sku ?? ''} · ×{r.quantity}</div>
+            </div>
+            <span className="text-xs text-muted font-mono shrink-0">{formatDate(r.requested_at)}</span>
+            <IconArrowLeft size={14} />
+          </Link>
+        </li>
+      ))}
+    </ul>
   )
 }
 
+function LowStockList({ rows }: { rows: Part[] }) {
+  if (rows.length === 0) return <p className="text-sm text-muted text-center py-4">אין פריטים</p>
+  return (
+    <table className="w-full text-xs">
+      <thead className="bg-muted-surface text-muted">
+        <tr>
+          <th className="text-start px-3 py-2">מק״ט</th>
+          <th className="text-start px-3 py-2">שם</th>
+          <th className="text-start px-3 py-2">מלאי</th>
+          <th className="text-start px-3 py-2">סף</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map(p => (
+          <tr key={p.id} className="border-t border-border">
+            <td className="px-3 py-2 font-mono text-foreground">{p.sku}</td>
+            <td className="px-3 py-2 text-foreground">{p.name}</td>
+            <td className="px-3 py-2 text-danger font-medium">{p.quantity}</td>
+            <td className="px-3 py-2 text-muted">{p.min_threshold}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}
 
+function ExpandedPanel({ children }: { children: ReactNode }) {
+  return (
+    <Card>
+      <CardBody className="p-0">{children}</CardBody>
+    </Card>
+  )
+}
 
-function StatusTiles({ awaitingOrder, awaitingReceipt, received, wear }: {
-  awaitingOrder: number; awaitingReceipt: number; received: number; wear: number
+/* ------------------------------------------------------------------ */
+/*  Top Stats Bar                                                      */
+/* ------------------------------------------------------------------ */
+
+const BANNER_KEYS: { key: Section; icon: ReactNode; label: string }[] = [
+  { key: 'rejected',        icon: <IconWarning size={18} />,                   label: 'מק״טים שנדחו' },
+  { key: 'blocked',         icon: <IconBan size={18} color="#dc2626" />,       label: 'מק״טים חסומים' },
+  { key: 'pending_special', icon: <IconClipboard size={18} color="#f59e0b" />, label: 'ממתין לאישור מיוחד' },
+  { key: 'low_stock',       icon: <IconBox size={18} color="#f59e0b" />,       label: 'מלאי נמוך' },
+  { key: 'overdue_receipt',  icon: <IconTruck size={18} color="#dc2626" />,     label: 'ממתינים זמן רב' },
+]
+
+function TopStatsBar({ counts, active, onToggle }: {
+  counts: Record<string, number>
+  active: Section | null
+  onToggle: (s: Section) => void
 }) {
-  const tiles: Array<{ label: string; value: number; color: string; bg: string; tab: string }> = [
-    { label: 'ממתין להזמנה',    value: awaitingOrder,   color: '#dc2626', bg: 'bg-red-50',    tab: 'awaiting_order' },
-    { label: 'ממתין לקבלה',     value: awaitingReceipt, color: '#f59e0b', bg: 'bg-amber-50',  tab: 'awaiting_receipt' },
-    { label: 'התקבל',            value: received,        color: '#3b82f6', bg: 'bg-blue-50',   tab: 'received' },
-    { label: 'בלאי',             value: wear,            color: '#8b5cf6', bg: 'bg-purple-50', tab: 'wear' },
-  ]
+  return (
+    <div className="rounded-2xl border border-border overflow-hidden">
+      <div className="px-4 py-5 sm:py-6 text-center" style={{ backgroundColor: NAVY }}>
+        <div className="flex items-center justify-center gap-3">
+          <IconBox size={28} color="#fff" />
+          <span className="text-3xl sm:text-5xl font-extrabold text-white leading-none">{counts.totalPending}</span>
+          <span className="text-sm sm:text-lg text-white/80 font-medium">פריטים ממתינים לטיפול</span>
+        </div>
+      </div>
+      <div className="grid grid-cols-5 gap-px bg-border">
+        {BANNER_KEYS.map(s => {
+          const isActive = active === s.key
+          return (
+            <button
+              key={s.key}
+              type="button"
+              onClick={() => onToggle(s.key)}
+              className={`bg-card flex flex-col items-center px-1 sm:px-3 py-3 sm:py-4 transition-colors cursor-pointer hover:bg-muted-surface/50 ${isActive ? 'ring-2 ring-inset ring-primary' : ''}`}
+            >
+              <span className="text-muted">{s.icon}</span>
+              <span className="text-lg sm:text-2xl font-bold leading-none mt-1 text-foreground">{counts[s.key] ?? 0}</span>
+              <span className="text-[10px] sm:text-xs mt-1 text-center leading-tight text-muted">{s.label}</span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
 
+/* ------------------------------------------------------------------ */
+/*  Status Tiles                                                       */
+/* ------------------------------------------------------------------ */
+
+const TILE_DEFS: { key: Section; label: string; color: string; bg: string }[] = [
+  { key: 'awaiting_order',   label: 'ממתין להזמנה',  color: '#dc2626', bg: 'bg-red-50' },
+  { key: 'awaiting_receipt', label: 'ממתין לקבלה',   color: '#f59e0b', bg: 'bg-amber-50' },
+  { key: 'received',         label: 'התקבל',          color: '#3b82f6', bg: 'bg-blue-50' },
+  { key: 'wear',             label: 'בלאי',           color: '#8b5cf6', bg: 'bg-purple-50' },
+]
+
+function StatusTiles({ counts, active, onToggle }: {
+  counts: Record<string, number>
+  active: Section | null
+  onToggle: (s: Section) => void
+}) {
   return (
     <div className="grid grid-cols-4 gap-2">
-      {tiles.map(t => (
-        <Link
-          key={t.tab}
-          to={`/warehouse?actab=${t.tab}`}
-          className={`rounded-xl border border-border overflow-hidden flex flex-col ${t.bg} transition-opacity hover:opacity-90`}
-        >
-          <div className="h-1" style={{ backgroundColor: t.color }} />
-          <div className="flex flex-col items-center py-3 px-1">
-            <span className="text-xl sm:text-3xl font-bold" style={{ color: t.color }}>{t.value}</span>
-            <span className="text-[9px] sm:text-xs text-foreground text-center mt-1 leading-tight">{t.label}</span>
-          </div>
-        </Link>
-      ))}
+      {TILE_DEFS.map(t => {
+        const isActive = active === t.key
+        return (
+          <button
+            key={t.key}
+            type="button"
+            onClick={() => onToggle(t.key)}
+            className={`rounded-xl border overflow-hidden flex flex-col ${t.bg} transition-opacity hover:opacity-90 text-start ${isActive ? 'ring-2 ring-primary border-primary' : 'border-border'}`}
+          >
+            <div className="h-1" style={{ backgroundColor: t.color }} />
+            <div className="flex flex-col items-center py-3 px-1">
+              <span className="text-xl sm:text-3xl font-bold" style={{ color: t.color }}>{counts[t.key] ?? 0}</span>
+              <span className="text-[9px] sm:text-xs text-foreground text-center mt-1 leading-tight">{t.label}</span>
+            </div>
+          </button>
+        )
+      })}
     </div>
   )
 }
 
-function IssueRow({ icon, label, count, tone }: { icon: ReactNode; label: string; count: number; tone: string }) {
-  return (
-    <div className="flex items-center gap-3 px-4 py-3 border-b border-border last:border-0">
-      <span className="shrink-0">{icon}</span>
-      <span className="flex-1 text-sm text-foreground">{label}</span>
-      <span className={`text-lg font-bold ${tone}`}>{count}</span>
-    </div>
-  )
-}
+/* ------------------------------------------------------------------ */
+/*  Inventory Overview                                                 */
+/* ------------------------------------------------------------------ */
 
-function InventoryOverview({ notConsumed, delivered, rejectedFinal, wearCredited }: {
-  notConsumed: number; delivered: number; rejectedFinal: number; wearCredited: number
+const OVERVIEW_DEFS: { key: Section; icon: ReactNode; label: string; tone: string }[] = [
+  { key: 'not_consumed',   icon: <IconBox size={20} />,                  label: 'פריטים שלא נצרכו', tone: 'text-warning' },
+  { key: 'delivered',      icon: <IconCheck size={20} />,                label: 'נופקו החודש',       tone: 'text-success' },
+  { key: 'rejected_final', icon: <IconBan size={20} color="#6b7280" />,  label: 'נדחו סופית',        tone: 'text-muted' },
+  { key: 'wear_credited',  icon: <IconTruck size={20} />,                label: 'בלאי מזוכה',        tone: 'text-foreground' },
+]
+
+function InventoryOverview({ counts, active, onToggle }: {
+  counts: Record<string, number>
+  active: Section | null
+  onToggle: (s: Section) => void
 }) {
   return (
     <Card>
@@ -302,14 +292,63 @@ function InventoryOverview({ notConsumed, delivered, rejectedFinal, wearCredited
         <h2 className="text-sm font-semibold text-foreground">סיכום מלאי ופעילות</h2>
       </CardHeader>
       <CardBody className="p-0">
-        <IssueRow icon={<IconBox size={20} />}                  label="פריטים שלא נצרכו"   count={notConsumed}   tone="text-warning" />
-        <IssueRow icon={<IconCheck size={20} />}                label="נופקו החודש"         count={delivered}     tone="text-success" />
-        <IssueRow icon={<IconBan size={20} color="#6b7280" />}  label="נדחו סופית"          count={rejectedFinal} tone="text-muted" />
-        <IssueRow icon={<IconTruck size={20} />}                label="בלאי מזוכה"          count={wearCredited}  tone="text-foreground" />
+        {OVERVIEW_DEFS.map(d => {
+          const isActive = active === d.key
+          return (
+            <button
+              key={d.key}
+              type="button"
+              onClick={() => onToggle(d.key)}
+              className={`w-full flex items-center gap-3 px-4 py-3 border-b border-border last:border-0 transition-colors cursor-pointer hover:bg-muted-surface/50 ${isActive ? 'bg-muted-surface' : ''}`}
+            >
+              <span className="shrink-0">{d.icon}</span>
+              <span className="flex-1 text-sm text-foreground text-start">{d.label}</span>
+              <span className={`text-lg font-bold ${d.tone}`}>{counts[d.key] ?? 0}</span>
+            </button>
+          )
+        })}
       </CardBody>
     </Card>
   )
 }
+
+/* ------------------------------------------------------------------ */
+/*  Quick Actions                                                      */
+/* ------------------------------------------------------------------ */
+
+function QuickActions({ active, onToggle }: { active: Section | null; onToggle: (s: Section) => void }) {
+  const isActive = active === 'catalog'
+  return (
+    <Card>
+      <CardHeader>
+        <h2 className="text-sm font-semibold text-foreground">פעולות מהירות</h2>
+      </CardHeader>
+      <CardBody className="p-0">
+        <button
+          type="button"
+          onClick={() => onToggle('catalog')}
+          className={`w-full flex items-center gap-3 px-4 py-3 border-b border-border transition-colors cursor-pointer hover:bg-muted-surface ${isActive ? 'bg-muted-surface' : ''}`}
+        >
+          <span className="text-muted"><IconList size={20} /></span>
+          <span className="flex-1 text-sm font-medium text-foreground text-start">ניהול מחסן</span>
+          <IconArrowLeft size={16} />
+        </button>
+        <Link
+          to="/warehouse/inventory-count"
+          className="flex items-center gap-3 px-4 py-3 border-b border-border last:border-0 hover:bg-muted-surface transition-colors"
+        >
+          <span className="text-muted"><IconClipboard size={20} /></span>
+          <span className="flex-1 text-sm font-medium text-foreground">ספירת מלאי</span>
+          <IconArrowLeft size={16} />
+        </Link>
+      </CardBody>
+    </Card>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/*  Top Delivered Table (not clickable)                                */
+/* ------------------------------------------------------------------ */
 
 function TopDeliveredTable({ rows }: { rows: TopPart[] }) {
   if (rows.length === 0) return null
@@ -342,30 +381,108 @@ function TopDeliveredTable({ rows }: { rows: TopPart[] }) {
   )
 }
 
-function QuickActions() {
-  const actions: Array<{ to: string; icon: ReactNode; label: string }> = [
-    { to: '/warehouse',                 icon: <IconList size={20} />,      label: 'ניהול מחסן' },
-    { to: '/warehouse/inventory-count', icon: <IconClipboard size={20} />, label: 'ספירת מלאי' },
-  ]
+/* ------------------------------------------------------------------ */
+/*  Page                                                               */
+/* ------------------------------------------------------------------ */
+
+const BANNER_SET = new Set<Section>(['rejected', 'blocked', 'pending_special', 'low_stock', 'overdue_receipt'])
+const TILE_SET   = new Set<Section>(['awaiting_order', 'awaiting_receipt', 'received', 'wear'])
+const OVERVIEW_SET = new Set<Section>(['not_consumed', 'delivered', 'rejected_final', 'wear_credited'])
+
+export function WarehouseDashboardPage() {
+  const { data: pending, isLoading: loadingPending } = usePendingActions()
+  const { data: parts, isLoading: loadingParts } = useParts()
+  const [active, setActive] = useState<Section | null>(null)
+
+  function toggle(s: Section) {
+    setActive(prev => prev === s ? null : s)
+  }
+
+  const computed = useMemo(() => {
+    const rows = pending ?? []
+    const now = new Date()
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+
+    const byStatus = (s: string) => rows.filter(r => r.status === s)
+    const awaitingReceipt = byStatus('awaiting_receipt')
+    const delivered       = byStatus('delivered')
+    const wearCredited    = byStatus('wear_credited')
+    const rejectedFinal   = byStatus('rejected_final')
+
+    const overdueReceipt = awaitingReceipt.filter(r => {
+      const since = r.awaiting_receipt_since ?? r.requested_at
+      return (Date.now() - new Date(since).getTime()) / HOUR >= 48
+    })
+    const blockedRows = rows.filter(r => r.parts?.is_sku_blocked && !r.parts?.hide_from_blocked_table)
+    const deliveredThisMonth = delivered.filter(r => {
+      const w = r.part_withdrawals?.[0]?.withdrawn_at
+      return w && new Date(w) >= monthStart
+    })
+    const wearCreditedThisMonth = wearCredited.filter(r => new Date(r.requested_at) >= monthStart)
+    const rejectedFinalThisMonth = rejectedFinal.filter(r => new Date(r.requested_at) >= monthStart)
+
+    const catalog = parts ?? []
+    const lowStockParts = catalog.filter(p => p.quantity < p.min_threshold)
+
+    const sectionRows: Record<string, PendingPart[]> = {
+      rejected:        byStatus('rejected'),
+      pending_special: byStatus('pending_special_approval'),
+      blocked:         blockedRows,
+      overdue_receipt: overdueReceipt,
+      awaiting_order:  byStatus('awaiting_order'),
+      awaiting_receipt: awaitingReceipt,
+      received:        byStatus('received'),
+      wear:            byStatus('wear'),
+      not_consumed:    byStatus('not_consumed'),
+      delivered:       deliveredThisMonth,
+      rejected_final:  rejectedFinalThisMonth,
+      wear_credited:   wearCreditedThisMonth,
+    }
+
+    const counts: Record<string, number> = {}
+    for (const [k, v] of Object.entries(sectionRows)) counts[k] = v.length
+    counts.low_stock = lowStockParts.length
+    counts.totalPending = (sectionRows.awaiting_order?.length ?? 0) +
+      awaitingReceipt.length + (sectionRows.received?.length ?? 0) + (sectionRows.wear?.length ?? 0)
+
+    return { sectionRows, lowStockParts, counts, topDelivered: topDeliveredParts(delivered) }
+  }, [pending, parts])
+
+  const isLoading = loadingPending || loadingParts
+
+  function renderExpanded(keys: Set<Section>) {
+    if (!active || !keys.has(active)) return null
+    if (active === 'low_stock') {
+      return <ExpandedPanel><LowStockList rows={computed.lowStockParts} /></ExpandedPanel>
+    }
+    const rows = computed.sectionRows[active] ?? []
+    return <ExpandedPanel><PendingList rows={rows} /></ExpandedPanel>
+  }
 
   return (
-    <Card>
-      <CardHeader>
-        <h2 className="text-sm font-semibold text-foreground">פעולות מהירות</h2>
-      </CardHeader>
-      <CardBody className="p-0">
-        {actions.map(a => (
-          <Link
-            key={a.to}
-            to={a.to}
-            className="flex items-center gap-3 px-4 py-3 border-b border-border last:border-0 hover:bg-muted-surface transition-colors"
-          >
-            <span className="text-muted">{a.icon}</span>
-            <span className="flex-1 text-sm font-medium text-foreground">{a.label}</span>
-            <IconArrowLeft size={16} />
-          </Link>
-        ))}
-      </CardBody>
-    </Card>
+    <>
+      <AppHeader subtitle="לוח בקרה · מחסן" />
+      <main className="max-w-3xl mx-auto p-4 flex flex-col gap-3">
+        {isLoading ? (
+          <p className="text-sm text-muted text-center py-8">טוען...</p>
+        ) : (
+          <>
+            <TopStatsBar counts={computed.counts} active={active} onToggle={toggle} />
+            {renderExpanded(BANNER_SET)}
+
+            <StatusTiles counts={computed.counts} active={active} onToggle={toggle} />
+            {renderExpanded(TILE_SET)}
+
+            <InventoryOverview counts={computed.counts} active={active} onToggle={toggle} />
+            {renderExpanded(OVERVIEW_SET)}
+
+            <TopDeliveredTable rows={computed.topDelivered} />
+
+            <QuickActions active={active} onToggle={toggle} />
+            {active === 'catalog' && parts && <PartsCatalogList parts={parts} />}
+          </>
+        )}
+      </main>
+    </>
   )
 }
