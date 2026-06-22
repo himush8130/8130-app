@@ -79,14 +79,6 @@ function IconArrowLeft({ size = 16, color = 'currentColor' }: IconProps) {
   )
 }
 
-function IconSearch({ size = 24, color = '#64748b' }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color}
-         strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
-    </svg>
-  )
-}
 
 function IconList({ size = 24, color = '#64748b' }: IconProps) {
   return (
