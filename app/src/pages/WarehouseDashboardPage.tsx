@@ -225,10 +225,10 @@ export function WarehouseDashboardPage() {
               wear={stats.wear}
             />
             <InventoryOverview
-              lowStock={stats.lowStock}
-              blocked={stats.blocked}
-              rejected={stats.rejected}
               notConsumed={stats.notConsumed}
+              delivered={stats.deliveredThisMonth}
+              rejectedFinal={stats.rejectedFinalThisMonth}
+              wearCredited={stats.wearCreditedThisMonth}
               totalSkus={stats.totalSkus}
             />
             <QuickActions />
@@ -280,8 +280,8 @@ function IssueRow({ icon, label, count, tone }: { icon: ReactNode; label: string
   )
 }
 
-function InventoryOverview({ lowStock, blocked, rejected, notConsumed, totalSkus }: {
-  lowStock: number; blocked: number; rejected: number; notConsumed: number; totalSkus: number
+function InventoryOverview({ notConsumed, delivered, rejectedFinal, wearCredited, totalSkus }: {
+  notConsumed: number; delivered: number; rejectedFinal: number; wearCredited: number; totalSkus: number
 }) {
   return (
     <Card>
@@ -289,11 +289,11 @@ function InventoryOverview({ lowStock, blocked, rejected, notConsumed, totalSkus
         <h2 className="text-sm font-semibold text-foreground">סיכום מלאי ופעילות</h2>
       </CardHeader>
       <CardBody className="p-0">
-        <IssueRow icon={<IconWarning size={20} />}    label="מלאי נמוך"          count={lowStock}    tone="text-warning" />
-        <IssueRow icon={<IconBan size={20} />}        label='מק״טים חסומים'      count={blocked}     tone="text-danger" />
-        <IssueRow icon={<IconClipboard size={20} />}  label="פריטים שנדחו"       count={rejected}    tone="text-danger" />
-        <IssueRow icon={<IconBox size={20} />}        label="פריטים שלא נצרכו"   count={notConsumed} tone="text-warning" />
-        <IssueRow icon={<IconSearch size={20} />}     label='מק״טים בקטלוג'      count={totalSkus}   tone="text-foreground" />
+        <IssueRow icon={<IconBox size={20} />}                  label="פריטים שלא נצרכו"   count={notConsumed}   tone="text-warning" />
+        <IssueRow icon={<IconCheck size={20} />}                label="נופקו החודש"         count={delivered}     tone="text-success" />
+        <IssueRow icon={<IconBan size={20} color="#6b7280" />}  label="נדחו סופית"          count={rejectedFinal} tone="text-muted" />
+        <IssueRow icon={<IconTruck size={20} />}                label="בלאי מזוכה"          count={wearCredited}  tone="text-foreground" />
+        <IssueRow icon={<IconSearch size={20} />}               label='מק״טים בקטלוג'      count={totalSkus}     tone="text-foreground" />
       </CardBody>
     </Card>
   )
