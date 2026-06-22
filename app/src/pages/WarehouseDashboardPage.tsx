@@ -229,7 +229,6 @@ export function WarehouseDashboardPage() {
               delivered={stats.deliveredThisMonth}
               rejectedFinal={stats.rejectedFinalThisMonth}
               wearCredited={stats.wearCreditedThisMonth}
-              totalSkus={stats.totalSkus}
             />
             <QuickActions />
           </>
@@ -280,8 +279,8 @@ function IssueRow({ icon, label, count, tone }: { icon: ReactNode; label: string
   )
 }
 
-function InventoryOverview({ notConsumed, delivered, rejectedFinal, wearCredited, totalSkus }: {
-  notConsumed: number; delivered: number; rejectedFinal: number; wearCredited: number; totalSkus: number
+function InventoryOverview({ notConsumed, delivered, rejectedFinal, wearCredited }: {
+  notConsumed: number; delivered: number; rejectedFinal: number; wearCredited: number
 }) {
   return (
     <Card>
@@ -293,7 +292,6 @@ function InventoryOverview({ notConsumed, delivered, rejectedFinal, wearCredited
         <IssueRow icon={<IconCheck size={20} />}                label="נופקו החודש"         count={delivered}     tone="text-success" />
         <IssueRow icon={<IconBan size={20} color="#6b7280" />}  label="נדחו סופית"          count={rejectedFinal} tone="text-muted" />
         <IssueRow icon={<IconTruck size={20} />}                label="בלאי מזוכה"          count={wearCredited}  tone="text-foreground" />
-        <IssueRow icon={<IconSearch size={20} />}               label='מק״טים בקטלוג'      count={totalSkus}     tone="text-foreground" />
       </CardBody>
     </Card>
   )
@@ -303,7 +301,6 @@ function QuickActions() {
   const actions: Array<{ to: string; icon: ReactNode; label: string }> = [
     { to: '/warehouse',                 icon: <IconList size={20} />,      label: 'ניהול מחסן' },
     { to: '/warehouse/inventory-count', icon: <IconClipboard size={20} />, label: 'ספירת מלאי' },
-    { to: '/technician',               icon: <IconSearch size={20} />,    label: 'דף כלים' },
   ]
 
   return (
