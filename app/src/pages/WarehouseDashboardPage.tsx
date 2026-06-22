@@ -121,10 +121,10 @@ function IconEyeOff({ size = 16, color = 'currentColor' }: IconProps) {
 
 interface TopPart { sku: string; name: string; total: number }
 
-function topDeliveredParts(delivered: Array<{ quantity: number; parts?: { sku: string; name: string } | null }>): TopPart[] {
+function topDeliveredParts(delivered: Array<{ quantity: number; parts?: { sku: string; name: string } | null }>, hidden: Set<string>): TopPart[] {
   const map = new Map<string, { name: string; total: number }>()
   for (const r of delivered) {
-    if (!r.parts) continue
+    if (!r.parts || hidden.has(r.parts.sku)) continue
     const key = r.parts.sku
     const prev = map.get(key)
     if (prev) prev.total += r.quantity
@@ -521,8 +521,7 @@ export function WarehouseDashboardPage() {
     counts.totalPending = counts.rejected + counts.blocked + counts.pending_special +
       counts.low_stock + counts.overdue_receipt
 
-    const hiddenSet = new Set(hiddenSkus)
-    const topDelivered = topDeliveredParts(delivered).filter(p => !hiddenSet.has(p.sku))
+    const topDelivered = topDeliveredParts(delivered, new Set(hiddenSkus))
 
     return { sectionRows, lowStockParts, counts, topDelivered }
   }, [pending, parts, hiddenSkus])
