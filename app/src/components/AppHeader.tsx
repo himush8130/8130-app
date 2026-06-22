@@ -144,17 +144,6 @@ export function AppHeader({ subtitle, showLogo, wide }: { subtitle?: string; sho
           <div className="flex items-center gap-3">
             <span className="text-sm text-muted hidden sm:inline">{employee.name}</span>
 
-            {employee.permissions === 'manager' && (
-              <Link
-                to="/manager/dashboard-v2"
-                aria-label="לוח בקרה v2"
-                title="לוח בקרה v2"
-                className={`${CHIP_BASE} ${CHIP_ICON} text-base ${CHIP_NEUTRAL}`}
-              >
-                🧪
-              </Link>
-            )}
-
             {employee.permissions === 'manager' && <AttendanceCopyIcon />}
 
             {employee.permissions === 'manager' && (

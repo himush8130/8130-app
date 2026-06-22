@@ -116,8 +116,6 @@ export function ManagerHomePage() {
               </CardBody>
             </Card>
 
-            <HiddenPartsManager />
-
             <Card>
               <CardBody>
                 <ComponentBadge id={3014} />
@@ -137,6 +135,8 @@ export function ManagerHomePage() {
                 </ul>
               </CardBody>
             </Card>
+
+            <HiddenPartsManager />
 
         <ReleaseNoteFooter />
       </main>
