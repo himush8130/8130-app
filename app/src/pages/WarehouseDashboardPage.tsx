@@ -134,6 +134,26 @@ function TopStatsBar({ total, rejected, blocked, lowStock, overdueReceipt, pendi
   )
 }
 
+interface TopPart { sku: string; name: string; total: number }
+
+function topDeliveredParts(delivered: Array<{ quantity: number; parts?: { sku: string; name: string } | null }>): TopPart[] {
+  const map = new Map<string, { name: string; total: number }>()
+  for (const r of delivered) {
+    if (!r.parts) continue
+    const key = r.parts.sku
+    const prev = map.get(key)
+    if (prev) {
+      prev.total += r.quantity
+    } else {
+      map.set(key, { name: r.parts.name, total: r.quantity })
+    }
+  }
+  return [...map.entries()]
+    .map(([sku, v]) => ({ sku, name: v.name, total: v.total }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 5)
+}
+
 export function WarehouseDashboardPage() {
   const { data: pending, isLoading: loadingPending } = usePendingActions()
   const { data: parts, isLoading: loadingParts } = useParts()
@@ -197,6 +217,7 @@ export function WarehouseDashboardPage() {
       rejectedFinalThisMonth: rejectedFinalThisMonth.length,
       overdueReceipt: overdueReceipt.length,
       pendingSpecial: pendingSpecial.length,
+      topDelivered: topDeliveredParts(delivered),
     }
   }, [pending, parts])
 
@@ -230,6 +251,7 @@ export function WarehouseDashboardPage() {
               rejectedFinal={stats.rejectedFinalThisMonth}
               wearCredited={stats.wearCreditedThisMonth}
             />
+            <TopDeliveredTable rows={stats.topDelivered} />
             <QuickActions />
           </>
         )}
@@ -292,6 +314,37 @@ function InventoryOverview({ notConsumed, delivered, rejectedFinal, wearCredited
         <IssueRow icon={<IconCheck size={20} />}                label="נופקו החודש"         count={delivered}     tone="text-success" />
         <IssueRow icon={<IconBan size={20} color="#6b7280" />}  label="נדחו סופית"          count={rejectedFinal} tone="text-muted" />
         <IssueRow icon={<IconTruck size={20} />}                label="בלאי מזוכה"          count={wearCredited}  tone="text-foreground" />
+      </CardBody>
+    </Card>
+  )
+}
+
+function TopDeliveredTable({ rows }: { rows: TopPart[] }) {
+  if (rows.length === 0) return null
+  return (
+    <Card>
+      <CardHeader>
+        <h2 className="text-sm font-semibold text-foreground">פריטים בשימוש גבוה</h2>
+      </CardHeader>
+      <CardBody className="p-0">
+        <table className="w-full text-xs">
+          <thead className="bg-muted-surface text-muted">
+            <tr>
+              <th className="text-start px-3 py-2">מק״ט</th>
+              <th className="text-start px-3 py-2">שם</th>
+              <th className="text-start px-3 py-2">כמות</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(r => (
+              <tr key={r.sku} className="border-t border-border">
+                <td className="px-3 py-2 font-mono text-foreground">{r.sku}</td>
+                <td className="px-3 py-2 text-foreground">{r.name}</td>
+                <td className="px-3 py-2 font-bold text-foreground">{r.total}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </CardBody>
     </Card>
   )
