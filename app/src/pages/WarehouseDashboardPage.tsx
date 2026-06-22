@@ -514,7 +514,8 @@ export function WarehouseDashboardPage() {
     for (const [k, v] of Object.entries(sectionRows)) counts[k] = v.length
     counts.low_stock = lowStockParts.length
     counts.totalPending = counts.rejected + counts.blocked + counts.pending_special +
-      counts.low_stock + counts.overdue_receipt
+      counts.low_stock + counts.overdue_receipt +
+      counts.awaiting_order + counts.awaiting_receipt + counts.wear
 
     const topDelivered = topDeliveredParts(delivered, new Set(hiddenSkus))
 
