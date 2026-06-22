@@ -1,11 +1,17 @@
-import { useState, useMemo, type ReactNode } from 'react'
+import { useState, useMemo, useCallback, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { AppHeader } from '../components/AppHeader'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { PartsCatalogList } from '../components/PartsCatalogList'
 import { usePendingActions, type PendingPart } from '../hooks/usePendingActions'
 import { useParts } from '../hooks/useParts'
+import { useAppSettings } from '../hooks/useAppSettings'
+import { useAuthStore } from '../store/auth'
+import { setAppSetting } from '../lib/adminActions'
 import type { Part } from '../types/parts'
+
+const HIDDEN_TOP_PARTS_KEY = 'hidden_top_parts'
 
 const NAVY = '#232150'
 const HOUR = 3_600_000
@@ -93,6 +99,18 @@ function IconList({ size = 24, color = '#64748b' }: IconProps) {
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color}
          strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
       <path d="M3 12h18M3 6h18M3 18h18" />
+    </svg>
+  )
+}
+
+function IconEyeOff({ size = 16, color = 'currentColor' }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color}
+         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" />
+      <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" />
+      <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" />
+      <path d="m2 2 20 20" />
     </svg>
   )
 }
@@ -350,34 +368,77 @@ function QuickActions({ active, onToggle }: { active: Section | null; onToggle: 
 /*  Top Delivered Table (not clickable)                                */
 /* ------------------------------------------------------------------ */
 
-function TopDeliveredTable({ rows }: { rows: TopPart[] }) {
+function TopDeliveredTable({ rows, onHide }: { rows: TopPart[]; onHide: (sku: string) => void }) {
+  const [confirmSku, setConfirmSku] = useState<string | null>(null)
+
   if (rows.length === 0) return null
   return (
-    <Card>
-      <CardHeader>
-        <h2 className="text-sm font-semibold text-foreground">פריטים בשימוש גבוה</h2>
-      </CardHeader>
-      <CardBody className="p-0">
-        <table className="w-full text-xs">
-          <thead className="bg-muted-surface text-muted">
-            <tr>
-              <th className="text-start px-3 py-2">מק״ט</th>
-              <th className="text-start px-3 py-2">שם</th>
-              <th className="text-start px-3 py-2">כמות</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(r => (
-              <tr key={r.sku} className="border-t border-border">
-                <td className="px-3 py-2 font-mono text-foreground">{r.sku}</td>
-                <td className="px-3 py-2 text-foreground">{r.name}</td>
-                <td className="px-3 py-2 font-bold text-foreground">{r.total}</td>
+    <>
+      <Card>
+        <CardHeader>
+          <h2 className="text-sm font-semibold text-foreground">פריטים בשימוש גבוה</h2>
+        </CardHeader>
+        <CardBody className="p-0">
+          <table className="w-full text-xs">
+            <thead className="bg-muted-surface text-muted">
+              <tr>
+                <th className="text-start px-3 py-2">מק״ט</th>
+                <th className="text-start px-3 py-2">שם</th>
+                <th className="text-start px-3 py-2">כמות</th>
+                <th className="w-8" />
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </CardBody>
-    </Card>
+            </thead>
+            <tbody>
+              {rows.map(r => (
+                <tr key={r.sku} className="border-t border-border">
+                  <td className="px-3 py-2 font-mono text-foreground">{r.sku}</td>
+                  <td className="px-3 py-2 text-foreground">{r.name}</td>
+                  <td className="px-3 py-2 font-bold text-foreground">{r.total}</td>
+                  <td className="px-1 py-2">
+                    <button
+                      type="button"
+                      onClick={() => setConfirmSku(r.sku)}
+                      className="p-1 rounded hover:bg-muted-surface text-muted hover:text-foreground transition-colors"
+                      title="הסתר פריט מטבלה זו"
+                    >
+                      <IconEyeOff size={14} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </CardBody>
+      </Card>
+
+      {confirmSku && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setConfirmSku(null)}>
+          <div className="bg-card rounded-xl shadow-xl p-5 mx-4 max-w-sm w-full" onClick={e => e.stopPropagation()}>
+            <p className="text-sm text-foreground mb-4">
+              להסתיר את מק״ט <span className="font-mono font-bold">{confirmSku}</span> מטבלת פריטים בשימוש גבוה?
+            </p>
+            <p className="text-xs text-muted mb-4">ניתן לבטל הסתרה בדף הגדרות.</p>
+            <div className="flex gap-2 justify-end">
+              <button
+                type="button"
+                onClick={() => setConfirmSku(null)}
+                className="px-3 py-1.5 text-sm rounded-md border border-border text-foreground hover:bg-muted-surface"
+              >
+                ביטול
+              </button>
+              <button
+                type="button"
+                onClick={() => { onHide(confirmSku); setConfirmSku(null) }}
+                className="px-3 py-1.5 text-sm rounded-md text-white"
+                style={{ backgroundColor: NAVY }}
+              >
+                הסתר
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
 
@@ -392,11 +453,26 @@ const OVERVIEW_SET = new Set<Section>(['not_consumed', 'delivered', 'rejected_fi
 export function WarehouseDashboardPage() {
   const { data: pending, isLoading: loadingPending } = usePendingActions()
   const { data: parts, isLoading: loadingParts } = useParts()
+  const { data: settings } = useAppSettings()
+  const employee = useAuthStore((s) => s.employee)
+  const queryClient = useQueryClient()
   const [active, setActive] = useState<Section | null>(null)
 
   function toggle(s: Section) {
     setActive(prev => prev === s ? null : s)
   }
+
+  const hiddenSkus: string[] = useMemo(() => {
+    if (!settings?.[HIDDEN_TOP_PARTS_KEY]) return []
+    try { return JSON.parse(settings[HIDDEN_TOP_PARTS_KEY]) } catch { return [] }
+  }, [settings])
+
+  const handleHidePart = useCallback(async (sku: string) => {
+    if (!employee) return
+    const next = [...new Set([...hiddenSkus, sku])]
+    await setAppSetting(employee.employee_number, HIDDEN_TOP_PARTS_KEY, JSON.stringify(next))
+    queryClient.invalidateQueries({ queryKey: ['app_settings'] })
+  }, [employee, hiddenSkus, queryClient])
 
   const computed = useMemo(() => {
     const rows = pending ?? []
@@ -445,8 +521,11 @@ export function WarehouseDashboardPage() {
     counts.totalPending = counts.rejected + counts.blocked + counts.pending_special +
       counts.low_stock + counts.overdue_receipt
 
-    return { sectionRows, lowStockParts, counts, topDelivered: topDeliveredParts(delivered) }
-  }, [pending, parts])
+    const hiddenSet = new Set(hiddenSkus)
+    const topDelivered = topDeliveredParts(delivered).filter(p => !hiddenSet.has(p.sku))
+
+    return { sectionRows, lowStockParts, counts, topDelivered }
+  }, [pending, parts, hiddenSkus])
 
   const isLoading = loadingPending || loadingParts
 
@@ -476,7 +555,7 @@ export function WarehouseDashboardPage() {
             <InventoryOverview counts={computed.counts} active={active} onToggle={toggle} />
             {renderExpanded(OVERVIEW_SET)}
 
-            <TopDeliveredTable rows={computed.topDelivered} />
+            <TopDeliveredTable rows={computed.topDelivered} onHide={handleHidePart} />
 
             <QuickActions active={active} onToggle={toggle} />
             {active === 'catalog' && parts && <PartsCatalogList parts={parts} />}
