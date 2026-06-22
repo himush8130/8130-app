@@ -442,8 +442,8 @@ export function WarehouseDashboardPage() {
     const counts: Record<string, number> = {}
     for (const [k, v] of Object.entries(sectionRows)) counts[k] = v.length
     counts.low_stock = lowStockParts.length
-    counts.totalPending = (sectionRows.awaiting_order?.length ?? 0) +
-      awaitingReceipt.length + (sectionRows.received?.length ?? 0) + (sectionRows.wear?.length ?? 0)
+    counts.totalPending = counts.rejected + counts.blocked + counts.pending_special +
+      counts.low_stock + counts.overdue_receipt
 
     return { sectionRows, lowStockParts, counts, topDelivered: topDeliveredParts(delivered) }
   }, [pending, parts])
