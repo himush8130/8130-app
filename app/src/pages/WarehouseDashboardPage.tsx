@@ -224,13 +224,11 @@ export function WarehouseDashboardPage() {
               received={stats.received}
               wear={stats.wear}
             />
-            <IssuesSection
+            <InventoryOverview
               lowStock={stats.lowStock}
               blocked={stats.blocked}
               rejected={stats.rejected}
               notConsumed={stats.notConsumed}
-            />
-            <PerformanceSection
               delivered={stats.deliveredThisMonth}
               wearCredited={stats.wearCreditedThisMonth}
               rejectedFinal={stats.rejectedFinalThisMonth}
@@ -285,55 +283,24 @@ function IssueRow({ icon, label, count, tone }: { icon: ReactNode; label: string
   )
 }
 
-function IssuesSection({ lowStock, blocked, rejected, notConsumed }: {
+function InventoryOverview({ lowStock, blocked, rejected, notConsumed, delivered, wearCredited, rejectedFinal, totalSkus }: {
   lowStock: number; blocked: number; rejected: number; notConsumed: number
-}) {
-  const total = lowStock + blocked + rejected + notConsumed
-  return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-foreground">בעיות מחסן</h2>
-          {total > 0 && (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-danger/10 text-danger font-medium">{total} פתוחות</span>
-          )}
-        </div>
-      </CardHeader>
-      <CardBody className="p-0">
-        <IssueRow icon={<IconWarning size={20} />}       label="מלאי נמוך"          count={lowStock}    tone="text-warning" />
-        <IssueRow icon={<IconBan size={20} />}           label='מק״טים חסומים'      count={blocked}     tone="text-danger" />
-        <IssueRow icon={<IconClipboard size={20} />}     label="פריטים שנדחו"       count={rejected}    tone="text-danger" />
-        <IssueRow icon={<IconBox size={20} />}           label="פריטים שלא נצרכו"   count={notConsumed} tone="text-warning" />
-      </CardBody>
-    </Card>
-  )
-}
-
-function PerformanceSection({ delivered, wearCredited, rejectedFinal, totalSkus }: {
   delivered: number; wearCredited: number; rejectedFinal: number; totalSkus: number
 }) {
-  const metrics: Array<{ icon: ReactNode; label: string; value: number; tone: string }> = [
-    { icon: <IconCheck size={20} />,           label: 'נופקו החודש',         value: delivered,      tone: 'text-success' },
-    { icon: <IconTruck size={20} />,           label: 'בלאי מזוכה',          value: wearCredited,   tone: 'text-foreground' },
-    { icon: <IconBan size={20} color="#6b7280" />, label: 'נדחו סופית',      value: rejectedFinal,  tone: 'text-muted' },
-    { icon: <IconSearch size={20} />,          label: 'מק״טים בקטלוג',      value: totalSkus,      tone: 'text-foreground' },
-  ]
-
   return (
     <Card>
       <CardHeader>
-        <h2 className="text-sm font-semibold text-foreground">ביצועי מחסן · החודש</h2>
+        <h2 className="text-sm font-semibold text-foreground">סיכום מלאי ופעילות</h2>
       </CardHeader>
       <CardBody className="p-0">
-        <div className="grid grid-cols-4 gap-px bg-border">
-          {metrics.map(m => (
-            <div key={m.label} className="bg-card flex flex-col items-center px-1 py-4">
-              <span className="text-muted mb-1">{m.icon}</span>
-              <span className={`text-lg sm:text-2xl font-bold ${m.tone}`}>{m.value}</span>
-              <span className="text-[9px] sm:text-xs text-muted text-center mt-1 leading-tight">{m.label}</span>
-            </div>
-          ))}
-        </div>
+        <IssueRow icon={<IconWarning size={20} />}              label="מלאי נמוך"          count={lowStock}      tone="text-warning" />
+        <IssueRow icon={<IconBan size={20} />}                  label='מק״טים חסומים'      count={blocked}       tone="text-danger" />
+        <IssueRow icon={<IconClipboard size={20} />}            label="פריטים שנדחו"       count={rejected}      tone="text-danger" />
+        <IssueRow icon={<IconBox size={20} />}                  label="פריטים שלא נצרכו"   count={notConsumed}   tone="text-warning" />
+        <IssueRow icon={<IconCheck size={20} />}                label="נופקו החודש"         count={delivered}     tone="text-success" />
+        <IssueRow icon={<IconTruck size={20} />}                label="בלאי מזוכה"          count={wearCredited}  tone="text-foreground" />
+        <IssueRow icon={<IconBan size={20} color="#6b7280" />}  label="נדחו סופית"          count={rejectedFinal} tone="text-muted" />
+        <IssueRow icon={<IconSearch size={20} />}               label='מק״טים בקטלוג'      count={totalSkus}     tone="text-foreground" />
       </CardBody>
     </Card>
   )
