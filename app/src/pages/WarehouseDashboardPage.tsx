@@ -97,29 +97,35 @@ function IconList({ size = 24, color = '#64748b' }: IconProps) {
   )
 }
 
-function UrgentBanner({ rejected, blocked, lowStock, overdueReceipt }: {
-  rejected: number; blocked: number; lowStock: number; overdueReceipt: number
+function TopStatsBar({ total, rejected, blocked, lowStock, overdueReceipt }: {
+  total: number; rejected: number; blocked: number; lowStock: number; overdueReceipt: number
 }) {
-  const items: Array<{ label: string; count: number }> = [
-    { label: 'מק״טים שנדחו',           count: rejected },
-    { label: 'מק״טים חסומים',          count: blocked },
-    { label: 'מלאי נמוך',               count: lowStock },
-    { label: 'ממתינים זמן רב לקבלה',    count: overdueReceipt },
+  const secondary: Array<{ icon: ReactNode; value: ReactNode; label: string }> = [
+    { icon: <IconWarning size={18} />,                   value: rejected,      label: 'מק״טים שנדחו' },
+    { icon: <IconBan size={18} color="#dc2626" />,       value: blocked,       label: 'מק״טים חסומים' },
+    { icon: <IconBox size={18} color="#f59e0b" />,       value: lowStock,      label: 'מלאי נמוך' },
+    { icon: <IconTruck size={18} color="#dc2626" />,     value: overdueReceipt, label: 'ממתינים זמן רב' },
   ]
-  const total = items.reduce((s, i) => s + i.count, 0)
-  if (total === 0) return null
 
   return (
-    <div className="rounded-xl border border-danger/30 bg-danger/5 px-4 py-3">
-      <div className="flex items-center gap-2 mb-2">
-        <IconWarning size={18} />
-        <span className="text-sm font-semibold text-danger">דורש טיפול מיידי</span>
+    <div className="rounded-2xl border border-border overflow-hidden">
+      <div className="px-4 py-5 sm:py-6 text-center" style={{ backgroundColor: NAVY }}>
+        <div className="flex items-center justify-center gap-3">
+          <IconBox size={28} color="#fff" />
+          <span className="text-3xl sm:text-5xl font-extrabold text-white leading-none">{total}</span>
+          <span className="text-sm sm:text-lg text-white/80 font-medium">פריטים ממתינים לטיפול</span>
+        </div>
       </div>
-      <div className="grid grid-cols-4 gap-2">
-        {items.map(i => (
-          <div key={i.label} className="flex flex-col items-center">
-            <span className="text-lg font-bold text-danger">{i.count}</span>
-            <span className="text-[9px] sm:text-xs text-danger/80 text-center leading-tight">{i.label}</span>
+
+      <div className="grid grid-cols-4 gap-px bg-border">
+        {secondary.map(s => (
+          <div
+            key={s.label}
+            className="bg-card flex flex-col items-center px-1 sm:px-3 py-3 sm:py-4"
+          >
+            <span className="text-muted">{s.icon}</span>
+            <span className="text-lg sm:text-2xl font-bold leading-none mt-1 text-foreground">{s.value}</span>
+            <span className="text-[10px] sm:text-xs mt-1 text-center leading-tight text-muted">{s.label}</span>
           </div>
         ))}
       </div>
@@ -201,13 +207,13 @@ export function WarehouseDashboardPage() {
           <p className="text-sm text-muted text-center py-8">טוען...</p>
         ) : (
           <>
-            <UrgentBanner
+            <TopStatsBar
+              total={stats.totalPending}
               rejected={stats.rejected}
               blocked={stats.blocked}
               lowStock={stats.lowStock}
               overdueReceipt={stats.overdueReceipt}
             />
-            <HeroBanner total={stats.totalPending} />
             <StatusTiles
               awaitingOrder={stats.awaitingOrder}
               awaitingReceipt={stats.awaitingReceipt}
@@ -234,21 +240,7 @@ export function WarehouseDashboardPage() {
   )
 }
 
-function HeroBanner({ total }: { total: number }) {
-  return (
-    <Link
-      to="/warehouse"
-      className="block rounded-2xl border border-border overflow-hidden transition-opacity hover:opacity-90"
-      style={{ backgroundColor: NAVY }}
-    >
-      <div className="flex items-center justify-center gap-3 px-4 py-5">
-        <IconBox size={28} color="#fff" />
-        <span className="text-3xl sm:text-5xl font-extrabold text-white leading-none">{total}</span>
-        <span className="text-sm sm:text-lg text-white/80 font-medium">פריטים ממתינים לטיפול</span>
-      </div>
-    </Link>
-  )
-}
+
 
 function StatusTiles({ awaitingOrder, awaitingReceipt, received, wear }: {
   awaitingOrder: number; awaitingReceipt: number; received: number; wear: number
