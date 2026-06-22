@@ -4,6 +4,8 @@ import { useQueryClient } from '@tanstack/react-query'
 import { AppHeader } from '../components/AppHeader'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { PartsCatalogList } from '../components/PartsCatalogList'
+import { ActivePartActions } from '../components/ActivePartActions'
+import { PendingPartActions } from '../components/PendingPartActions'
 import { usePendingActions, type PendingPart } from '../hooks/usePendingActions'
 import { useParts } from '../hooks/useParts'
 import { useAppSettings } from '../hooks/useAppSettings'
@@ -257,7 +259,7 @@ const TILE_DEFS: { key: Section; label: string; color: string; bg: string }[] = 
   { key: 'awaiting_order',   label: 'ממתין להזמנה',  color: '#dc2626', bg: 'bg-red-50' },
   { key: 'awaiting_receipt', label: 'ממתין לקבלה',   color: '#f59e0b', bg: 'bg-amber-50' },
   { key: 'received',         label: 'התקבל',          color: '#3b82f6', bg: 'bg-blue-50' },
-  { key: 'wear',             label: 'בלאי',           color: '#8b5cf6', bg: 'bg-purple-50' },
+  { key: 'wear',             label: 'בלאי',           color: '#16a34a', bg: 'bg-green-50' },
 ]
 
 function StatusTiles({ counts, active, onToggle }: {
@@ -294,7 +296,7 @@ function StatusTiles({ counts, active, onToggle }: {
 
 const OVERVIEW_DEFS: { key: Section; icon: ReactNode; label: string; tone: string }[] = [
   { key: 'not_consumed',   icon: <IconBox size={20} />,                  label: 'פריטים שלא נצרכו', tone: 'text-warning' },
-  { key: 'delivered',      icon: <IconCheck size={20} />,                label: 'נופקו החודש',       tone: 'text-success' },
+  { key: 'delivered',      icon: <IconCheck size={20} />,                label: 'פריטים שנופקו',     tone: 'text-success' },
   { key: 'rejected_final', icon: <IconBan size={20} color="#6b7280" />,  label: 'נדחו סופית',        tone: 'text-muted' },
   { key: 'wear_credited',  icon: <IconTruck size={20} />,                label: 'בלאי מזוכה',        tone: 'text-foreground' },
 ]
@@ -476,10 +478,9 @@ export function WarehouseDashboardPage() {
 
   const computed = useMemo(() => {
     const rows = pending ?? []
-    const now = new Date()
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    const notBlocked = rows.filter(r => !r.parts?.is_sku_blocked)
+    const byStatus = (s: string) => notBlocked.filter(r => r.status === s)
 
-    const byStatus = (s: string) => rows.filter(r => r.status === s)
     const awaitingReceipt = byStatus('awaiting_receipt')
     const delivered       = byStatus('delivered')
     const wearCredited    = byStatus('wear_credited')
@@ -490,29 +491,23 @@ export function WarehouseDashboardPage() {
       return (Date.now() - new Date(since).getTime()) / HOUR >= 48
     })
     const blockedRows = rows.filter(r => r.parts?.is_sku_blocked && !r.parts?.hide_from_blocked_table)
-    const deliveredThisMonth = delivered.filter(r => {
-      const w = r.part_withdrawals?.[0]?.withdrawn_at
-      return w && new Date(w) >= monthStart
-    })
-    const wearCreditedThisMonth = wearCredited.filter(r => new Date(r.requested_at) >= monthStart)
-    const rejectedFinalThisMonth = rejectedFinal.filter(r => new Date(r.requested_at) >= monthStart)
 
     const catalog = parts ?? []
     const lowStockParts = catalog.filter(p => p.quantity < p.min_threshold)
 
     const sectionRows: Record<string, PendingPart[]> = {
-      rejected:        byStatus('rejected'),
-      pending_special: byStatus('pending_special_approval'),
-      blocked:         blockedRows,
-      overdue_receipt: overdueReceipt,
-      awaiting_order:  byStatus('awaiting_order'),
+      rejected:         byStatus('rejected'),
+      pending_special:  byStatus('pending_special_approval'),
+      blocked:          blockedRows,
+      overdue_receipt:  overdueReceipt,
+      awaiting_order:   byStatus('awaiting_order'),
       awaiting_receipt: awaitingReceipt,
-      received:        byStatus('received'),
-      wear:            byStatus('wear'),
-      not_consumed:    byStatus('not_consumed'),
-      delivered:       deliveredThisMonth,
-      rejected_final:  rejectedFinalThisMonth,
-      wear_credited:   wearCreditedThisMonth,
+      received:         notBlocked.filter(r => r.status === 'received' && !r.warehouse_order_id),
+      wear:             byStatus('wear'),
+      not_consumed:     byStatus('not_consumed'),
+      delivered:        delivered,
+      rejected_final:   rejectedFinal,
+      wear_credited:    wearCredited,
     }
 
     const counts: Record<string, number> = {}
@@ -530,6 +525,15 @@ export function WarehouseDashboardPage() {
 
   function renderExpanded(keys: Set<Section>) {
     if (!active || !keys.has(active)) return null
+
+    if (TILE_SET.has(active)) return <ActivePartActions />
+
+    const overviewVariant: Record<string, 'delivered' | 'not_consumed' | 'rejected_final' | 'wear_credited'> = {
+      delivered: 'delivered', not_consumed: 'not_consumed',
+      rejected_final: 'rejected_final', wear_credited: 'wear_credited',
+    }
+    if (overviewVariant[active]) return <PendingPartActions variant={overviewVariant[active]} defaultOpen />
+
     if (active === 'low_stock') {
       return <ExpandedPanel><LowStockList rows={computed.lowStockParts} /></ExpandedPanel>
     }

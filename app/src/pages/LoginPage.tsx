@@ -22,7 +22,7 @@ const BUILD_TIME_LABEL = new Date(BUILD_TIME).toLocaleString('he-IL', {
 const homeRouteByPermissions: Record<EmployeePermissions, string> = {
   technician:       '/technician',
   manager:          '/manager/dashboard',
-  warehouse:        '/warehouse',
+  warehouse:        '/warehouse/dashboard',
   commander_viewer: '/manager/dashboard',
 }
 

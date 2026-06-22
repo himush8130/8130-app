@@ -48,7 +48,7 @@ const NAV_ICONS: Record<ViewKey, ReactNode> = {
 
 const ALL_VIEWS: Array<{ key: ViewKey; to: string; label: string; matches: (p: string) => boolean }> = [
   { key: 'dashboard',  to: '/manager/dashboard',  label: 'לוח בקרה',  matches: (p) => p.startsWith('/manager/dashboard') },
-  { key: 'warehouse',  to: '/warehouse',          label: 'מחסן',    matches: (p) => p.startsWith('/warehouse') },
+  { key: 'warehouse',  to: '/warehouse/dashboard', label: 'מחסן',    matches: (p) => p.startsWith('/warehouse') },
   { key: 'technician', to: '/technician',         label: 'כלים',      matches: (p) => p.startsWith('/technician') },
   { key: 'settings',   to: '/manager',            label: 'הגדרות',    matches: (p) => p === '/manager' || p.startsWith('/manager/settings') },
 ]
@@ -143,6 +143,20 @@ export function AppHeader({ subtitle, showLogo, wide }: { subtitle?: string; sho
         {employee && (
           <div className="flex items-center gap-3">
             <span className="text-sm text-muted hidden sm:inline">{employee.name}</span>
+
+            {(employee.permissions === 'manager' || employee.permissions === 'warehouse') && (
+              <Link
+                to="/warehouse"
+                aria-label="דף מחסן מקורי"
+                title="דף מחסן מקורי"
+                className={`${CHIP_BASE} ${CHIP_ICON} ${CHIP_NEUTRAL}`}
+              >
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
+                  <path d="m15 5 4 4" />
+                </svg>
+              </Link>
+            )}
 
             {employee.permissions === 'manager' && <AttendanceCopyIcon />}
 
