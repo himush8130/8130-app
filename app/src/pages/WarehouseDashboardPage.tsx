@@ -97,13 +97,14 @@ function IconList({ size = 24, color = '#64748b' }: IconProps) {
   )
 }
 
-function TopStatsBar({ total, rejected, blocked, lowStock, overdueReceipt }: {
-  total: number; rejected: number; blocked: number; lowStock: number; overdueReceipt: number
+function TopStatsBar({ total, rejected, blocked, lowStock, overdueReceipt, pendingSpecial }: {
+  total: number; rejected: number; blocked: number; lowStock: number; overdueReceipt: number; pendingSpecial: number
 }) {
   const secondary: Array<{ icon: ReactNode; value: ReactNode; label: string }> = [
-    { icon: <IconWarning size={18} />,                   value: rejected,      label: 'מק״טים שנדחו' },
-    { icon: <IconBan size={18} color="#dc2626" />,       value: blocked,       label: 'מק״טים חסומים' },
-    { icon: <IconBox size={18} color="#f59e0b" />,       value: lowStock,      label: 'מלאי נמוך' },
+    { icon: <IconWarning size={18} />,                   value: rejected,       label: 'מק״טים שנדחו' },
+    { icon: <IconBan size={18} color="#dc2626" />,       value: blocked,        label: 'מק״טים חסומים' },
+    { icon: <IconClipboard size={18} color="#f59e0b" />, value: pendingSpecial, label: 'ממתין לאישור מיוחד' },
+    { icon: <IconBox size={18} color="#f59e0b" />,       value: lowStock,       label: 'מלאי נמוך' },
     { icon: <IconTruck size={18} color="#dc2626" />,     value: overdueReceipt, label: 'ממתינים זמן רב' },
   ]
 
@@ -117,7 +118,7 @@ function TopStatsBar({ total, rejected, blocked, lowStock, overdueReceipt }: {
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-px bg-border">
+      <div className="grid grid-cols-5 gap-px bg-border">
         {secondary.map(s => (
           <div
             key={s.label}
@@ -146,7 +147,8 @@ export function WarehouseDashboardPage() {
     const awaitingReceipt = rows.filter(r => r.status === 'awaiting_receipt')
     const received        = rows.filter(r => r.status === 'received')
     const wear            = rows.filter(r => r.status === 'wear')
-    const rejected        = rows.filter(r => r.status === 'rejected' || r.status === 'pending_special_approval')
+    const rejected        = rows.filter(r => r.status === 'rejected')
+    const pendingSpecial  = rows.filter(r => r.status === 'pending_special_approval')
     const notConsumed     = rows.filter(r => r.status === 'not_consumed')
     const delivered       = rows.filter(r => r.status === 'delivered')
     const wearCredited    = rows.filter(r => r.status === 'wear_credited')
@@ -194,6 +196,7 @@ export function WarehouseDashboardPage() {
       wearCreditedThisMonth: wearCreditedThisMonth.length,
       rejectedFinalThisMonth: rejectedFinalThisMonth.length,
       overdueReceipt: overdueReceipt.length,
+      pendingSpecial: pendingSpecial.length,
     }
   }, [pending, parts])
 
@@ -213,6 +216,7 @@ export function WarehouseDashboardPage() {
               blocked={stats.blocked}
               lowStock={stats.lowStock}
               overdueReceipt={stats.overdueReceipt}
+              pendingSpecial={stats.pendingSpecial}
             />
             <StatusTiles
               awaitingOrder={stats.awaitingOrder}
