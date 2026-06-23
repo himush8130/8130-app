@@ -6,6 +6,7 @@ import { useVehiclesMap } from '../hooks/useVehicles'
 import { useVehicleCallStats } from '../hooks/useVehicleCallStats'
 import { usePendingActions } from '../hooks/usePendingActions'
 import { useAuthStore } from '../store/auth'
+import { Card, CardBody } from './ui/Card'
 import { CollapsibleSection } from './CollapsibleSection'
 import { PendingActionRow, type RowData } from './PendingActionRow'
 import { ReceiveDestinationDialog } from './ReceiveDestinationDialog'
@@ -31,9 +32,10 @@ interface Props {
   variant?:      Variant
   defaultOpen?:  boolean
   rejectedOnly?: boolean
+  headless?:     boolean
 }
 
-export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false }: Props) {
+export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false, headless }: Props) {
   const effective: Variant = variant ?? (rejectedOnly ? 'rejected' : 'active')
   const { data, isLoading } = usePendingActions()
   const { data: settings } = useAppSettings()
@@ -176,14 +178,8 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
       ? rows.filter((r) => !(r.parts?.replacement_sku && r.parts.replacement_sku.trim())).length
       : rows.length
 
-  return (
-    <CollapsibleSection
-      title={title}
-      count={headerCount}
-      defaultOpen={defaultOpen}
-      badgeId={badgeId}
-      countTone={tone}
-    >
+  const body = (
+    <>
       {effective === 'active' && (
         <div className="px-4 py-2 border-b border-border">
           <Input
@@ -331,6 +327,22 @@ export function PendingPartActions({ variant, rejectedOnly, defaultOpen = false 
         </div>,
         document.body,
       )}
+    </>
+  )
+
+  if (headless) {
+    return <Card><CardBody className="p-0">{body}</CardBody></Card>
+  }
+
+  return (
+    <CollapsibleSection
+      title={title}
+      count={headerCount}
+      defaultOpen={defaultOpen}
+      badgeId={badgeId}
+      countTone={tone}
+    >
+      {body}
     </CollapsibleSection>
   )
 }

@@ -491,7 +491,7 @@ export function WarehouseDashboardPage() {
       delivered: 'delivered', not_consumed: 'not_consumed',
       rejected_final: 'rejected_final', wear_credited: 'wear_credited',
     }
-    if (overviewVariant[active]) return <PendingPartActions variant={overviewVariant[active]} defaultOpen />
+    if (overviewVariant[active]) return <PendingPartActions variant={overviewVariant[active]} headless />
 
     if (active === 'low_stock') {
       return <ExpandedPanel><LowStockList rows={computed.lowStockParts} /></ExpandedPanel>
@@ -511,7 +511,7 @@ export function WarehouseDashboardPage() {
             <TopStatsBar counts={computed.counts} active={active} onToggle={toggle} />
             {renderExpanded(BANNER_SET)}
 
-            <ActivePartActions />
+            <ActivePartActions tileStyle />
 
             <InventoryOverview counts={computed.counts} active={active} onToggle={toggle} />
             {renderExpanded(OVERVIEW_SET)}

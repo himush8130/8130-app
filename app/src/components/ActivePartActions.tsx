@@ -32,6 +32,13 @@ const TAB_COLOR: Record<Tab, string> = {
   wear:             '#16a34a',
 }
 
+const TAB_BG: Record<Tab, string> = {
+  awaiting_order:   'bg-red-50',
+  awaiting_receipt: 'bg-amber-50',
+  received:         'bg-blue-50',
+  wear:             'bg-green-50',
+}
+
 const HOUR = 60 * 60 * 1000
 
 /** Single combined card for the three live statuses the warehouse
@@ -45,7 +52,7 @@ const HOUR = 60 * 60 * 1000
  *  - The "ממתין לקבלה" tab is sorted by how long the row has been
  *    waiting (oldest first) with colour tones: red >48h, yellow >24h.
  */
-export function ActivePartActions() {
+export function ActivePartActions({ tileStyle }: { tileStyle?: boolean } = {}) {
   const employee = useAuthStore((s) => s.employee)
   const { data, isLoading } = usePendingActions()
   const { data: settings } = useAppSettings()
@@ -291,14 +298,15 @@ export function ActivePartActions() {
     return []  // received: dispense per-row via the detail page
   })()
 
+  const Wrapper = tileStyle ? 'div' : Card
   return (
-    <Card>
+    <Wrapper>
       <ComponentBadge id={4003} />
 
-      {/* Tabs ARE the header. Three equal-sized squares in a single
-          row, each coloured by the status it represents. Clicking
-          the active tab collapses the panel back to the default. */}
-      <div className="px-3 py-3 grid grid-cols-4 gap-2">
+      {/* Tabs ARE the header. Equal-sized squares in a single row,
+          each coloured by the status it represents. Clicking the
+          active tab collapses the panel back to the default. */}
+      <div className={`grid grid-cols-4 gap-2 ${tileStyle ? '' : 'px-3 py-3'}`}>
         {(Object.keys(TAB_LABEL) as Tab[]).map((t) => {
           const active = tab === t
           const color = TAB_COLOR[t]
@@ -308,14 +316,16 @@ export function ActivePartActions() {
               type="button"
               onClick={() => clickTab(t)}
               aria-expanded={active}
-              className={`min-w-0 rounded-xl overflow-hidden transition-all flex flex-col items-center text-center bg-card ${
-                active ? 'ring-2 ring-offset-1 shadow-md' : 'border border-border hover:shadow-sm'
+              className={`min-w-0 rounded-xl overflow-hidden transition-all flex flex-col items-center text-center ${
+                tileStyle
+                  ? `${TAB_BG[t]} ${active ? 'ring-2 ring-primary border-primary' : 'border border-border'} hover:opacity-90`
+                  : `bg-card ${active ? 'ring-2 ring-offset-1 shadow-md' : 'border border-border hover:shadow-sm'}`
               }`}
-              style={active ? { '--tw-ring-color': color } as React.CSSProperties : undefined}
+              style={!tileStyle && active ? { '--tw-ring-color': color } as React.CSSProperties : undefined}
             >
               <div className="w-full h-1" style={{ backgroundColor: color }} />
               <span className="text-[11px] leading-tight truncate w-full px-1 pt-2 text-muted">{TAB_LABEL[t]}</span>
-              <span className="text-xl font-bold leading-none pb-2.5 pt-0.5 text-foreground">{counts[t]}</span>
+              <span className={`text-xl font-bold leading-none pb-2.5 pt-0.5 ${tileStyle ? '' : 'text-foreground'}`} style={tileStyle ? { color } : undefined}>{counts[t]}</span>
             </button>
           )
         })}
@@ -323,7 +333,7 @@ export function ActivePartActions() {
 
       {/* Body — only renders when a tab is open. */}
       {tab && (
-        <>
+        <Card className={tileStyle ? 'mt-2' : 'border-0 shadow-none'}>
           <div className="px-3 pt-1 pb-2 border-t border-border grid grid-cols-1 sm:grid-cols-2 gap-2">
             <Input
               label="סינון לפי מק״ט"
@@ -421,7 +431,7 @@ export function ActivePartActions() {
               ))}
             </ul>
           )}
-        </>
+        </Card>
       )}
 
       {receiveQueue.length > 0 && (
@@ -435,7 +445,7 @@ export function ActivePartActions() {
           onConfirm={confirmReceive}
         />
       )}
-    </Card>
+    </Wrapper>
   )
 }
 
