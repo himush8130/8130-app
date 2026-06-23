@@ -20,7 +20,6 @@ const HOUR = 3_600_000
 
 type Section =
   | 'rejected' | 'blocked' | 'pending_special' | 'low_stock' | 'overdue_receipt'
-  | 'awaiting_order' | 'awaiting_receipt' | 'received' | 'wear'
   | 'not_consumed' | 'delivered' | 'rejected_final' | 'wear_credited'
   | 'catalog'
 
@@ -251,44 +250,6 @@ function TopStatsBar({ counts, active, onToggle }: {
   )
 }
 
-/* ------------------------------------------------------------------ */
-/*  Status Tiles                                                       */
-/* ------------------------------------------------------------------ */
-
-const TILE_DEFS: { key: Section; label: string; color: string; bg: string }[] = [
-  { key: 'awaiting_order',   label: 'ממתין להזמנה',  color: '#dc2626', bg: 'bg-red-50' },
-  { key: 'awaiting_receipt', label: 'ממתין לקבלה',   color: '#f59e0b', bg: 'bg-amber-50' },
-  { key: 'received',         label: 'התקבל',          color: '#3b82f6', bg: 'bg-blue-50' },
-  { key: 'wear',             label: 'בלאי',           color: '#16a34a', bg: 'bg-green-50' },
-]
-
-function StatusTiles({ counts, active, onToggle }: {
-  counts: Record<string, number>
-  active: Section | null
-  onToggle: (s: Section) => void
-}) {
-  return (
-    <div className="grid grid-cols-4 gap-2">
-      {TILE_DEFS.map(t => {
-        const isActive = active === t.key
-        return (
-          <button
-            key={t.key}
-            type="button"
-            onClick={() => onToggle(t.key)}
-            className={`rounded-xl border overflow-hidden flex flex-col ${t.bg} transition-opacity hover:opacity-90 text-start ${isActive ? 'ring-2 ring-primary border-primary' : 'border-border'}`}
-          >
-            <div className="h-1" style={{ backgroundColor: t.color }} />
-            <div className="flex flex-col items-center py-3 px-1">
-              <span className="text-xl sm:text-3xl font-bold" style={{ color: t.color }}>{counts[t.key] ?? 0}</span>
-              <span className="text-[9px] sm:text-xs text-foreground text-center mt-1 leading-tight">{t.label}</span>
-            </div>
-          </button>
-        )
-      })}
-    </div>
-  )
-}
 
 /* ------------------------------------------------------------------ */
 /*  Inventory Overview                                                 */
@@ -449,7 +410,6 @@ function TopDeliveredTable({ rows, onHide }: { rows: TopPart[]; onHide: (sku: st
 /* ------------------------------------------------------------------ */
 
 const BANNER_SET = new Set<Section>(['rejected', 'blocked', 'pending_special', 'low_stock', 'overdue_receipt'])
-const TILE_SET   = new Set<Section>(['awaiting_order', 'awaiting_receipt', 'received', 'wear'])
 const OVERVIEW_SET = new Set<Section>(['not_consumed', 'delivered', 'rejected_final', 'wear_credited'])
 
 export function WarehouseDashboardPage() {
@@ -500,10 +460,6 @@ export function WarehouseDashboardPage() {
       pending_special:  byStatus('pending_special_approval'),
       blocked:          blockedRows,
       overdue_receipt:  overdueReceipt,
-      awaiting_order:   byStatus('awaiting_order'),
-      awaiting_receipt: awaitingReceipt,
-      received:         notBlocked.filter(r => r.status === 'received' && !r.warehouse_order_id),
-      wear:             byStatus('wear'),
       not_consumed:     byStatus('not_consumed'),
       delivered:        delivered,
       rejected_final:   rejectedFinal,
@@ -513,6 +469,10 @@ export function WarehouseDashboardPage() {
     const counts: Record<string, number> = {}
     for (const [k, v] of Object.entries(sectionRows)) counts[k] = v.length
     counts.low_stock = lowStockParts.length
+    counts.awaiting_order = byStatus('awaiting_order').length
+    counts.awaiting_receipt = awaitingReceipt.length
+    counts.received = notBlocked.filter(r => r.status === 'received' && !r.warehouse_order_id).length
+    counts.wear = byStatus('wear').length
     counts.totalPending = counts.rejected + counts.blocked + counts.pending_special +
       counts.low_stock + counts.overdue_receipt +
       counts.awaiting_order + counts.awaiting_receipt + counts.wear
@@ -526,8 +486,6 @@ export function WarehouseDashboardPage() {
 
   function renderExpanded(keys: Set<Section>) {
     if (!active || !keys.has(active)) return null
-
-    if (TILE_SET.has(active)) return <ActivePartActions />
 
     const overviewVariant: Record<string, 'delivered' | 'not_consumed' | 'rejected_final' | 'wear_credited'> = {
       delivered: 'delivered', not_consumed: 'not_consumed',
@@ -553,8 +511,7 @@ export function WarehouseDashboardPage() {
             <TopStatsBar counts={computed.counts} active={active} onToggle={toggle} />
             {renderExpanded(BANNER_SET)}
 
-            <StatusTiles counts={computed.counts} active={active} onToggle={toggle} />
-            {renderExpanded(TILE_SET)}
+            <ActivePartActions />
 
             <InventoryOverview counts={computed.counts} active={active} onToggle={toggle} />
             {renderExpanded(OVERVIEW_SET)}
