@@ -18,15 +18,18 @@ function fmtDate(iso: string): string {
   })
 }
 
-function callLine(c: ServiceCall): string {
-  const p = [`קריאה מספר ${c.display_id}`]
-  if (c.vehicle_number) p.push(`עבור כלי מספר ${c.vehicle_number}`)
-  if (c.description) p.push(`(תיאור תקלה: ${c.description})`)
-  if (c.is_disabling) p.push('— משביתה')
-  if (c.profession_name) p.push(`[${c.profession_name}]`)
-  if (c.reporter_name) p.push(`דיווח: ${c.reporter_name}`)
-  p.push(`נפתחה: ${fmtDate(c.created_at)}`)
-  return p.join(' ')
+function callBlock(c: ServiceCall): string {
+  const lines = [`קריאה מספר ${c.display_id}`]
+  if (c.vehicle_number) lines.push(`עבור כלי מספר ${c.vehicle_number}`)
+  const detail: string[] = []
+  if (c.description) detail.push(`תיאור תקלה: ${c.description}`)
+  if (c.is_disabling) detail.push('משביתה')
+  if (c.profession_name) detail.push(`מקצוע: ${c.profession_name}`)
+  if (c.reporter_name) detail.push(`דיווח: ${c.reporter_name}`)
+  detail.push(`נפתחה: ${fmtDate(c.created_at)}`)
+  lines.push(detail.join(' · '))
+  lines.push('─'.repeat(30))
+  return lines.join('\n')
 }
 
 export function ExportOpenCallsButton() {
@@ -64,7 +67,7 @@ export function ExportOpenCallsButton() {
         const group = grouped.get(status) ?? []
         if (group.length === 0) continue
         lines.push('', `▸ ${STATUS_HEBREW[status]} (${group.length})`, '─'.repeat(40))
-        for (const c of group) lines.push(callLine(c))
+        for (const c of group) lines.push(callBlock(c))
       }
 
       const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' })
