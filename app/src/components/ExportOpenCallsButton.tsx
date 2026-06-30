@@ -25,8 +25,6 @@ function callBlock(c: ServiceCall): string {
   if (c.description) detail.push(`תיאור תקלה: ${c.description}`)
   if (c.is_disabling) detail.push('משביתה')
   if (c.profession_name) detail.push(`מקצוע: ${c.profession_name}`)
-  if (c.reporter_name) detail.push(`דיווח: ${c.reporter_name}`)
-  detail.push(`נפתחה: ${fmtDate(c.created_at)}`)
   lines.push(detail.join(' · '))
   lines.push('─'.repeat(30))
   return lines.join('\n')
