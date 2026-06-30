@@ -5,19 +5,6 @@ import type { ServiceCall, CallStatus } from '../types/db'
 
 const OPEN_STATUSES: CallStatus[] = ['new', 'in_treatment', 'waiting_for_parts']
 
-const STATUS_HEBREW: Record<string, string> = {
-  new: 'חדשה',
-  in_treatment: 'בטיפול',
-  waiting_for_parts: 'ממתינה לחלקים',
-}
-
-function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('he-IL', {
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit',
-  })
-}
-
 function callBlock(c: ServiceCall): string {
   const lines = [`קריאה מספר ${c.display_id}`]
   if (c.vehicle_number) lines.push(`עבור כלי מספר ${c.vehicle_number}`)
@@ -51,22 +38,12 @@ export function ExportOpenCallsButton() {
         return
       }
 
-      const grouped = new Map<CallStatus, ServiceCall[]>()
-      for (const s of OPEN_STATUSES) grouped.set(s, [])
-      for (const c of calls) grouped.get(c.status)?.push(c)
-
       const lines: string[] = [
-        `דוח קריאות פתוחות — ${fmtDate(new Date().toISOString())}`,
-        `סה״כ: ${calls.length} קריאות`,
+        `דוח קריאות פתוחות — סה״כ: ${calls.length} קריאות`,
         '═'.repeat(50),
       ]
 
-      for (const status of OPEN_STATUSES) {
-        const group = grouped.get(status) ?? []
-        if (group.length === 0) continue
-        lines.push('', `▸ ${STATUS_HEBREW[status]} (${group.length})`, '─'.repeat(40))
-        for (const c of group) lines.push(callBlock(c))
-      }
+      for (const c of calls) lines.push(callBlock(c))
 
       const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' })
       const url = URL.createObjectURL(blob)
