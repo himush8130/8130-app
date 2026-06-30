@@ -7,7 +7,7 @@ import type { ServiceCall } from '../types/db'
 /**
  * Copies a Hebrew call summary to the clipboard, ready to paste into
  * a WhatsApp / SMS message. Format:
- *   "היי, זה <author>, לגבי קריאה מספר <display_id> עבור כלי מספר <vehicle_number> (תיאור תקלה: <description>)"
+ *   "קריאה מספר <display_id> עבור כלי מספר <vehicle_number> (תיאור תקלה: <description>)"
  * Optional fragments are skipped when their source field is empty.
  */
 export function CopyCallSummaryButton({ call }: { call: ServiceCall }) {
@@ -18,7 +18,7 @@ export function CopyCallSummaryButton({ call }: { call: ServiceCall }) {
   if (!employee) return null
 
   function buildSummary() {
-    const parts = [`היי, זה ${employee!.name}, לגבי קריאה מספר ${call.display_id}`]
+    const parts = [`קריאה מספר ${call.display_id}`]
     if (call.vehicle_number) parts.push(`עבור כלי מספר ${call.vehicle_number}`)
     if (call.description)    parts.push(`(תיאור תקלה: ${call.description})`)
     return parts.join(' ')

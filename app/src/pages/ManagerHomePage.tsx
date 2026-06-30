@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { AppHeader } from '../components/AppHeader'
 import { ReleaseNoteFooter } from '../components/ReleaseNoteFooter'
 import { AttendanceReportButton } from '../components/AttendanceReportButton'
+import { ExportOpenCallsButton } from '../components/ExportOpenCallsButton'
 import { TankMaintenanceOverview } from '../components/TankMaintenanceOverview'
 import { ClassOrdersTable } from '../components/ClassOrdersTable'
 import { Card, CardBody } from '../components/ui/Card'
@@ -113,6 +114,13 @@ export function ManagerHomePage() {
               <CardBody className="flex items-center justify-between gap-2 flex-wrap">
                 <h3 className="text-sm font-semibold text-foreground">דוח נוכחות יומי</h3>
                 <AttendanceReportButton />
+              </CardBody>
+            </Card>
+
+            <Card>
+              <CardBody className="flex items-center justify-between gap-2 flex-wrap">
+                <h3 className="text-sm font-semibold text-foreground">ייצוא קריאות פתוחות</h3>
+                <ExportOpenCallsButton />
               </CardBody>
             </Card>
 
